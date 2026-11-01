@@ -16,7 +16,6 @@
   --on-accent: #fbfcfe;
   --overdue: #b4382f;
   --hand: Kalam, "Bradley Hand", cursive;
-  --bar: 72px; /* the toast's row at the bottom; keeps the end of the list clear of it */
   --kb: 0px;
   --kb-pad: 0px; /* the iOS form bar above the keyboard; 0 when no keyboard is up */
   --kb-open: 0; /* 1 while the keyboard is up */
@@ -110,7 +109,7 @@ button { cursor: pointer; }
 #app {
   min-height: 100dvh;
   padding: calc(env(safe-area-inset-top) + 12px) 0
-           calc(var(--bar) + env(safe-area-inset-bottom) + 24px);
+           calc(env(safe-area-inset-bottom) + 24px);
 }
 
 .head {
@@ -350,34 +349,6 @@ dialog.screen { height: calc(var(--vvh) - 16px); }
 }
 
 .more-btn:active { opacity: 0.6; }
-
-/* Toast */
-
-.toast {
-  position: fixed;
-  left: var(--text-x);
-  right: auto;
-  top: auto;
-  bottom: calc(env(safe-area-inset-bottom) + 8px);
-  width: auto;
-  max-width: calc(100% - var(--text-x) - var(--gutter));
-  height: 64px;
-  margin: 0;
-  border: 0;
-  overflow: visible;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0;
-  border-radius: 0;
-  background: var(--bg);
-  border-top: 1px solid var(--hairline);
-  color: var(--ink);
-  transition: opacity 150ms;
-}
-
-.toast:not(.is-open) { opacity: 0; visibility: hidden; pointer-events: none; }
-.toast .text-btn { color: var(--ink); text-decoration: underline; }
 
 /* Add / edit sheet */
 

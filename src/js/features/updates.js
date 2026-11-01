@@ -1,13 +1,10 @@
 // Service worker registration and the update flow. An installed iOS app is usually resumed, not
 // relaunched, so the app asks for updates itself on resume. A waiting version is applied while the
-// app is hidden; if one is ready while visible, a quiet toast offers a reload.
+// app is hidden; if one is ready while visible, it waits for the next hide or the Update button.
 
 import { VERSION } from '../version.js';
 
 const CHECK_EVERY = 10 * 60 * 1000;
-
-const toast = (message, actionLabel, undo) =>
-  document.dispatchEvent(new CustomEvent('planner:toast', { detail: { message, actionLabel, undo } }));
 
 function installed(worker) {
   if (!worker) return Promise.resolve(null);
@@ -41,7 +38,6 @@ export function init() {
 
   function ready() {
     if (document.hidden) apply();
-    else toast('Update ready', 'Reload', apply);
   }
 
   function check(force = false) {

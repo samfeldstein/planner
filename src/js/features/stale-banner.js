@@ -18,9 +18,7 @@ export function init({ store, clock }) {
   }
 
   btn.addEventListener('click', () => {
-    exportBackup(store).catch(() => {
-      document.dispatchEvent(new CustomEvent('planner:toast', { detail: { message: "Couldn't back up. Try again." } }));
-    });
+    exportBackup(store).catch((err) => console.error(err));
   });
 
   store.on(update);

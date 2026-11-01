@@ -7,7 +7,6 @@ import { anchorRule } from '../core/recur.js';
 import { WEEK_ORDER, shortDate, weekdayName } from '../ui/format.js';
 
 const NEW_GROUP = '__new__';
-const toast = (message, undo) => document.dispatchEvent(new CustomEvent('planner:toast', { detail: { message, undo } }));
 const $ = (id) => document.getElementById(id);
 
 export function init({ store, clock }) {
@@ -157,9 +156,8 @@ export function init({ store, clock }) {
         patch.recur = recur;
       }
       if (!Object.keys(patch).length) { close(); return; }
-      const { undo } = await store.updateTodo(todo.id, patch);
+      await store.updateTodo(todo.id, patch);
       close();
-      toast('Saved', undo);
     } catch (err) {
       showError(err.message || "Couldn't save. Try again.");
     } finally {
@@ -182,9 +180,8 @@ export function init({ store, clock }) {
     const todo = editing;
     if (!todo) return;
     try {
-      const { undo } = await store.deleteTodo(todo.id);
+      await store.deleteTodo(todo.id);
       close();
-      toast('Deleted', undo);
     } catch {
       showError("Couldn't delete. Try again.");
     }
