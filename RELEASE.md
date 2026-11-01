@@ -17,6 +17,8 @@ The public repo (`planner/public/`) holds release output only. Never edit it by 
 
 ## Every release
 
+Shortcut: commit `private/`, then `npm run release` (test, build, commit `public/`, push both). The manual steps:
+
 1. On the phone, export a backup first if the DB version changed.
 2. `npm test`
 3. `node build.mjs`
