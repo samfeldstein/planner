@@ -2,3 +2,4 @@ node_modules/
 .DS_Store
 assistant-export.json
 planner-import.json
+.claude/
