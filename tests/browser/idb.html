@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>IndexedDB adapter contract</title>
+<pre id="out">running…</pre>
+<script type="module">
+import { runContract } from '../adapter-contract.js';
+import { createIdbAdapter } from '../../src/js/data/db.js';
+
+const failures = [];
+const note = (ok, msg) => { if (!ok) failures.push(msg); };
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const check = {
+  equal: (a, b, msg) => note(a === b, `${msg}: got ${JSON.stringify(a)}`),
+  deepEqual: (a, b, msg) => note(same(a, b), `${msg}: got ${JSON.stringify(a)}`),
+};
+
+await new Promise((res) => { const r = indexedDB.deleteDatabase('planner'); r.onsuccess = r.onerror = r.onblocked = res; });
+try {
+  await runContract(() => createIdbAdapter(), check);
+} catch (err) {
+  failures.push(`threw: ${err?.name} ${err?.message}`);
+}
+window.__result = failures.length ? `FAIL\n${failures.join('\n')}` : 'PASS';
+document.getElementById('out').textContent = window.__result;
+</script>
