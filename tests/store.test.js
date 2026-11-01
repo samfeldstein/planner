@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { sortGroups } from '../src/js/core/model.js';
 import { makeEnv } from './helpers.js';
 
 const rule = { weekly: (...weekdays) => ({ freq: 'weekly', weekdays }), monthly: (monthDay) => ({ freq: 'monthly', monthDay }) };
@@ -170,4 +171,30 @@ test('stale banner: hidden when empty, shown after 7 days, hidden after backup (
   await env.store.markBackedUp();
   assert.equal(env.store.backupStale(), false);
   assert.ok(env.store.lastBackupAt());
+});
+
+test('moveGroup swaps places, renumbers, and survives a reload', async () => {
+  const { store, adapter } = await makeEnv();
+  const a = await store.addGroup('Morning');
+  const b = await store.addGroup('Afternoon');
+  const c = await store.addGroup('Night');
+  const names = () => sortGroups(store.groups()).map((g) => g.name);
+  assert.deepEqual(names(), ['Morning', 'Afternoon', 'Night']);
+  await store.moveGroup(c.id, -1);
+  assert.deepEqual(names(), ['Morning', 'Night', 'Afternoon']);
+  await store.moveGroup(a.id, 1);
+  assert.deepEqual(names(), ['Night', 'Morning', 'Afternoon']);
+  await store.moveGroup(b.id, 1); // already last: no change
+  assert.deepEqual(names(), ['Night', 'Morning', 'Afternoon']);
+  assert.deepEqual(sortGroups((await adapter.load()).groups).map((g) => g.name), names());
+  await assert.rejects(store.moveGroup('nope', 1));
+});
+
+test('an interval todo restarts its count when completed', async () => {
+  const { store } = await makeEnv();
+  const { id } = await store.addTodo({ title: 'Wash towels', recur: { freq: 'interval', n: 2, unit: 'weeks' } });
+  assert.equal(store.todo(id).due, '2026-11-01');
+  await store.complete(id);
+  assert.equal(store.todo(id).due, '2026-11-15');
+  assert.equal(store.todo(id).lastDone, '2026-11-01');
 });

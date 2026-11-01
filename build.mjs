@@ -14,7 +14,7 @@ const ALLOWED = /^(?:[^/]+\.(?:html|css|js|webmanifest)|(?:css|js)\/.+\.(?:css|j
 
 function walk(dir, base = dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (entry.name === '.DS_Store') return [];
+    if (entry.name.startsWith('.')) return [];
     const full = join(dir, entry.name);
     return entry.isDirectory() ? walk(full, base) : [full.slice(base.length + 1).split('\\').join('/')];
   }).sort();

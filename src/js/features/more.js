@@ -70,5 +70,5 @@ export function init({ store }) {
     }
   });
 
-  store.on(refresh);
+  store.on((e) => { if (e.type === 'backup' || e.type === 'import') refresh(); });
 }

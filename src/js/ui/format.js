@@ -23,14 +23,15 @@ const monthYear = fmt({ month: 'long', year: 'numeric' });
 // The header sets the day number large, so it needs the date in pieces.
 export const dateParts = (s) => ({ day: dayOnly(s), weekday: weekdayOnly(s), monthYear: monthYear(s) });
 
-export const mediumDate = (iso) =>
-  new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(iso));
+const medium = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
+export const mediumDate = (iso) => medium.format(new Date(iso));
 
 export const daysAgo = (iso, now = new Date()) => Math.floor((now - new Date(iso)) / 864e5);
 
 // Sunday is 0; 2026-11-01 is a Sunday.
-export const weekdayName = (n) =>
-  new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(new Date(2026, 10, 1 + n));
+const short = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
+const weekdayNames = Array.from({ length: 7 }, (_, n) => short.format(new Date(2026, 10, 1 + n)));
+export const weekdayName = (n) => weekdayNames[n];
 
 export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
@@ -47,6 +48,8 @@ export function recurSummary(rule) {
       return 'Every day';
     case 'weekly':
       return `Every ${WEEK_ORDER.filter((n) => rule.weekdays.includes(n)).map(weekdayName).join(', ')}`;
+    case 'interval':
+      return `Every ${rule.n === 1 ? rule.unit.slice(0, -1) : `${rule.n} ${rule.unit}`}`;
     case 'monthly':
       return `Every month on the ${ordinal(rule.monthDay)}${rule.monthDay > 28 ? ', or the last day' : ''}`;
     case 'yearly':

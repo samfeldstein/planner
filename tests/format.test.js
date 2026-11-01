@@ -11,6 +11,8 @@ test('recurSummary', () => {
   assert.equal(recurSummary({ freq: 'daily' }), 'Every day');
   assert.equal(recurSummary({ freq: 'monthly', monthDay: 15 }), 'Every month on the 15th');
   assert.equal(recurSummary({ freq: 'monthly', monthDay: 31 }), 'Every month on the 31st, or the last day');
+  assert.equal(recurSummary({ freq: 'interval', n: 2, unit: 'weeks' }), 'Every 2 weeks');
+  assert.equal(recurSummary({ freq: 'interval', n: 1, unit: 'days' }), 'Every day');
   assert.match(recurSummary({ freq: 'weekly', weekdays: [4, 1] }), /^Every .+, .+$/);
   assert.match(recurSummary({ freq: 'yearly', month: 2, monthDay: 29 }), /29/);
 });

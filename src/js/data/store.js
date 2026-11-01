@@ -3,16 +3,26 @@
 // Actions read today() when they run, not when the list was rendered.
 
 import { isValid, todayLocal } from '../core/date.js';
-import { normalizeTodo, validateGroup, validateTodo } from '../core/model.js';
+import { normalizeTodo, sortGroups, validateGroup, validateTodo } from '../core/model.js';
 import { DELETE, complete, schedule, skip, tomorrow } from '../core/recur.js';
 
 const WEEK_MS = 7 * 24 * 36e5;
+
+// randomUUID only exists on secure pages; a phone loading the dev server over plain http lacks it.
+function randomUuid() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
 
 export function createStore({
   adapter,
   today = () => todayLocal(),
   now = () => new Date(),
-  uuid = () => crypto.randomUUID(),
+  uuid = randomUuid,
 }) {
   const bus = new EventTarget();
   let todos = new Map();
@@ -157,6 +167,20 @@ export function createStore({
       groups.set(group.id, group);
       emit({ type: 'group', ids: [group.id] });
       return group;
+    },
+
+    // Moves a group one place up (-1) or down (1) and renumbers them 1..n so ties can't linger.
+    async moveGroup(id, delta) {
+      need(groups, id, 'group');
+      const list = sortGroups([...groups.values()]);
+      const from = list.findIndex((g) => g.id === id);
+      const to = from + delta;
+      if (to < 0 || to >= list.length) return;
+      list.splice(to, 0, ...list.splice(from, 1));
+      const changed = list.map((g, i) => ({ ...g, order: i + 1 })).filter((g) => groups.get(g.id).order !== g.order);
+      await adapter.commit(changed.map((g) => put('groups', g)));
+      for (const g of changed) groups.set(g.id, g);
+      emit({ type: 'group', ids: changed.map((g) => g.id) });
     },
 
     async renameGroup(id, name) {

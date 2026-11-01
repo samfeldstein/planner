@@ -6,14 +6,10 @@ A printed day-planner page. Ink on ruled paper, handwritten type, flat and squar
 
 Ruled, flat, square corners, no shadows, airy, restrained motion.
 
-## Don't use
-
-Cream or off-white paper, italic accent words, numbered "01 / 02" labels, monospace labels, pill buttons, drop shadows, rounded cards.
-
 ## Type
 
 - **Kalam** (self-hosted, `src/fonts/`): date numeral, weekday, group labels, task titles, step labels, nav buttons.
-- **System sans**: meta lines, notes, inputs, banner.
+- **Kalam everywhere**: no system sans.
 - Fallback for Kalam: Bradley Hand, cursive.
 
 ## Color
@@ -32,10 +28,11 @@ Cream or off-white paper, italic accent words, numbered "01 / 02" labels, monosp
 
 - **Page:** a fixed 1px margin rule at 28px; text starts at 36px.
 - **Rows:** full-bleed, separated by a ruled line, no card borders.
-- **Priority:** filled accent square on the margin rule.
+- **Priority:** top-priority todos form a Priority section above the groups; each keeps a filled accent square on the margin rule.
+- **Group order:** the user's own order (arrows in More); Other last.
 - **Done:** 1.5px strike-through.
 - **Group label:** Kalam, letter-spaced, ruled underline.
-- **Bottom bar:** ink top rule, solid ink Add, flat More.
+- **Add / More:** inline add field at the top of the list (no + button); ink three-dot button top-right of the header.
 - **Sheets:** square, margin rule continues; text input is an underline; chips show a checkbox square.
 
 ## Motion

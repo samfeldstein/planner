@@ -1,6 +1,7 @@
-// Group management inside the More screen: rename in place, delete with a confirm.
+// Group management inside the More screen: rename in place, reorder, delete with a confirm.
 // Deleting a group moves its todos to "Other". Groups are created from the Add sheet.
 
+import { sortGroups } from '../core/model.js';
 import { confirmDialog } from '../ui/confirm.js';
 
 export function init({ store }) {
@@ -14,10 +15,10 @@ export function init({ store }) {
   };
 
   function render() {
-    const groups = [...store.groups()].sort((a, b) => a.name.localeCompare(b.name));
+    const groups = sortGroups(store.groups());
     empty.hidden = groups.length > 0;
     list.replaceChildren();
-    for (const g of groups) {
+    groups.forEach((g, i) => {
       const li = document.createElement('li');
       li.dataset.id = g.id;
 
@@ -27,15 +28,23 @@ export function init({ store }) {
       input.setAttribute('aria-label', `Group name: ${g.name}`);
       input.autocomplete = 'off';
 
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'text-btn danger';
-      del.textContent = 'Delete';
-      del.setAttribute('aria-label', `Delete group ${g.name}`);
+      const button = (act, text, className = 'text-btn') => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = className;
+        b.dataset.act = act;
+        b.textContent = text;
+        b.setAttribute('aria-label', `${text === 'Delete' ? 'Delete group' : `Move ${text.toLowerCase()}`} ${g.name}`);
+        return b;
+      };
+      const up = button('up', 'Up');
+      up.disabled = i === 0;
+      const down = button('down', 'Down');
+      down.disabled = i === groups.length - 1;
 
-      li.append(input, del);
+      li.append(input, up, down, button('delete', 'Delete', 'text-btn danger'));
       list.append(li);
-    }
+    });
   }
 
   list.addEventListener('change', async (e) => {
@@ -57,6 +66,18 @@ export function init({ store }) {
     const group = store.groups().find((g) => g.id === id);
     if (!group) return;
     showError('');
+    if (btn.dataset.act !== 'delete') {
+      try {
+        await store.moveGroup(id, btn.dataset.act === 'up' ? -1 : 1);
+      } catch {
+        showError("Couldn't reorder. Try again.");
+        return;
+      }
+      // The list re-rendered; keep focus on the moved row, on whichever arrow still works.
+      const row = list.querySelector(`li[data-id="${CSS.escape(id)}"]`);
+      (row?.querySelector(`[data-act="${btn.dataset.act}"]:not(:disabled)`) ?? row?.querySelector('[data-act="up"]:not(:disabled), [data-act="down"]:not(:disabled)'))?.focus();
+      return;
+    }
     const ok = await confirmDialog({
       title: `Delete ${group.name}?`,
       message: `Todos in ${group.name} move to Other.`,
@@ -71,6 +92,6 @@ export function init({ store }) {
     }
   });
 
-  store.on(render);
+  store.on((e) => { if (['group', 'undo', 'import'].includes(e.type)) render(); });
   render();
 }

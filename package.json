@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "for tz in UTC America/New_York Europe/Berlin America/Santiago Australia/Lord_Howe; do echo \"TZ=$tz\"; TZ=$tz node --test tests/ || exit 1; done"
+    "test": "for tz in UTC America/New_York Europe/Berlin America/Santiago Australia/Lord_Howe; do echo \"TZ=$tz\"; TZ=$tz node --test tests/ || exit 1; done",
+    "dev": "node tools/dev-server.mjs --port 8766"
   }
 }

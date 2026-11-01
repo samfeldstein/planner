@@ -7,10 +7,15 @@ export const DELETE = Symbol('delete');
 
 const maxDate = (a, b) => (a > b ? a : b);
 
-// First scheduled date strictly after d.
+export const intervalDays = (rule) => (rule.unit === 'weeks' ? rule.n * 7 : rule.n);
+
+// First scheduled date strictly after d. An interval rule counts from d, which complete()
+// and skip() set to the day the todo was finished or skipped.
 export function nextAfter(rule, d) {
   const [y, m] = parse(d);
   switch (rule.freq) {
+    case 'interval':
+      return addDays(d, intervalDays(rule));
     case 'daily':
       return addDays(d, 1);
     case 'weekly':
@@ -33,7 +38,7 @@ export function nextAfter(rule, d) {
   }
 }
 
-export const firstOnOrAfter = (rule, d) => nextAfter(rule, addDays(d, -1));
+export const firstOnOrAfter = (rule, d) => (rule.freq === 'interval' ? d : nextAfter(rule, addDays(d, -1)));
 
 // What the UI and sorting read. Never written back.
 export const effectiveDue = (todo, today) =>
@@ -48,6 +53,7 @@ export function anchorRule(rule, start) {
   const [, m, d] = parse(start);
   if (rule.freq === 'monthly') return { freq: 'monthly', monthDay: d };
   if (rule.freq === 'yearly') return { freq: 'yearly', month: m, monthDay: d };
+  if (rule.freq === 'interval') return { freq: 'interval', n: rule.n, unit: rule.unit };
   if (rule.freq === 'weekly') return { freq: 'weekly', weekdays: [...new Set(rule.weekdays)].sort((a, b) => a - b) };
   return { freq: 'daily' };
 }
@@ -61,7 +67,7 @@ export function schedule(recur, start) {
 
 export function complete(todo, today) {
   if (!todo.recur) return DELETE;
-  const base = maxDate(effectiveDue(todo, today), today);
+  const base = todo.recur.freq === 'interval' ? today : maxDate(effectiveDue(todo, today), today);
   return { ...todo, due: nextAfter(todo.recur, base), lastDone: today };
 }
 
@@ -71,6 +77,7 @@ export const tomorrow = (todo, today) => ({ ...todo, due: addDays(today, 1) });
 export function skip(todo, today) {
   if (!todo.recur) throw new Error('skip is recurring-only');
   const eff = effectiveDue(todo, today);
+  if (todo.recur.freq === 'interval') return { ...todo, due: nextAfter(todo.recur, today) };
   const from = eff < today ? addDays(today, -1) : eff;
   return { ...todo, due: nextAfter(todo.recur, from) };
 }

@@ -112,3 +112,29 @@ test('transitions do not mutate the input', () => {
   tomorrow(t, '2026-11-02');
   skip(t, '2026-11-02');
 });
+
+const every = (n, unit) => ({ freq: 'interval', n, unit });
+
+test('interval repeats count from the day it was finished', () => {
+  assert.equal(nextAfter(every(14, 'days'), '2026-11-01'), '2026-11-15');
+  assert.equal(nextAfter(every(2, 'weeks'), '2026-11-01'), '2026-11-15');
+  assert.equal(firstOnOrAfter(every(2, 'weeks'), '2026-11-01'), '2026-11-01');
+  assert.equal(schedule(every(28, 'days'), '2026-11-01').due, '2026-11-01');
+  assert.equal(complete(todo(every(14, 'days'), '2026-11-01'), '2026-11-01').due, '2026-11-15');
+  assert.equal(complete(todo(every(14, 'days'), '2026-10-20'), '2026-11-01').due, '2026-11-15');
+  assert.equal(complete(todo(every(1, 'days'), '2026-11-01'), '2026-11-01').lastDone, '2026-11-01');
+});
+
+test('interval counts from today even when the due date is in the future', () => {
+  assert.equal(complete(todo(every(14, 'days'), '2026-11-10'), '2026-11-01').due, '2026-11-15');
+  assert.equal(skip(todo(every(14, 'days'), '2026-11-10'), '2026-11-01').due, '2026-11-15');
+});
+
+test('skipping an interval todo restarts the count from today', () => {
+  assert.equal(skip(todo(every(14, 'days'), '2026-11-01'), '2026-11-01').due, '2026-11-15');
+  assert.equal(skip(todo(every(14, 'days'), '2026-10-20'), '2026-11-01').due, '2026-11-15');
+});
+
+test('anchorRule keeps an interval rule as it is', () => {
+  assert.deepEqual(anchorRule({ freq: 'interval', n: 2, unit: 'weeks', extra: 1 }, '2026-11-01'), every(2, 'weeks'));
+});

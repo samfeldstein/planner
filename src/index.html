@@ -13,6 +13,7 @@
 <title>Planner</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/180.png">
+<link rel="preload" href="fonts/Kalam-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -34,6 +35,10 @@
       <span class="when" aria-hidden="true"><span id="weekday" class="wk"></span><span id="monthYear" class="mo"></span></span>
     </h1>
     <p id="count" class="secondary"></p>
+    <div id="progress" class="progress" role="progressbar" aria-label="Done today" hidden><span></span></div>
+    <button type="button" id="moreBtn" class="more-btn" aria-label="More" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+    </button>
   </header>
 
   <div id="banner" class="banner" hidden>
@@ -43,32 +48,33 @@
 
   <main id="list" aria-label="Today"></main>
 
+  <div class="quick-add">
+    <div id="quickAdd" class="todo-text quick-field" contenteditable="plaintext-only" role="textbox" aria-label="New todo"
+         data-placeholder="Add a task" spellcheck="false" autocorrect="off"
+         autocapitalize="sentences" enterkeyhint="done"></div>
+  </div>
+
   <div id="toast" class="toast" role="status" popover="manual">
     <span id="toastMsg"></span>
     <button type="button" id="toastUndo" class="text-btn">Undo</button>
   </div>
 
-  <nav class="bar" aria-label="Actions">
-    <button type="button" id="addBtn" class="primary add">Add</button>
-    <button type="button" id="moreBtn" class="action">More</button>
-  </nav>
 </div>
 
-<dialog id="sheet" aria-labelledby="sheetTitle">
+<dialog id="sheet" aria-labelledby="sheetTitle" tabindex="-1" autofocus>
   <form id="sheetForm" class="sheet-body" novalidate>
     <header class="sheet-head">
-      <h2 id="sheetTitle">New todo</h2>
+      <h2 id="sheetTitle">Edit todo</h2>
       <button type="button" id="sheetDone" class="text-btn">Done</button>
     </header>
 
-    <section data-step="title">
-      <h3 class="step-label">Task name</h3>
-      <input id="title" name="title" type="text" aria-label="Title" placeholder="What needs doing?"
-             autocomplete="off" autocapitalize="sentences" enterkeyhint="next">
+    <section>
+      <div id="todoText" class="todo-text" contenteditable="plaintext-only" role="textbox" aria-label="Todo"
+           data-placeholder="What needs doing?" spellcheck="false" autocorrect="off"
+           autocapitalize="sentences" enterkeyhint="done"></div>
     </section>
 
-    <section data-step="due">
-      <h3 class="step-label">Due date</h3>
+    <section>
       <fieldset class="chips">
         <legend class="vh">Due</legend>
         <label class="chip"><input type="radio" name="due" value="today" checked><span>Today</span></label>
@@ -78,8 +84,7 @@
       </fieldset>
     </section>
 
-    <section data-step="repeat">
-      <h3 class="step-label">Repeat</h3>
+    <section>
       <fieldset class="field">
         <legend>Repeat</legend>
         <div class="seg">
@@ -88,32 +93,41 @@
           <label><input type="radio" name="repeat" value="weekly"><span>Weekly</span></label>
           <label><input type="radio" name="repeat" value="monthly"><span>Monthly</span></label>
           <label><input type="radio" name="repeat" value="yearly"><span>Yearly</span></label>
+          <label><input type="radio" name="repeat" value="interval"><span>Every…</span></label>
         </div>
       </fieldset>
     </section>
 
-    <section data-step="days">
-      <h3 class="step-label">Repeat days</h3>
+    <section>
       <fieldset id="weekdays" class="chips" hidden><legend class="vh">Repeat on</legend></fieldset>
     </section>
 
-    <section data-step="group">
-      <h3 class="step-label">Group</h3>
+    <section>
+      <div id="intervalFields" hidden>
+        <div class="interval">
+          <label class="vh" for="intervalN">Number</label>
+          <input id="intervalN" type="number" inputmode="numeric" min="1" max="365" step="1" value="2">
+          <label class="vh" for="intervalUnit">Unit</label>
+          <select id="intervalUnit"><option value="days">days</option><option value="weeks">weeks</option></select>
+        </div>
+        <p class="note">Counted from the day you finish it.</p>
+      </div>
+    </section>
+
+    <section>
       <label class="select-wrap"><span class="vh">Group</span><select id="group" name="group"></select></label>
       <input id="newGroup" type="text" aria-label="New group name" placeholder="Group name" autocomplete="off" hidden>
     </section>
 
-    <section data-step="priority">
-      <h3 class="step-label">Priority</h3>
+    <section>
       <label class="chip"><input type="checkbox" id="priority" name="priority"><span>Top priority</span></label>
     </section>
 
     <p id="formError" class="error" role="alert" hidden></p>
 
     <div class="sheet-actions">
-      <button type="button" id="backBtn" class="text-btn" hidden>Back</button>
-      <button type="submit" id="submitBtn" class="primary">Add</button>
-      <button type="button" id="deleteBtn" class="text-btn danger" hidden>Delete</button>
+      <button type="submit" id="submitBtn" class="primary">Save</button>
+      <button type="button" id="deleteBtn" class="text-btn danger">Delete</button>
     </div>
   </form>
 </dialog>

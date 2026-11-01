@@ -35,6 +35,11 @@ export function normalizeTodo(rec) {
 
 export const normalizeGroup = (rec) => pick(rec, GROUP_KEYS);
 
+// Groups in the order the user arranged them; groups without an order, then ties, go A to Z.
+export const sortGroups = (groups) =>
+  [...groups].sort((a, b) =>
+    (a.order ?? 1e9) - (b.order ?? 1e9) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
 export const isReservedGroupName = (name) => name.trim().toLowerCase() === 'other';
 
 function validRecur(r) {
@@ -46,6 +51,8 @@ function validRecur(r) {
     case 'weekly':
       return Array.isArray(r.weekdays) && r.weekdays.length > 0 &&
         r.weekdays.every((n) => Number.isInteger(n) && n >= 0 && n <= 6);
+    case 'interval':
+      return Number.isInteger(r.n) && r.n >= 1 && r.n <= 365 && (r.unit === 'days' || r.unit === 'weeks');
     case 'monthly':
       return Number.isInteger(r.monthDay) && r.monthDay >= 1 && r.monthDay <= 31;
     case 'yearly':
@@ -71,5 +78,6 @@ export function validateGroup(g) {
   if (typeof g.id !== 'string' || !g.id) return 'group has no id';
   if (typeof g.name !== 'string' || !g.name.trim()) return 'group has an empty name';
   if (isReservedGroupName(g.name)) return 'a group cannot be named "Other"';
+  if (g.order !== undefined && !Number.isFinite(g.order)) return `group "${g.name}" has an invalid order`;
   return null;
 }
