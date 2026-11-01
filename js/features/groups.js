@@ -71,6 +71,6 @@ export function init({ store }) {
     }
   });
 
-  store.on(render);
+  store.on((e) => { if (['group', 'undo', 'import'].includes(e.type)) render(); });
   render();
 }

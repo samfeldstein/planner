@@ -20,6 +20,19 @@ export function init({ store, clock }) {
   const list = document.getElementById('list');
   const dateEl = document.getElementById('date');
   const countEl = document.getElementById('count');
+  const progressEl = document.getElementById('progress');
+
+  // Completed todos leave the list (or move on), so today's finished count is kept here.
+  const DONE_KEY = 'planner:done';
+  function doneToday(today, delta = 0) {
+    let n = 0;
+    try {
+      const saved = JSON.parse(localStorage.getItem(DONE_KEY));
+      if (saved?.date === today) n = saved.n;
+      if (delta) localStorage.setItem(DONE_KEY, JSON.stringify({ date: today, n: Math.max(0, n + delta) }));
+    } catch { /* storage unavailable: count restarts */ }
+    return Math.max(0, n + delta);
+  }
   const addBtn = document.getElementById('addBtn');
 
   function row(todo, today) {
@@ -58,6 +71,7 @@ export function init({ store, clock }) {
   function render() {
     const today = clock.today();
     const active = document.activeElement;
+    const openId = list.querySelector('.actions:not([hidden])')?.closest('[data-id]')?.dataset.id;
     const focusKey = list.contains(active)
       ? { id: active.closest('[data-id]')?.dataset.id, act: active.dataset.act }
       : null;
@@ -69,7 +83,13 @@ export function init({ store, clock }) {
     document.getElementById('monthYear').textContent = parts.monthYear;
     const sections = buildToday(store.todos(), store.groups(), today);
     const count = sections.reduce((n, s) => n + s.todos.length, 0);
-    countEl.textContent = count ? `${count} to do` : '';
+    const done = doneToday(today);
+    const total = done + count;
+    countEl.textContent = total ? `${done} of ${total}` : '';
+    progressEl.hidden = !total;
+    progressEl.firstElementChild.style.width = total ? `${(done / total) * 100}%` : '0';
+    progressEl.setAttribute('aria-valuenow', done);
+    progressEl.setAttribute('aria-valuemax', total);
 
     list.replaceChildren();
     if (!count) list.append(el('p', 'empty', 'Nothing due today.'));
@@ -84,6 +104,11 @@ export function init({ store, clock }) {
       section.append(h, ul);
       list.append(section);
     });
+
+    if (openId) {
+      const open = list.querySelector(`[data-id="${CSS.escape(openId)}"] .actions`);
+      if (open) open.hidden = false;
+    }
 
     if (focusKey?.id) {
       list.querySelector(`[data-id="${CSS.escape(focusKey.id)}"] [data-act="${focusKey.act}"]`)?.focus();
@@ -105,16 +130,32 @@ export function init({ store, clock }) {
     actions.hidden = wasOpen;
   }
 
+  // Rows with an action in flight ignore further taps, so a double-tap can't complete twice.
+  const busy = new Set();
+
   async function act(kind, li) {
     const id = li.dataset.id;
+    if (busy.has(id)) return;
+    busy.add(id);
     const title = store.todo(id)?.title ?? '';
     const index = checks().indexOf(li.querySelector('[data-act="complete"]'));
     try {
       if (kind === 'complete') {
         li.classList.add('done');
-        if (!reduceMotion()) await sleep(160);
+        if (!reduceMotion()) await sleep(80);
       }
-      const { undo } = await store[kind](id);
+      // Count first: the store's change event re-renders before this call returns.
+      if (kind === 'complete') doneToday(clock.today(), 1);
+      let storeUndo;
+      try {
+        ({ undo: storeUndo } = await store[kind](id));
+      } catch (err) {
+        if (kind === 'complete') doneToday(clock.today(), -1);
+        throw err;
+      }
+      const undo = kind === 'complete' && storeUndo
+        ? () => { doneToday(clock.today(), -1); return storeUndo(); }
+        : storeUndo;
       const message = {
         complete: () => `Completed: ${title}`,
         tomorrow: () => 'Moved to tomorrow',
@@ -126,6 +167,8 @@ export function init({ store, clock }) {
       console.error(err);
       li.classList.remove('done');
       toast("Couldn't save. Try again.");
+    } finally {
+      busy.delete(id);
     }
   }
 
@@ -166,7 +209,7 @@ export function init({ store, clock }) {
     else act(kind, li);
   });
 
-  store.on(render);
+  store.on((e) => { if (e.type !== 'backup') render(); });
   clock.on(render);
   render();
 }

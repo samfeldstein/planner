@@ -2,7 +2,7 @@
   font-family: Kalam;
   font-weight: 400;
   font-display: swap;
-  src: url("../fonts/Kalam-Regular.ttf") format("truetype");
+  src: url("../fonts/Kalam-Regular.woff2") format("woff2");
 }
 
 :root {
@@ -21,7 +21,7 @@
   --vvh: 100dvh;
   --gutter: max(16px, env(safe-area-inset-left), env(safe-area-inset-right));
   --margin-x: calc(env(safe-area-inset-left) + 28px);
-  --text-x: calc(env(safe-area-inset-left) + 36px);
+  --text-x: calc(env(safe-area-inset-left) + 44px);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -41,14 +41,10 @@
 
 html {
   background: var(--bg);
-  font-family: -apple-system, system-ui, sans-serif;
+  font-family: var(--hand);
   font-size: 17px;
   line-height: 1.35;
   -webkit-text-size-adjust: 100%;
-}
-
-@supports (font: -apple-system-body) {
-  html { font: -apple-system-body; }
 }
 
 body {
@@ -125,6 +121,15 @@ button { cursor: pointer; }
 .wk { font: 400 1.4rem/1.1 var(--hand); }
 .mo { font-size: 0.76rem; color: var(--ink-2); }
 .head p { margin-top: 6px; font-size: 0.88rem; min-height: 1.2em; }
+
+.progress {
+  height: 6px;
+  margin-top: 8px;
+  background: var(--hairline);
+}
+
+.progress[hidden] { display: none; }
+.progress span { display: block; height: 100%; width: 0; background: var(--accent); transition: width 200ms; }
 
 /* Today list */
 

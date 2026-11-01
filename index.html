@@ -13,6 +13,7 @@
 <title>Planner</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/180.png">
+<link rel="preload" href="fonts/Kalam-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -34,6 +35,7 @@
       <span class="when" aria-hidden="true"><span id="weekday" class="wk"></span><span id="monthYear" class="mo"></span></span>
     </h1>
     <p id="count" class="secondary"></p>
+    <div id="progress" class="progress" role="progressbar" aria-label="Done today" hidden><span></span></div>
   </header>
 
   <div id="banner" class="banner" hidden>
