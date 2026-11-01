@@ -67,7 +67,7 @@ export function schedule(recur, start) {
 
 export function complete(todo, today) {
   if (!todo.recur) return DELETE;
-  const base = maxDate(effectiveDue(todo, today), today);
+  const base = todo.recur.freq === 'interval' ? today : maxDate(effectiveDue(todo, today), today);
   return { ...todo, due: nextAfter(todo.recur, base), lastDone: today };
 }
 
@@ -77,7 +77,7 @@ export const tomorrow = (todo, today) => ({ ...todo, due: addDays(today, 1) });
 export function skip(todo, today) {
   if (!todo.recur) throw new Error('skip is recurring-only');
   const eff = effectiveDue(todo, today);
-  if (todo.recur.freq === 'interval') return { ...todo, due: nextAfter(todo.recur, maxDate(eff, today)) };
+  if (todo.recur.freq === 'interval') return { ...todo, due: nextAfter(todo.recur, today) };
   const from = eff < today ? addDays(today, -1) : eff;
   return { ...todo, due: nextAfter(todo.recur, from) };
 }

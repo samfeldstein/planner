@@ -1,5 +1,5 @@
 // The Today list: todos due today plus overdue, grouped. Tap a task to complete it;
-// long-press it (or right-click) to open Tomorrow, Skip (recurring only), and Edit.
+// tap its arrow (or right-click) to open Tomorrow, Skip (recurring only), and Edit.
 
 import { effectiveDue, isOverdue } from '../core/recur.js';
 import { buildToday } from '../core/today.js';
@@ -33,7 +33,7 @@ export function init({ store, clock }) {
     } catch { /* storage unavailable: count restarts */ }
     return Math.max(0, n + delta);
   }
-  const addBtn = document.getElementById('addBtn');
+  const quickAdd = document.getElementById('quickAdd');
 
   function row(todo, today) {
     const overdue = isOverdue(todo, today);
@@ -64,7 +64,13 @@ export function init({ store, clock }) {
       actions.append(b);
     }
 
-    li.append(task, actions);
+    const more = el('button', 'row-more');
+    more.type = 'button';
+    more.dataset.act = 'more';
+    more.setAttribute('aria-label', `Options: ${todo.title}`);
+    more.setAttribute('aria-expanded', 'false');
+
+    li.append(task, more, actions);
     return li;
   }
 
@@ -106,8 +112,8 @@ export function init({ store, clock }) {
     });
 
     if (openId) {
-      const open = list.querySelector(`[data-id="${CSS.escape(openId)}"] .actions`);
-      if (open) open.hidden = false;
+      const open = list.querySelector(`[data-id="${CSS.escape(openId)}"]`);
+      if (open) setOpen(open, true);
     }
 
     if (focusKey?.id) {
@@ -120,14 +126,19 @@ export function init({ store, clock }) {
   // After an action removes a row, keep the keyboard and VoiceOver position useful.
   function refocus(index) {
     const all = checks();
-    (all[Math.min(index, all.length - 1)] ?? addBtn).focus();
+    (all[Math.min(index, all.length - 1)] ?? quickAdd).focus();
+  }
+
+  function setOpen(li, open) {
+    li.querySelector('.actions').hidden = !open;
+    li.querySelector('.row-more').setAttribute('aria-expanded', String(open));
   }
 
   function toggle(li) {
     const actions = li.querySelector('.actions');
     const wasOpen = !actions.hidden;
-    for (const other of list.querySelectorAll('.actions:not([hidden])')) other.hidden = true;
-    actions.hidden = wasOpen;
+    for (const other of list.querySelectorAll('.actions:not([hidden])')) setOpen(other.closest('.row'), false);
+    setOpen(li, !wasOpen);
   }
 
   // Rows with an action in flight ignore further taps, so a double-tap can't complete twice.
@@ -145,16 +156,17 @@ export function init({ store, clock }) {
         if (!reduceMotion()) await sleep(80);
       }
       // Count first: the store's change event re-renders before this call returns.
-      if (kind === 'complete') doneToday(clock.today(), 1);
+      const day = clock.today();
+      if (kind === 'complete') doneToday(day, 1);
       let storeUndo;
       try {
         ({ undo: storeUndo } = await store[kind](id));
       } catch (err) {
-        if (kind === 'complete') doneToday(clock.today(), -1);
+        if (kind === 'complete') doneToday(day, -1);
         throw err;
       }
       const undo = kind === 'complete' && storeUndo
-        ? () => { doneToday(clock.today(), -1); return storeUndo(); }
+        ? () => { doneToday(day, -1); return storeUndo(); }
         : storeUndo;
       const message = {
         complete: () => `Completed: ${title}`,
@@ -172,40 +184,21 @@ export function init({ store, clock }) {
     }
   }
 
-  // A long press opens the actions and swallows the click that follows the release.
-  const HOLD_MS = 500;
-  let hold = null;
-  let held = false;
-  let origin = null;
-  const cancelHold = () => { clearTimeout(hold); hold = null; };
-
-  list.addEventListener('pointerdown', (e) => {
-    const li = e.target.closest('.task')?.closest('.row');
-    if (!li || e.button) return;
-    held = false;
-    cancelHold();
-    hold = setTimeout(() => { held = true; toggle(li); }, HOLD_MS);
-    origin = { clientX: e.clientX, clientY: e.clientY };
-  });
-  list.addEventListener('pointermove', (e) => {
-    if (hold && origin && Math.hypot(e.clientX - origin.clientX, e.clientY - origin.clientY) > 8) cancelHold();
-  });
-  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) list.addEventListener(type, cancelHold);
-
+  // Right-click also opens the actions on desktop; it blocks the iOS callout too.
   list.addEventListener('contextmenu', (e) => {
     const li = e.target.closest('.task')?.closest('.row');
     if (!li) return;
     e.preventDefault();
-    if (!held) toggle(li);
+    toggle(li);
   });
 
   list.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-act]');
     if (!btn) return;
-    if (held) { held = false; return; }
     const li = btn.closest('.row');
     const kind = btn.dataset.act;
-    if (kind === 'edit') document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
+    if (kind === 'more') toggle(li);
+    else if (kind === 'edit') document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
     else act(kind, li);
   });
 

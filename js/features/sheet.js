@@ -1,6 +1,5 @@
-// The add / edit bottom sheet. Adding walks one question per screen; editing shows the whole form.
-// The last step adds and keeps the sheet open for the next todo.
-// showModal() and title.focus() run synchronously in the tap handler so iOS opens the keyboard.
+// The edit sheet: the whole form for one todo. New todos are added from the field under the list
+// (quick-add.js) and refined here afterwards. Nothing is focused on open; tap a field to type.
 
 import { addDays, weekday } from '../core/date.js';
 import { sortGroups } from '../core/model.js';
@@ -14,7 +13,13 @@ const $ = (id) => document.getElementById(id);
 export function init({ store, clock }) {
   const sheet = $('sheet');
   const form = $('sheetForm');
-  const titleEl = $('title');
+  // A contenteditable div, not a form field, so iOS has nothing to offer AutoFill Contact on.
+  // It gets the .value of an input so the rest of this file reads it like one.
+  const titleEl = $('todoText');
+  Object.defineProperty(titleEl, 'value', {
+    get: () => titleEl.textContent.replace(/\s*\n\s*/g, ' '),
+    set: (v) => { titleEl.textContent = v; },
+  });
   const dateInput = $('dateInput');
   const dateLabel = $('dateLabel');
   const groupEl = $('group');
@@ -27,10 +32,8 @@ export function init({ store, clock }) {
   const errorEl = $('formError');
   const submitBtn = $('submitBtn');
   const deleteBtn = $('deleteBtn');
-  const backBtn = $('backBtn');
 
-  let editing = null; // the todo being edited, or null when adding
-  let step = 0; // index into steps() while adding
+  let editing = null; // the todo being edited
 
   for (const n of WEEK_ORDER) {
     const label = document.createElement('label');
@@ -85,25 +88,6 @@ export function init({ store, clock }) {
     newGroupEl.hidden = groupEl.value !== NEW_GROUP;
   }
 
-  const steps = () => ['title', 'due', 'repeat', ...(radio('repeat') === 'weekly' ? ['days'] : []), ...(radio('repeat') === 'interval' ? ['interval'] : []), 'group', 'priority'];
-
-  function showStep(i) {
-    const list = steps();
-    step = Math.max(0, Math.min(i, list.length - 1));
-    for (const el of form.querySelectorAll('[data-step]')) el.classList.toggle('current', el.dataset.step === list[step]);
-    backBtn.hidden = step === 0;
-    submitBtn.textContent = step === list.length - 1 ? 'Add' : 'Next';
-    if (list[step] === 'title') titleEl.focus();
-  }
-
-  function stepError() {
-    const name = steps()[step];
-    if (name === 'title' && !titleEl.value.trim()) return ['Add a task name.', titleEl];
-    if (name === 'interval' && !(Number(intervalN.value) >= 1)) return ['Enter a number of 1 or more.', intervalN];
-    if (name === 'group' && groupEl.value === NEW_GROUP && !newGroupEl.value.trim()) return ['Name the group.', newGroupEl];
-    return null;
-  }
-
   function showError(text) {
     errorEl.textContent = text;
     errorEl.hidden = !text;
@@ -115,53 +99,42 @@ export function init({ store, clock }) {
   }
 
   function open(todo) {
-    editing = todo ?? null;
+    editing = todo;
     const today = clock.today();
     form.reset();
     showError('');
     newGroupEl.value = '';
-    $('sheetTitle').textContent = todo ? 'Edit todo' : 'New todo';
-    submitBtn.textContent = todo ? 'Save' : 'Next';
-    deleteBtn.hidden = !todo;
-    backBtn.hidden = true;
-    if (todo) delete form.dataset.mode; else form.dataset.mode = 'steps';
 
     setDate(null);
     for (const b of weekdayBoxes()) b.checked = false;
-    if (todo) {
-      titleEl.value = todo.title;
-      priorityEl.checked = todo.priority === 1;
-      if (todo.due === today) setRadio('due', 'today');
-      else if (todo.due === addDays(today, 1)) setRadio('due', 'tomorrow');
-      else { setRadio('due', 'date'); setDate(todo.due); }
-      setRadio('repeat', todo.recur?.freq ?? 'never');
-      for (const b of weekdayBoxes()) b.checked = todo.recur?.weekdays?.includes(Number(b.value)) ?? false;
-      if (todo.recur?.freq === 'interval') { intervalN.value = todo.recur.n; intervalUnit.value = todo.recur.unit; }
-    }
-    fillGroups(todo?.groupId);
+    titleEl.value = todo.title;
+    priorityEl.checked = todo.priority === 1;
+    if (todo.due === today) setRadio('due', 'today');
+    else if (todo.due === addDays(today, 1)) setRadio('due', 'tomorrow');
+    else { setRadio('due', 'date'); setDate(todo.due); }
+    setRadio('repeat', todo.recur?.freq ?? 'never');
+    for (const b of weekdayBoxes()) b.checked = todo.recur?.weekdays?.includes(Number(b.value)) ?? false;
+    if (todo.recur?.freq === 'interval') { intervalN.value = todo.recur.n; intervalUnit.value = todo.recur.unit; }
+    fillGroups(todo.groupId);
     refreshRepeat();
-    step = 0;
 
-    sheet.showModal();
-    if (!todo) showStep(0);
-    titleEl.focus();
+    sheet.showModal(); // focus lands on the dialog itself (autofocus), so no keyboard opens
   }
 
   function close() {
     if (sheet.open) sheet.close();
   }
 
+  let saving = false;
+
   async function submit(e) {
     e.preventDefault();
-    const stepping = !editing;
-    if (stepping) {
-      const bad = stepError();
-      if (bad) { showError(bad[0]); bad[1].focus(); return; }
-      if (step < steps().length - 1) { showError(''); showStep(step + 1); return; }
-    }
+    const todo = editing;
+    if (saving || !todo) return;
     const title = titleEl.value.trim();
     if (!title) { showError('Add a task name.'); titleEl.focus(); return; }
     showError('');
+    saving = true;
     submitBtn.disabled = true;
     try {
       let groupId = groupEl.value || null;
@@ -173,58 +146,43 @@ export function init({ store, clock }) {
       const recur = chosenRecur();
       const priority = priorityEl.checked ? 1 : 0;
 
-      if (!editing) {
-        await store.addTodo({ title, due, groupId, priority, recur });
-        // Keep the sheet open for the next one; keep due and group, reset the rest.
-        if (titleEl.value.trim() === title) titleEl.value = ''; // keep anything typed during the save
-        priorityEl.checked = false;
-        setRadio('repeat', 'never');
-        for (const b of weekdayBoxes()) b.checked = false;
-        newGroupEl.value = '';
-        fillGroups(groupId);
-        refreshRepeat();
-        toast(`Added: ${title}`);
-        showStep(0);
-        return;
-      }
-
       // Send only what changed, so editing a title never re-snaps a pushed-off due date.
       const patch = {};
-      if (title !== editing.title) patch.title = title;
-      if (groupId !== editing.groupId) patch.groupId = groupId;
-      if (priority !== editing.priority) patch.priority = priority;
+      if (title !== todo.title) patch.title = title;
+      if (groupId !== todo.groupId) patch.groupId = groupId;
+      if (priority !== todo.priority) patch.priority = priority;
       const anchored = recur ? anchorRule(recur, due) : null;
-      if (due !== editing.due || JSON.stringify(anchored) !== JSON.stringify(editing.recur)) {
+      if (due !== todo.due || JSON.stringify(anchored) !== JSON.stringify(todo.recur)) {
         patch.due = due;
         patch.recur = recur;
       }
       if (!Object.keys(patch).length) { close(); return; }
-      const { undo } = await store.updateTodo(editing.id, patch);
+      const { undo } = await store.updateTodo(todo.id, patch);
       close();
       toast('Saved', undo);
     } catch (err) {
       showError(err.message || "Couldn't save. Try again.");
     } finally {
+      saving = false;
       submitBtn.disabled = false;
     }
   }
 
-  $('addBtn').addEventListener('click', () => open(null));
   document.addEventListener('planner:edit', (e) => {
     const todo = store.todo(e.detail.id);
     if (todo) open(todo);
   });
 
   form.addEventListener('submit', submit);
-  backBtn.addEventListener('click', () => { showError(''); showStep(step - 1); });
   $('sheetDone').addEventListener('click', close);
   sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
   sheet.addEventListener('close', () => { editing = null; });
 
   deleteBtn.addEventListener('click', async () => {
-    if (!editing) return;
+    const todo = editing;
+    if (!todo) return;
     try {
-      const { undo } = await store.deleteTodo(editing.id);
+      const { undo } = await store.deleteTodo(todo.id);
       close();
       toast('Deleted', undo);
     } catch {
@@ -233,6 +191,10 @@ export function init({ store, clock }) {
   });
 
   titleEl.addEventListener('input', () => showError(''));
+  // The div has no implicit submit, so Return does it.
+  titleEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); form.requestSubmit(); }
+  });
 
   groupEl.addEventListener('change', () => {
     newGroupEl.hidden = groupEl.value !== NEW_GROUP;
@@ -250,16 +212,30 @@ export function init({ store, clock }) {
     refreshRepeat();
   });
 
-  // iOS overlays the keyboard instead of resizing the layout, so lift the sheet by hand.
+  // iOS overlays the keyboard instead of resizing the layout, and pans the visible area to the
+  // focused field. So the sheet follows the visible area (--vv-top, --vvh) rather than the layout.
+  // Only while a field has focus: iOS 26 can leave offsetTop and height stuck after the keyboard closes.
+  const FORM_BAR = 56; // the floating prev/next/done strip above the keyboard isn't in the viewport
   const vv = window.visualViewport;
   if (vv) {
+    const typing = () => Boolean(document.activeElement?.matches('input, select, textarea, [contenteditable]'));
     const fit = () => {
       const root = document.documentElement.style;
-      root.setProperty('--kb', `${Math.max(0, window.innerHeight - (vv.offsetTop + vv.height))}px`);
-      root.setProperty('--vvh', `${vv.height}px`);
+      const on = typing();
+      const top = on ? Math.max(0, vv.offsetTop) : 0;
+      const height = on ? vv.height : window.innerHeight;
+      const kb = on ? Math.max(0, window.innerHeight - (top + vv.height)) : 0;
+      const open = kb > 100;
+      root.setProperty('--kb', `${kb}px`);
+      root.setProperty('--vvh', `${height}px`);
+      root.setProperty('--vv-top', `${top}px`);
+      root.setProperty('--kb-open', open ? '1' : '0');
+      root.setProperty('--kb-pad', open ? `${FORM_BAR}px` : '0px');
     };
     vv.addEventListener('resize', fit);
     vv.addEventListener('scroll', fit);
+    document.addEventListener('focusin', fit);
+    document.addEventListener('focusout', () => setTimeout(fit, 150));
     fit();
   }
 }

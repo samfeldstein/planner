@@ -48,33 +48,33 @@
 
   <main id="list" aria-label="Today"></main>
 
+  <div class="quick-add">
+    <div id="quickAdd" class="todo-text quick-field" contenteditable="plaintext-only" role="textbox" aria-label="New todo"
+         data-placeholder="Add a task" spellcheck="false" autocorrect="off"
+         autocapitalize="sentences" enterkeyhint="done"></div>
+  </div>
+
   <div id="toast" class="toast" role="status" popover="manual">
     <span id="toastMsg"></span>
     <button type="button" id="toastUndo" class="text-btn">Undo</button>
   </div>
 
-  <div class="bar">
-    <button type="button" id="addBtn" class="add" aria-label="Add todo">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-    </button>
-  </div>
 </div>
 
-<dialog id="sheet" aria-labelledby="sheetTitle">
+<dialog id="sheet" aria-labelledby="sheetTitle" tabindex="-1" autofocus>
   <form id="sheetForm" class="sheet-body" novalidate>
     <header class="sheet-head">
-      <h2 id="sheetTitle">New todo</h2>
+      <h2 id="sheetTitle">Edit todo</h2>
       <button type="button" id="sheetDone" class="text-btn">Done</button>
     </header>
 
-    <section data-step="title">
-      <h3 class="step-label">Task name</h3>
-      <input id="title" name="title" type="text" aria-label="Title" placeholder="What needs doing?"
-             autocomplete="off" autocapitalize="sentences" enterkeyhint="next">
+    <section>
+      <div id="todoText" class="todo-text" contenteditable="plaintext-only" role="textbox" aria-label="Todo"
+           data-placeholder="What needs doing?" spellcheck="false" autocorrect="off"
+           autocapitalize="sentences" enterkeyhint="done"></div>
     </section>
 
-    <section data-step="due">
-      <h3 class="step-label">Due date</h3>
+    <section>
       <fieldset class="chips">
         <legend class="vh">Due</legend>
         <label class="chip"><input type="radio" name="due" value="today" checked><span>Today</span></label>
@@ -84,8 +84,7 @@
       </fieldset>
     </section>
 
-    <section data-step="repeat">
-      <h3 class="step-label">Repeat</h3>
+    <section>
       <fieldset class="field">
         <legend>Repeat</legend>
         <div class="seg">
@@ -99,13 +98,11 @@
       </fieldset>
     </section>
 
-    <section data-step="days">
-      <h3 class="step-label">Repeat days</h3>
+    <section>
       <fieldset id="weekdays" class="chips" hidden><legend class="vh">Repeat on</legend></fieldset>
     </section>
 
-    <section data-step="interval">
-      <h3 class="step-label">Repeat every</h3>
+    <section>
       <div id="intervalFields" hidden>
         <div class="interval">
           <label class="vh" for="intervalN">Number</label>
@@ -117,23 +114,20 @@
       </div>
     </section>
 
-    <section data-step="group">
-      <h3 class="step-label">Group</h3>
+    <section>
       <label class="select-wrap"><span class="vh">Group</span><select id="group" name="group"></select></label>
       <input id="newGroup" type="text" aria-label="New group name" placeholder="Group name" autocomplete="off" hidden>
     </section>
 
-    <section data-step="priority">
-      <h3 class="step-label">Priority</h3>
+    <section>
       <label class="chip"><input type="checkbox" id="priority" name="priority"><span>Top priority</span></label>
     </section>
 
     <p id="formError" class="error" role="alert" hidden></p>
 
     <div class="sheet-actions">
-      <button type="button" id="backBtn" class="text-btn" hidden>Back</button>
-      <button type="submit" id="submitBtn" class="primary">Add</button>
-      <button type="button" id="deleteBtn" class="text-btn danger" hidden>Delete</button>
+      <button type="submit" id="submitBtn" class="primary">Save</button>
+      <button type="button" id="deleteBtn" class="text-btn danger">Delete</button>
     </div>
   </form>
 </dialog>

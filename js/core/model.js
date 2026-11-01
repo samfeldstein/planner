@@ -78,5 +78,6 @@ export function validateGroup(g) {
   if (typeof g.id !== 'string' || !g.id) return 'group has no id';
   if (typeof g.name !== 'string' || !g.name.trim()) return 'group has an empty name';
   if (isReservedGroupName(g.name)) return 'a group cannot be named "Other"';
+  if (g.order !== undefined && !Number.isFinite(g.order)) return `group "${g.name}" has an invalid order`;
   return null;
 }

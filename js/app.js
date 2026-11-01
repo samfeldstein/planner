@@ -6,6 +6,7 @@ import { createIdbAdapter } from './data/db.js';
 import { createStore } from './data/store.js';
 import * as groups from './features/groups.js';
 import * as more from './features/more.js';
+import * as quickAdd from './features/quick-add.js';
 import * as sheet from './features/sheet.js';
 import * as staleBanner from './features/stale-banner.js';
 import * as storage from './features/storage.js';
@@ -13,8 +14,9 @@ import * as todayView from './features/today-view.js';
 import * as toast from './features/toast.js';
 import * as updates from './features/updates.js';
 import { needsInstall } from './ui/install.js';
+import * as scrollLock from './ui/scroll-lock.js';
 
-const features = [todayView, sheet, toast, groups, more, staleBanner, storage, updates];
+const features = [todayView, sheet, quickAdd, toast, groups, more, staleBanner, storage, updates, scrollLock];
 
 // Not installed: show the install guide and write nothing, so two datasets can't drift apart.
 function showGate() {
@@ -29,7 +31,7 @@ function fail(message) {
   p.setAttribute('role', 'alert');
   p.textContent = message;
   document.getElementById('list').append(p);
-  document.getElementById('addBtn').disabled = true;
+  document.getElementById('quickAdd').contentEditable = 'false';
 }
 
 async function boot() {
