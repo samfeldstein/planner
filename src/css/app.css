@@ -205,6 +205,37 @@ button { cursor: pointer; }
 
 .text-btn.danger { color: var(--overdue); }
 
+/* Backup banner */
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 0 0 0 12px;
+  border-left: 3px solid var(--overdue);
+  font-size: 0.88rem;
+}
+
+.banner[hidden] { display: none; }
+
+/* More screen and confirm */
+
+dialog.screen { height: calc(var(--vvh) - 16px); }
+
+.block { display: grid; gap: 8px; padding-top: 8px; border-top: 1px solid var(--hairline); }
+.block h3 { margin: 0; font-size: 0.88rem; font-weight: 600; color: var(--ink-2); }
+
+.groups { display: grid; gap: 8px; }
+.groups li { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-row .primary, .btn-row .action { flex: 1; }
+
+.confirm-title { font-size: 1.05rem; font-weight: 600; }
+.primary.danger { background: var(--overdue); border-color: var(--overdue); color: #fff; }
+
 /* Bottom bar */
 
 .bar {

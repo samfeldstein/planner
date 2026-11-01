@@ -21,6 +21,11 @@
     <p id="count" class="secondary"></p>
   </header>
 
+  <div id="banner" class="banner" hidden>
+    <span id="bannerText"></span>
+    <button type="button" id="bannerBtn" class="text-btn">Back up</button>
+  </div>
+
   <main id="list" aria-label="Today"></main>
 
   <div id="toast" class="toast" role="status">
@@ -30,6 +35,7 @@
 
   <nav class="bar" aria-label="Actions">
     <button type="button" id="addBtn" class="primary add">Add</button>
+    <button type="button" id="moreBtn" class="action">More</button>
   </nav>
 </div>
 
@@ -77,6 +83,45 @@
       <button type="button" id="deleteBtn" class="text-btn danger" hidden>Delete</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="more" class="screen" aria-labelledby="moreTitle">
+  <div class="sheet-body">
+    <header class="sheet-head">
+      <h2 id="moreTitle">More</h2>
+      <button type="button" id="moreDone" class="text-btn">Done</button>
+    </header>
+
+    <section aria-labelledby="groupsHead" class="block">
+      <h3 id="groupsHead">Groups</h3>
+      <p id="groupsEmpty" class="secondary">No groups yet. Create one from the Add sheet.</p>
+      <ul id="groupsList" class="groups"></ul>
+      <p id="groupsError" class="error" role="alert" hidden></p>
+    </section>
+
+    <section aria-labelledby="backupHead" class="block">
+      <h3 id="backupHead">Backup</h3>
+      <p id="backupStatus" class="secondary"></p>
+      <div class="btn-row">
+        <button type="button" id="exportBtn" class="primary">Back up</button>
+        <button type="button" id="importBtn" class="action">Import backup</button>
+      </div>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+      <p id="importNote" class="secondary" role="status"></p>
+      <p id="importError" class="error" role="alert" hidden></p>
+    </section>
+  </div>
+</dialog>
+
+<dialog id="confirm" aria-labelledby="confirmTitle" aria-describedby="confirmMsg">
+  <div class="sheet-body">
+    <h2 id="confirmTitle" class="confirm-title"></h2>
+    <p id="confirmMsg"></p>
+    <div class="btn-row">
+      <button type="button" id="confirmYes" class="primary"></button>
+      <button type="button" id="confirmNo" class="action">Cancel</button>
+    </div>
+  </div>
 </dialog>
 
 <script type="module" src="js/app.js"></script>

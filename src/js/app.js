@@ -4,11 +4,14 @@
 import { createClock } from './core/clock.js';
 import { createIdbAdapter } from './data/db.js';
 import { createStore } from './data/store.js';
+import * as groups from './features/groups.js';
+import * as more from './features/more.js';
 import * as sheet from './features/sheet.js';
+import * as staleBanner from './features/stale-banner.js';
 import * as todayView from './features/today-view.js';
 import * as toast from './features/toast.js';
 
-const features = [todayView, sheet, toast];
+const features = [todayView, sheet, toast, groups, more, staleBanner];
 
 function fail(message) {
   document.getElementById('list').innerHTML = '';

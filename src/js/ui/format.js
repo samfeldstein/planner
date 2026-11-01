@@ -16,6 +16,11 @@ export const longDate = fmt({ weekday: 'long', day: 'numeric', month: 'long' });
 export const shortDate = fmt({ weekday: 'short', day: 'numeric', month: 'short' });
 const dayMonth = fmt({ day: 'numeric', month: 'short' });
 
+export const mediumDate = (iso) =>
+  new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(iso));
+
+export const daysAgo = (iso, now = new Date()) => Math.floor((now - new Date(iso)) / 864e5);
+
 // Sunday is 0; 2026-11-01 is a Sunday.
 export const weekdayName = (n) =>
   new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(new Date(2026, 10, 1 + n));
