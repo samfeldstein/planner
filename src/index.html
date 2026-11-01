@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17181b" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Planner">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Planner</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div id="app">
+  <header class="head">
+    <h1 id="date"></h1>
+    <p id="count" class="secondary"></p>
+  </header>
+
+  <main id="list" aria-label="Today"></main>
+
+  <div id="toast" class="toast" role="status">
+    <span id="toastMsg"></span>
+    <button type="button" id="toastUndo" class="text-btn">Undo</button>
+  </div>
+
+  <nav class="bar" aria-label="Actions">
+    <button type="button" id="addBtn" class="primary add">Add</button>
+  </nav>
+</div>
+
+<dialog id="sheet" aria-labelledby="sheetTitle">
+  <form id="sheetForm" class="sheet-body" novalidate>
+    <header class="sheet-head">
+      <h2 id="sheetTitle">New todo</h2>
+      <button type="button" id="sheetDone" class="text-btn">Done</button>
+    </header>
+
+    <input id="title" name="title" type="text" aria-label="Title" placeholder="What needs doing?"
+           autocomplete="off" autocapitalize="sentences" enterkeyhint="done">
+    <p id="formNote" class="note" role="status"></p>
+    <p id="formError" class="error" role="alert" hidden></p>
+
+    <fieldset class="chips">
+      <legend class="vh">Due</legend>
+      <label class="chip"><input type="radio" name="due" value="today" checked><span>Today</span></label>
+      <label class="chip"><input type="radio" name="due" value="tomorrow"><span>Tomorrow</span></label>
+      <label class="chip chip-date"><input type="radio" name="due" value="date"><span id="dateLabel">Date…</span>
+        <input type="date" id="dateInput" aria-label="Choose due date"></label>
+    </fieldset>
+
+    <div class="pair">
+      <label class="select-wrap"><span class="vh">Group</span><select id="group" name="group"></select></label>
+      <label class="chip"><input type="checkbox" id="priority" name="priority"><span>Top priority</span></label>
+    </div>
+    <input id="newGroup" type="text" aria-label="New group name" placeholder="Group name" autocomplete="off" hidden>
+
+    <fieldset class="field">
+      <legend>Repeat</legend>
+      <div class="seg">
+        <label><input type="radio" name="repeat" value="never" checked><span>Never</span></label>
+        <label><input type="radio" name="repeat" value="daily"><span>Daily</span></label>
+        <label><input type="radio" name="repeat" value="weekly"><span>Weekly</span></label>
+        <label><input type="radio" name="repeat" value="monthly"><span>Monthly</span></label>
+        <label><input type="radio" name="repeat" value="yearly"><span>Yearly</span></label>
+      </div>
+    </fieldset>
+    <fieldset id="weekdays" class="chips" hidden><legend class="vh">Repeat on</legend></fieldset>
+    <p id="repeatSummary" class="secondary" hidden></p>
+
+    <div class="sheet-actions">
+      <button type="submit" id="submitBtn" class="primary">Add</button>
+      <button type="button" id="deleteBtn" class="text-btn danger" hidden>Delete</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
