@@ -5,7 +5,6 @@ import { effectiveDue, isOverdue } from '../core/recur.js';
 import { buildToday } from '../core/today.js';
 import { dateParts, longDate, recurSummary, shortDate } from '../ui/format.js';
 
-const toast = (message, undo) => document.dispatchEvent(new CustomEvent('planner:toast', { detail: { message, undo } }));
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -179,9 +178,8 @@ export function init({ store, clock }) {
         saveFinished();
         render();
       }
-      let storeUndo;
       try {
-        ({ undo: storeUndo } = await store[kind](id));
+        await store[kind](id);
       } catch (err) {
         if (before) {
           finished.delete(id);
@@ -190,19 +188,9 @@ export function init({ store, clock }) {
         }
         throw err;
       }
-      const undo = before && storeUndo
-        ? () => { finished.delete(id); saveFinished(); return storeUndo(); }
-        : storeUndo;
-      const message = {
-        complete: () => `Completed: ${before.title}`,
-        tomorrow: () => 'Moved to tomorrow',
-        skip: () => `Skipped to ${shortDate(store.todo(id).due)}`,
-      }[kind]();
-      toast(message, undo);
       if (!before) refocus(index);
     } catch (err) {
       console.error(err);
-      toast("Couldn't save. Try again.");
     } finally {
       busy.delete(id);
     }

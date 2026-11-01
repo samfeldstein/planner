@@ -2,7 +2,7 @@
 // build.mjs stamps VERSION (a content hash) and ASSETS, so every release changes this file's bytes
 // and installs a fresh cache. Unstamped (dev), ASSETS is empty and this worker does nothing.
 
-const VERSION = '9b4091eb05';
+const VERSION = 'd168427856';
 const ASSETS = [
   "css/app.css",
   "fonts/Kalam-Regular.woff2",
@@ -26,7 +26,6 @@ const ASSETS = [
   "js/features/sheet.js",
   "js/features/stale-banner.js",
   "js/features/storage.js",
-  "js/features/toast.js",
   "js/features/today-view.js",
   "js/features/updates.js",
   "js/ui/confirm.js",
