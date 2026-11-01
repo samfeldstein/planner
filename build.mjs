@@ -1,4 +1,4 @@
-// Turns src/ into a release folder (default ../public): copies an allowlist of files, stamps a
+// Turns src/ into a release folder (default docs/): copies an allowlist of files, stamps a
 // content-hash version into sw.js and js/version.js, and writes .nojekyll. No dependencies.
 // Run: node build.mjs [--out <dir>]
 
@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-// Keeps plans, notes, and tests out of the public repo.
+// Keeps plans, notes, and tests out of the served site.
 const ALLOWED = /^(?:[^/]+\.(?:html|css|js|webmanifest)|(?:css|js)\/.+\.(?:css|js)|icons\/[^/]+\.png|fonts\/[^/]+\.(?:woff2|ttf))$/;
 
 function walk(dir, base = dir) {
@@ -20,7 +20,7 @@ function walk(dir, base = dir) {
   }).sort();
 }
 
-export function build({ src = join(here, 'src'), out = join(here, '..', 'public') } = {}) {
+export function build({ src = join(here, 'src'), out = join(here, 'docs') } = {}) {
   const files = walk(src);
   const bad = files.filter((f) => !ALLOWED.test(f));
   if (bad.length) throw new Error(`Not allowed in a release: ${bad.join(', ')}`);
