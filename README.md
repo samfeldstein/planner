@@ -1,6 +1,6 @@
 # Planner
 
-A todos-only iPhone PWA: installable, offline, no accounts, no backend, no dependencies. Data lives in the browser (IndexedDB); export and import are plain JSON.
+An iPhone PWA for todos: installable, offline, no accounts, no backend, no dependencies. Data lives in the browser (IndexedDB); export and import are plain JSON.
 
 Live: https://samfeldstein.github.io/planner/
 
