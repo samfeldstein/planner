@@ -40,7 +40,7 @@
 
   <main id="list" aria-label="Today"></main>
 
-  <div id="toast" class="toast" role="status">
+  <div id="toast" class="toast" role="status" popover="manual">
     <span id="toastMsg"></span>
     <button type="button" id="toastUndo" class="text-btn">Undo</button>
   </div>
@@ -62,7 +62,6 @@
       <h3 class="step-label">Task name</h3>
       <input id="title" name="title" type="text" aria-label="Title" placeholder="What needs doing?"
              autocomplete="off" autocapitalize="sentences" enterkeyhint="next">
-      <p id="formNote" class="note" role="status"></p>
     </section>
 
     <section data-step="due">
@@ -88,7 +87,6 @@
           <label><input type="radio" name="repeat" value="yearly"><span>Yearly</span></label>
         </div>
       </fieldset>
-      <p id="repeatSummary" class="secondary" hidden></p>
     </section>
 
     <section data-step="days">

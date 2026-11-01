@@ -4,7 +4,7 @@
 
 import { addDays, weekday } from '../core/date.js';
 import { anchorRule } from '../core/recur.js';
-import { WEEK_ORDER, recurSummary, shortDate, weekdayName } from '../ui/format.js';
+import { WEEK_ORDER, shortDate, weekdayName } from '../ui/format.js';
 
 const NEW_GROUP = '__new__';
 const toast = (message, undo) => document.dispatchEvent(new CustomEvent('planner:toast', { detail: { message, undo } }));
@@ -20,8 +20,6 @@ export function init({ store, clock }) {
   const newGroupEl = $('newGroup');
   const priorityEl = $('priority');
   const weekdaysEl = $('weekdays');
-  const summaryEl = $('repeatSummary');
-  const noteEl = $('formNote');
   const errorEl = $('formError');
   const submitBtn = $('submitBtn');
   const deleteBtn = $('deleteBtn');
@@ -68,9 +66,6 @@ export function init({ store, clock }) {
       const box = weekdayBoxes().find((b) => Number(b.value) === weekday(dueValue()));
       if (box) box.checked = true;
     }
-    const rule = chosenRecur();
-    summaryEl.hidden = !rule;
-    summaryEl.textContent = rule ? recurSummary(anchorRule(rule, dueValue())) : '';
   }
 
   function fillGroups(selected) {
@@ -115,7 +110,6 @@ export function init({ store, clock }) {
     const today = clock.today();
     form.reset();
     showError('');
-    noteEl.textContent = '';
     newGroupEl.value = '';
     $('sheetTitle').textContent = todo ? 'Edit todo' : 'New todo';
     submitBtn.textContent = todo ? 'Save' : 'Next';
@@ -179,7 +173,7 @@ export function init({ store, clock }) {
         newGroupEl.value = '';
         fillGroups(groupId);
         refreshRepeat();
-        noteEl.textContent = `Added: ${title}`;
+        toast(`Added: ${title}`);
         showStep(0);
         return;
       }
@@ -228,7 +222,7 @@ export function init({ store, clock }) {
     }
   });
 
-  titleEl.addEventListener('input', () => { noteEl.textContent = ''; showError(''); });
+  titleEl.addEventListener('input', () => showError(''));
 
   groupEl.addEventListener('change', () => {
     newGroupEl.hidden = groupEl.value !== NEW_GROUP;
