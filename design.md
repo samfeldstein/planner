@@ -1,42 +1,43 @@
-# Design
+# Design: "Planner"
 
-Style: **restrained, quiet, native-feeling.** Light ground by default, dark by system setting. One accent. No cards, no shadows except the sheet and toast. Type is the system font, so Dynamic Type works.
+A printed day-planner page. Ink on ruled paper, handwritten type, flat and square.
 
-Chosen 2026-11-01. The user excluded no styles and said simplicity and elegance win.
+## Style words
+
+Ruled, flat, square corners, no shadows, airy, restrained motion.
 
 ## Don't use
 
-Cream or off-white ground with a serif display and clay accent. Near-black ground with a neon accent. Identical rounded cards with soft grey shadows. Gradient washes. All-caps tracked labels. Numbered section labels. Middle-dot meta strings. Spaced em-dash labels. Arrows on buttons. Italic or colored accent words in headings. Monospace labels. Pill buttons. Circles or checkboxes beside tasks.
+Cream or off-white paper, italic accent words, numbered "01 / 02" labels, monospace labels, pill buttons, drop shadows, rounded cards.
 
-Add to this list whenever the user rejects something.
+## Type
 
-## Tokens
+- **Kalam** (self-hosted, `src/fonts/`): date numeral, weekday, group labels, task titles, step labels, nav buttons.
+- **System sans**: meta lines, notes, inputs, banner.
+- Fallback for Kalam: Bradley Hand, cursive.
+
+## Color
 
 | Token | Light | Dark |
 |---|---|---|
-| `--bg` | #FFFFFF | #17181B |
-| `--ink` | #1C1D21 | #ECEDEF |
-| `--ink-2` | #6B6F76 | #9A9EA6 |
-| `--hairline` | #E4E5E8 | #2A2C31 |
-| `--accent` | #1F6F6B | #5FB3AC |
-| `--overdue` | #B4382F | #E2766C |
+| `--bg` | #fbfcfe (cool white) | #14171d |
+| `--ink` | #1b2433 | #e6e9ef |
+| `--ink-2` | #667085 | #98a1b2 |
+| `--hairline` (ruled line) | #dce5f1 | #252c38 |
+| `--margin` (margin rule) | #efc2c2 | #5a3436 |
+| `--accent` (priority square, links) | #2a4f9e | #8fb0f0 |
+| `--overdue` (red pen) | #b4382f | #ef8a80 |
 
-Type scale: 28 title, 17 body, 15 section, 13 meta. Sentence case everywhere. Radii: 12 sheet top corners, 10 toast, 8 chips and buttons.
+## Components
 
-## Layout
-
-Left-aligned. Gutter 16, plus safe-area insets. Rows 48 tall minimum, hit targets 44. Bottom bar holds Add (More joins it in M4). Hairlines only between groups.
-
-Adding a todo asks one thing per screen: Task name, Due date, Repeat, Repeat days (weekly only), Group, Priority. Labels are plain nouns, never questions. Editing shows the whole form.
-
-## The one memorable thing
-
-The task row: a bordered box holding only the task. Tap it and it is done; hold it for Tomorrow, Skip, and Edit. No ring, no checkbox. Everything else stays quiet.
+- **Page:** a fixed 1px margin rule at 28px; text starts at 36px.
+- **Rows:** full-bleed, separated by a ruled line, no card borders.
+- **Priority:** filled accent square on the margin rule.
+- **Done:** 1.5px strike-through.
+- **Group label:** Kalam, letter-spaced, ruled underline.
+- **Bottom bar:** ink top rule, solid ink Add, flat More.
+- **Sheets:** square, margin rule continues; text input is an underline; chips show a checkbox square.
 
 ## Motion
 
-Only motion that answers a tap: check fill 150 ms, row collapse 200 ms, sheet slide. All of it is off under `prefers-reduced-motion`.
-
-## Copy
-
-Actions keep one name through the flow: Tomorrow → "Moved to tomorrow", Skip → "Skipped to Mon, 9 Nov", Complete → "Completed", Delete → "Deleted". Empty Today: "Nothing due today."
+Sheet slides up 200ms; done row strikes for 160ms. Nothing else.
