@@ -26,9 +26,10 @@ export function init() {
   };
 
   document.addEventListener('planner:toast', (e) => {
-    const { message, undo: fn } = e.detail;
+    const { message, undo: fn, actionLabel } = e.detail;
     undo = fn ?? null;
     msg.textContent = message;
+    undoBtn.textContent = actionLabel ?? 'Undo';
     undoBtn.hidden = !undo;
     el.classList.add('is-open');
     run(DURATION);

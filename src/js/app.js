@@ -8,10 +8,19 @@ import * as groups from './features/groups.js';
 import * as more from './features/more.js';
 import * as sheet from './features/sheet.js';
 import * as staleBanner from './features/stale-banner.js';
+import * as storage from './features/storage.js';
 import * as todayView from './features/today-view.js';
 import * as toast from './features/toast.js';
+import * as updates from './features/updates.js';
+import { needsInstall } from './ui/install.js';
 
-const features = [todayView, sheet, toast, groups, more, staleBanner];
+const features = [todayView, sheet, toast, groups, more, staleBanner, storage, updates];
+
+// Not installed: show the install guide and write nothing, so two datasets can't drift apart.
+function showGate() {
+  document.getElementById('app').hidden = true;
+  document.getElementById('gate').hidden = false;
+}
 
 function fail(message) {
   document.getElementById('list').innerHTML = '';
@@ -24,6 +33,11 @@ function fail(message) {
 }
 
 async function boot() {
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (needsInstall({ hostname: location.hostname, standalone })) {
+    showGate();
+    return;
+  }
   const clock = createClock();
   const adapter = createIdbAdapter({
     onVersionChange: () => location.reload(),

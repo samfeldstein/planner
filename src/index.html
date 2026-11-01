@@ -11,9 +11,21 @@
 <meta name="apple-mobile-web-app-title" content="Planner">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Planner</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/180.png">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
+
+<section id="gate" class="gate" hidden>
+  <h1>Add Planner to your Home Screen</h1>
+  <p class="secondary">Planner keeps your todos on this phone and only works as an installed app.</p>
+  <ol>
+    <li>Tap Share in Safari.</li>
+    <li>Choose Add to Home Screen.</li>
+    <li>Open Planner from your Home Screen.</li>
+  </ol>
+</section>
 
 <div id="app">
   <header class="head">
@@ -109,6 +121,16 @@
       <input type="file" id="importFile" accept=".json,application/json" hidden>
       <p id="importNote" class="secondary" role="status"></p>
       <p id="importError" class="error" role="alert" hidden></p>
+      <p id="storageStatus" class="secondary"></p>
+    </section>
+
+    <section aria-labelledby="appHead" class="block">
+      <h3 id="appHead">App</h3>
+      <p id="versionLine" class="secondary"></p>
+      <div class="btn-row">
+        <button type="button" id="updateBtn" class="action">Check for updates</button>
+      </div>
+      <p id="updateNote" class="secondary" role="status"></p>
     </section>
   </div>
 </dialog>
