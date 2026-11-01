@@ -16,7 +16,7 @@
   --on-accent: #fbfcfe;
   --overdue: #b4382f;
   --hand: Kalam, "Bradley Hand", cursive;
-  --bar: 52px;
+  --bar: 72px; /* the plus's height plus its gap; keeps the list and toast clear of it */
   --kb: 0px;
   --vvh: 100dvh;
   --gutter: max(16px, env(safe-area-inset-left), env(safe-area-inset-right));
@@ -111,6 +111,7 @@ button { cursor: pointer; }
 }
 
 .head {
+  position: relative;
   padding: 8px var(--gutter) 14px var(--text-x);
   border-bottom: 1px solid var(--hairline);
 }
@@ -261,28 +262,53 @@ dialog.screen { height: calc(var(--vvh) - 16px); }
 
 /* Bottom bar */
 
+/* The plus sits bare in the bottom-right corner, inset to clear the rounded display. The options
+   button lives in the header (.more-btn). No bar, so nothing solid reaches the corners. */
+
 .bar {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  background: var(--bg);
-  border-top: 1px solid var(--ink);
+  right: max(24px, env(safe-area-inset-right));
+  bottom: calc(env(safe-area-inset-bottom) + 8px);
 }
 
-.bar button {
-  flex: 1;
-  min-height: calc(var(--bar) + env(safe-area-inset-bottom));
-  padding: 0 0 env(safe-area-inset-bottom);
+.bar button,
+.more-btn {
+  width: 64px;
+  height: 64px;
+  min-height: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
   border: 0;
   border-radius: 0;
   background: none;
-  font: 400 1.2rem var(--hand);
+  color: var(--ink);
 }
 
-.bar .add { flex: 1; background: var(--ink); color: var(--bg); }
-.bar .action:active { background: var(--hairline); }
+.bar svg,
+.more-btn svg {
+  width: 36px;
+  height: 36px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.more-btn svg { width: 28px; height: 28px; fill: currentColor; }
+
+.more-btn {
+  position: absolute;
+  top: 0;
+  right: max(8px, env(safe-area-inset-right));
+  height: 56px;
+}
+
+.bar .add { color: var(--accent); }
+.bar .add svg { stroke-width: 2.5; }
+.bar button:active,
+.more-btn:active { opacity: 0.6; }
 
 /* Toast */
 

@@ -36,6 +36,9 @@
     </h1>
     <p id="count" class="secondary"></p>
     <div id="progress" class="progress" role="progressbar" aria-label="Done today" hidden><span></span></div>
+    <button type="button" id="moreBtn" class="more-btn" aria-label="More" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+    </button>
   </header>
 
   <div id="banner" class="banner" hidden>
@@ -50,10 +53,11 @@
     <button type="button" id="toastUndo" class="text-btn">Undo</button>
   </div>
 
-  <nav class="bar" aria-label="Actions">
-    <button type="button" id="addBtn" class="primary add">Add</button>
-    <button type="button" id="moreBtn" class="action">More</button>
-  </nav>
+  <div class="bar">
+    <button type="button" id="addBtn" class="add" aria-label="Add todo">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </div>
 </div>
 
 <dialog id="sheet" aria-labelledby="sheetTitle">
