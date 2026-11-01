@@ -147,6 +147,7 @@ export function createStore({
       return saveTodo(checked(next), 'edit', before);
     },
 
+    restoreTodo: restore,
     complete: (id) => transition('complete', id, complete),
     tomorrow: (id) => transition('tomorrow', id, tomorrow),
     skip: (id) => transition('skip', id, skip),
