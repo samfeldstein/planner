@@ -1,5 +1,5 @@
 // One toast at a time, 5 s, with Undo. A new toast replaces the old one (the old action stays committed).
-// Pauses while it holds focus. Shown with a "planner:toast" event: { message, undo }.
+// It is a popover so it stays above an open sheet. Pauses while it holds focus. Shown with a "planner:toast" event: { message, undo }.
 
 const DURATION = 5000;
 
@@ -31,6 +31,8 @@ export function init() {
     msg.textContent = message;
     undoBtn.textContent = actionLabel ?? 'Undo';
     undoBtn.hidden = !undo;
+    if (el.matches(':popover-open')) el.hidePopover(); // re-show to land above any sheet opened since
+    el.showPopover();
     el.classList.add('is-open');
     run(DURATION);
   });
