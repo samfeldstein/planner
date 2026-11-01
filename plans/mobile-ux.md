@@ -1,5 +1,7 @@
 # Mobile UX report: Today view, fast add, actions
 
+> **Historical.** Written before the build; parts are out of date. Current layout: one repo, `src/` built into `docs/` (not `private/` and `public/`), Pages from `main` `/docs`; group order is the user's own; no bottom bar (inline add). See [README](../README.md), [RELEASE](../RELEASE.md), [design.md](../design.md).
+
 Scope: iPhone-only todos PWA, 375 pt baseline, vanilla HTML/CSS/JS. All spec decisions treated as final.
 
 ## 1. Decisions (one pick each)

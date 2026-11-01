@@ -1,5 +1,7 @@
 # Data and extensibility plan
 
+> **Historical.** Written before the build; parts are out of date. Current layout: one repo, `src/` built into `docs/` (not `private/` and `public/`), Pages from `main` `/docs`; group order is the user's own; no bottom bar (inline add). See [README](../README.md), [RELEASE](../RELEASE.md), [design.md](../design.md).
+
 Planner PWA, todos only. Scope: IndexedDB schema, migrations, backup, recurrence and rollover, group deletion, and module layout. The spec is final; this plan only fills in how.
 
 ## Findings

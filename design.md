@@ -8,7 +8,7 @@ Ruled, flat, square corners, no shadows, airy, restrained motion.
 
 ## Type
 
-- **Kalam** (self-hosted, `src/fonts/`): date numeral, weekday, group labels, task titles, step labels, nav buttons.
+- **Kalam** (self-hosted, `src/fonts/`): date numeral, weekday, group labels, task titles, buttons.
 - **Kalam everywhere**: no system sans.
 - Fallback for Kalam: Bradley Hand, cursive.
 

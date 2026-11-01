@@ -25,7 +25,7 @@ npm test       # tests in five timezones
 ## Fork it
 
 1. Fork, then enable Pages from `main`, folder `/docs`.
-2. If you rename the repo, change the `/planner/` ids and paths in `src/manifest.webmanifest` and `src/sw.js`.
+2. If you rename the repo, change the `id` in `src/manifest.webmanifest` (`/planner/`) to match.
 3. `npm run release` builds and pushes.
 
 ## Fonts

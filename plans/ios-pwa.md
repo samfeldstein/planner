@@ -1,5 +1,7 @@
 # iOS PWA report: manifest, service worker, storage, updates, deploy
 
+> **Historical.** Written before the build; parts are out of date. Current layout: one repo, `src/` built into `docs/` (not `private/` and `public/`), Pages from `main` `/docs`; group order is the user's own; no bottom bar (inline add). See [README](../README.md), [RELEASE](../RELEASE.md), [design.md](../design.md).
+
 Scope: the platform layer for the todos-only iPhone planner. The spec's decisions are taken as final. Each decision has one pick and its main tradeoff. Evidence and sources are at the end. Items marked **(unverified)** need a device test before the build plan relies on them.
 
 ## Findings that shape the design

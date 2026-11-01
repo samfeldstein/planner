@@ -1,5 +1,7 @@
 # Merged build plan: Planner PWA (todos only)
 
+> **Historical.** Written before the build; parts are out of date. Current layout: one repo, `src/` built into `docs/` (not `private/` and `public/`), Pages from `main` `/docs`; group order is the user's own; no bottom bar (inline add). See [README](../README.md), [RELEASE](../RELEASE.md), [design.md](../design.md).
+
 Sources: [ios-pwa.md](ios-pwa.md), [data-extensibility.md](data-extensibility.md), [mobile-ux.md](mobile-ux.md). The spec in memory is final. This file only resolves conflicts between the three reports and sets the build order. Where a report is silent, its pick stands.
 
 ## 1. Conflicts resolved
