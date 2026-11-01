@@ -28,6 +28,10 @@ npm test       # tests in five timezones
 2. If you rename the repo, change the `id` in `src/manifest.webmanifest` (`/planner/`) to match.
 3. `npm run release` builds and pushes.
 
+## License
+
+MIT, see `LICENSE`. The Kalam font is separate; see below.
+
 ## Fonts
 
 Kalam by Indian Type Foundry, SIL Open Font License 1.1.

@@ -1,12 +1,10 @@
-// The Today list: todos due today plus overdue, grouped. Tap a task to complete it;
-// tap its arrow (or right-click) to open Tomorrow, Skip (recurring only), and Edit.
+// The Today list: todos due today plus overdue, grouped. Tap a task to complete it; it stays
+// struck through until the day ends, and tapping it again undoes it. Tap its arrow (or right-click) to open Tomorrow, Skip (recurring only), and Edit.
 
 import { effectiveDue, isOverdue } from '../core/recur.js';
 import { buildToday } from '../core/today.js';
 import { dateParts, longDate, recurSummary, shortDate } from '../ui/format.js';
 
-const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const toast = (message, undo) => document.dispatchEvent(new CustomEvent('planner:toast', { detail: { message, undo } }));
 
 function el(tag, className, text) {
@@ -22,28 +20,37 @@ export function init({ store, clock }) {
   const countEl = document.getElementById('count');
   const progressEl = document.getElementById('progress');
 
-  // Completed todos leave the list (or move on), so today's finished count is kept here.
-  const DONE_KEY = 'planner:done';
-  function doneToday(today, delta = 0) {
-    let n = 0;
+  // Completed todos leave the store's due list (or move on), so today's finished ones are kept
+  // here as pre-completion snapshots and drawn struck through, in place, until the day rolls over.
+  const DONE_KEY = 'planner:finished';
+  const finished = new Map();
+  let finishedDay = null;
+  function loadFinished(today) {
+    if (finishedDay === today) return;
+    finishedDay = today;
+    finished.clear();
     try {
       const saved = JSON.parse(localStorage.getItem(DONE_KEY));
-      if (saved?.date === today) n = saved.n;
-      if (delta) localStorage.setItem(DONE_KEY, JSON.stringify({ date: today, n: Math.max(0, n + delta) }));
-    } catch { /* storage unavailable: count restarts */ }
-    return Math.max(0, n + delta);
+      if (saved?.date === today) for (const t of saved.todos) finished.set(t.id, t);
+    } catch { /* storage unavailable: finished rows restart */ }
+  }
+  function saveFinished() {
+    try {
+      localStorage.setItem(DONE_KEY, JSON.stringify({ date: finishedDay, todos: [...finished.values()] }));
+    } catch { /* storage unavailable */ }
   }
   const quickAdd = document.getElementById('quickAdd');
 
   function row(todo, today) {
-    const overdue = isOverdue(todo, today);
-    const li = el('li', `row${todo.priority ? ' top' : ''}`);
+    const isDone = finished.has(todo.id);
+    const overdue = !isDone && isOverdue(todo, today);
+    const li = el('li', `row${todo.priority ? ' top' : ''}${isDone ? ' done' : ''}`);
     li.dataset.id = todo.id;
 
     const task = el('button', 'task');
     task.type = 'button';
-    task.dataset.act = 'complete';
-    task.setAttribute('aria-label', `Complete: ${todo.title}`);
+    task.dataset.act = isDone ? 'uncomplete' : 'complete';
+    task.setAttribute('aria-label', `${isDone ? 'Undo complete' : 'Complete'}: ${todo.title}`);
 
     task.append(el('span', 'title', todo.title));
     if (todo.priority) task.append(el('span', 'vh', ', top priority'));
@@ -51,6 +58,11 @@ export function init({ store, clock }) {
       task.append(el('span', 'meta overdue', `Due ${shortDate(effectiveDue(todo, today))}`));
     } else if (todo.recur) {
       task.append(el('span', 'meta', recurSummary(todo.recur)));
+    }
+
+    if (isDone) {
+      li.append(task);
+      return li;
     }
 
     const actions = el('div', 'actions');
@@ -87,10 +99,12 @@ export function init({ store, clock }) {
     document.getElementById('dayNum').textContent = parts.day;
     document.getElementById('weekday').textContent = parts.weekday;
     document.getElementById('monthYear').textContent = parts.monthYear;
-    const sections = buildToday(store.todos(), store.groups(), today);
-    const count = sections.reduce((n, s) => n + s.todos.length, 0);
-    const done = doneToday(today);
-    const total = done + count;
+    loadFinished(today);
+    const live = store.todos().filter((t) => !finished.has(t.id));
+    const sections = buildToday([...live, ...finished.values()], store.groups(), today);
+    const total = sections.reduce((n, s) => n + s.todos.length, 0);
+    const done = sections.reduce((n, s) => n + s.todos.filter((t) => finished.has(t.id)).length, 0);
+    const count = total - done;
     countEl.textContent = total ? `${done} of ${total}` : '';
     progressEl.hidden = !total;
     progressEl.firstElementChild.style.width = total ? `${(done / total) * 100}%` : '0';
@@ -98,7 +112,7 @@ export function init({ store, clock }) {
     progressEl.setAttribute('aria-valuemax', total);
 
     list.replaceChildren();
-    if (!count) list.append(el('p', 'empty', 'Nothing due today.'));
+    if (!total) list.append(el('p', 'empty', 'Nothing due today.'));
 
     sections.forEach((s, i) => {
       const section = el('section');
@@ -121,7 +135,7 @@ export function init({ store, clock }) {
     }
   }
 
-  const checks = () => [...list.querySelectorAll('[data-act="complete"]')];
+  const checks = () => [...list.querySelectorAll('[data-act="complete"], [data-act="uncomplete"]')];
 
   // After an action removes a row, keep the keyboard and VoiceOver position useful.
   function refocus(index) {
@@ -148,36 +162,46 @@ export function init({ store, clock }) {
     const id = li.dataset.id;
     if (busy.has(id)) return;
     busy.add(id);
-    const title = store.todo(id)?.title ?? '';
-    const index = checks().indexOf(li.querySelector('[data-act="complete"]'));
+    const index = checks().indexOf(li.querySelector('[data-act]'));
     try {
-      if (kind === 'complete') {
-        li.classList.add('done');
-        if (!reduceMotion()) await sleep(80);
+      if (kind === 'uncomplete') {
+        // Put the todo back as it was before it was completed, then draw it unstruck.
+        await store.restoreTodo(finished.get(id));
+        finished.delete(id);
+        saveFinished();
+        render();
+        return;
       }
-      // Count first: the store's change event re-renders before this call returns.
-      const day = clock.today();
-      if (kind === 'complete') doneToday(day, 1);
+      const before = kind === 'complete' ? store.todo(id) : null;
+      if (before) {
+        // Strike the row first: the store's change event re-renders before this call returns.
+        finished.set(id, before);
+        saveFinished();
+        render();
+      }
       let storeUndo;
       try {
         ({ undo: storeUndo } = await store[kind](id));
       } catch (err) {
-        if (kind === 'complete') doneToday(day, -1);
+        if (before) {
+          finished.delete(id);
+          saveFinished();
+          render();
+        }
         throw err;
       }
-      const undo = kind === 'complete' && storeUndo
-        ? () => { doneToday(day, -1); return storeUndo(); }
+      const undo = before && storeUndo
+        ? () => { finished.delete(id); saveFinished(); return storeUndo(); }
         : storeUndo;
       const message = {
-        complete: () => `Completed: ${title}`,
+        complete: () => `Completed: ${before.title}`,
         tomorrow: () => 'Moved to tomorrow',
         skip: () => `Skipped to ${shortDate(store.todo(id).due)}`,
       }[kind]();
       toast(message, undo);
-      refocus(index);
+      if (!before) refocus(index);
     } catch (err) {
       console.error(err);
-      li.classList.remove('done');
       toast("Couldn't save. Try again.");
     } finally {
       busy.delete(id);
