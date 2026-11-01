@@ -5,13 +5,6 @@
   src: url("../fonts/Kalam-Regular.ttf") format("truetype");
 }
 
-@font-face {
-  font-family: Kalam;
-  font-weight: 700;
-  font-display: swap;
-  src: url("../fonts/Kalam-Bold.ttf") format("truetype");
-}
-
 :root {
   color-scheme: light dark;
   --bg: #fbfcfe;
