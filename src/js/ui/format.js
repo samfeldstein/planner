@@ -16,6 +16,13 @@ export const longDate = fmt({ weekday: 'long', day: 'numeric', month: 'long' });
 export const shortDate = fmt({ weekday: 'short', day: 'numeric', month: 'short' });
 const dayMonth = fmt({ day: 'numeric', month: 'short' });
 
+const dayOnly = fmt({ day: 'numeric' });
+const weekdayOnly = fmt({ weekday: 'long' });
+const monthYear = fmt({ month: 'long', year: 'numeric' });
+
+// The header sets the day number large, so it needs the date in pieces.
+export const dateParts = (s) => ({ day: dayOnly(s), weekday: weekdayOnly(s), monthYear: monthYear(s) });
+
 export const mediumDate = (iso) =>
   new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(iso));
 

@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 
 // Keeps plans, notes, and tests out of the public repo.
-const ALLOWED = /^(?:[^/]+\.(?:html|css|js|webmanifest)|(?:css|js)\/.+\.(?:css|js)|icons\/[^/]+\.png)$/;
+const ALLOWED = /^(?:[^/]+\.(?:html|css|js|webmanifest)|(?:css|js)\/.+\.(?:css|js)|icons\/[^/]+\.png|fonts\/[^/]+\.(?:woff2|ttf))$/;
 
 function walk(dir, base = dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

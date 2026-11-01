@@ -3,7 +3,7 @@
 
 import { effectiveDue, isOverdue } from '../core/recur.js';
 import { buildToday } from '../core/today.js';
-import { longDate, recurSummary, shortDate } from '../ui/format.js';
+import { dateParts, longDate, recurSummary, shortDate } from '../ui/format.js';
 
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -62,7 +62,11 @@ export function init({ store, clock }) {
       ? { id: active.closest('[data-id]')?.dataset.id, act: active.dataset.act }
       : null;
 
-    dateEl.textContent = longDate(today);
+    const parts = dateParts(today);
+    dateEl.setAttribute('aria-label', longDate(today));
+    document.getElementById('dayNum').textContent = parts.day;
+    document.getElementById('weekday').textContent = parts.weekday;
+    document.getElementById('monthYear').textContent = parts.monthYear;
     const sections = buildToday(store.todos(), store.groups(), today);
     const count = sections.reduce((n, s) => n + s.todos.length, 0);
     countEl.textContent = count ? `${count} to do` : '';
