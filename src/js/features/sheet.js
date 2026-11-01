@@ -1,4 +1,5 @@
-// The add / edit bottom sheet. Return adds and keeps the sheet open for the next todo.
+// The add / edit bottom sheet. Adding walks one question per screen; editing shows the whole form.
+// The last step adds and keeps the sheet open for the next todo.
 // showModal() and title.focus() run synchronously in the tap handler so iOS opens the keyboard.
 
 import { addDays, weekday } from '../core/date.js';
@@ -24,8 +25,10 @@ export function init({ store, clock }) {
   const errorEl = $('formError');
   const submitBtn = $('submitBtn');
   const deleteBtn = $('deleteBtn');
+  const backBtn = $('backBtn');
 
   let editing = null; // the todo being edited, or null when adding
+  let step = 0; // index into steps() while adding
 
   for (const n of WEEK_ORDER) {
     const label = document.createElement('label');
@@ -79,6 +82,24 @@ export function init({ store, clock }) {
     newGroupEl.hidden = groupEl.value !== NEW_GROUP;
   }
 
+  const steps = () => ['title', 'due', 'repeat', ...(radio('repeat') === 'weekly' ? ['days'] : []), 'group', 'priority'];
+
+  function showStep(i) {
+    const list = steps();
+    step = Math.max(0, Math.min(i, list.length - 1));
+    for (const el of form.querySelectorAll('[data-step]')) el.classList.toggle('current', el.dataset.step === list[step]);
+    backBtn.hidden = step === 0;
+    submitBtn.textContent = step === list.length - 1 ? 'Add' : 'Next';
+    if (list[step] === 'title') titleEl.focus();
+  }
+
+  function stepError() {
+    const name = steps()[step];
+    if (name === 'title' && !titleEl.value.trim()) return ['Add a task name.', titleEl];
+    if (name === 'group' && groupEl.value === NEW_GROUP && !newGroupEl.value.trim()) return ['Name the group.', newGroupEl];
+    return null;
+  }
+
   function showError(text) {
     errorEl.textContent = text;
     errorEl.hidden = !text;
@@ -97,8 +118,10 @@ export function init({ store, clock }) {
     noteEl.textContent = '';
     newGroupEl.value = '';
     $('sheetTitle').textContent = todo ? 'Edit todo' : 'New todo';
-    submitBtn.textContent = todo ? 'Save' : 'Add';
+    submitBtn.textContent = todo ? 'Save' : 'Next';
     deleteBtn.hidden = !todo;
+    backBtn.hidden = true;
+    if (todo) delete form.dataset.mode; else form.dataset.mode = 'steps';
 
     setDate(null);
     for (const b of weekdayBoxes()) b.checked = false;
@@ -113,8 +136,10 @@ export function init({ store, clock }) {
     }
     fillGroups(todo?.groupId);
     refreshRepeat();
+    step = 0;
 
     sheet.showModal();
+    if (!todo) showStep(0);
     titleEl.focus();
   }
 
@@ -124,8 +149,14 @@ export function init({ store, clock }) {
 
   async function submit(e) {
     e.preventDefault();
+    const stepping = !editing;
+    if (stepping) {
+      const bad = stepError();
+      if (bad) { showError(bad[0]); bad[1].focus(); return; }
+      if (step < steps().length - 1) { showError(''); showStep(step + 1); return; }
+    }
     const title = titleEl.value.trim();
-    if (!title) { showError('Add a title.'); titleEl.focus(); return; }
+    if (!title) { showError('Add a task name.'); titleEl.focus(); return; }
     showError('');
     submitBtn.disabled = true;
     try {
@@ -149,7 +180,7 @@ export function init({ store, clock }) {
         fillGroups(groupId);
         refreshRepeat();
         noteEl.textContent = `Added: ${title}`;
-        titleEl.focus();
+        showStep(0);
         return;
       }
 
@@ -181,6 +212,7 @@ export function init({ store, clock }) {
   });
 
   form.addEventListener('submit', submit);
+  backBtn.addEventListener('click', () => { showError(''); showStep(step - 1); });
   $('sheetDone').addEventListener('click', close);
   sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
   sheet.addEventListener('close', () => { editing = null; });

@@ -58,39 +58,59 @@
       <button type="button" id="sheetDone" class="text-btn">Done</button>
     </header>
 
-    <input id="title" name="title" type="text" aria-label="Title" placeholder="What needs doing?"
-           autocomplete="off" autocapitalize="sentences" enterkeyhint="done">
-    <p id="formNote" class="note" role="status"></p>
+    <section data-step="title">
+      <h3 class="step-label">Task name</h3>
+      <input id="title" name="title" type="text" aria-label="Title" placeholder="What needs doing?"
+             autocomplete="off" autocapitalize="sentences" enterkeyhint="next">
+      <p id="formNote" class="note" role="status"></p>
+    </section>
+
+    <section data-step="due">
+      <h3 class="step-label">Due date</h3>
+      <fieldset class="chips">
+        <legend class="vh">Due</legend>
+        <label class="chip"><input type="radio" name="due" value="today" checked><span>Today</span></label>
+        <label class="chip"><input type="radio" name="due" value="tomorrow"><span>Tomorrow</span></label>
+        <label class="chip chip-date"><input type="radio" name="due" value="date"><span id="dateLabel">Date…</span>
+          <input type="date" id="dateInput" aria-label="Choose due date"></label>
+      </fieldset>
+    </section>
+
+    <section data-step="repeat">
+      <h3 class="step-label">Repeat</h3>
+      <fieldset class="field">
+        <legend>Repeat</legend>
+        <div class="seg">
+          <label><input type="radio" name="repeat" value="never" checked><span>Never</span></label>
+          <label><input type="radio" name="repeat" value="daily"><span>Daily</span></label>
+          <label><input type="radio" name="repeat" value="weekly"><span>Weekly</span></label>
+          <label><input type="radio" name="repeat" value="monthly"><span>Monthly</span></label>
+          <label><input type="radio" name="repeat" value="yearly"><span>Yearly</span></label>
+        </div>
+      </fieldset>
+      <p id="repeatSummary" class="secondary" hidden></p>
+    </section>
+
+    <section data-step="days">
+      <h3 class="step-label">Repeat days</h3>
+      <fieldset id="weekdays" class="chips" hidden><legend class="vh">Repeat on</legend></fieldset>
+    </section>
+
+    <section data-step="group">
+      <h3 class="step-label">Group</h3>
+      <label class="select-wrap"><span class="vh">Group</span><select id="group" name="group"></select></label>
+      <input id="newGroup" type="text" aria-label="New group name" placeholder="Group name" autocomplete="off" hidden>
+    </section>
+
+    <section data-step="priority">
+      <h3 class="step-label">Priority</h3>
+      <label class="chip"><input type="checkbox" id="priority" name="priority"><span>Top priority</span></label>
+    </section>
+
     <p id="formError" class="error" role="alert" hidden></p>
 
-    <fieldset class="chips">
-      <legend class="vh">Due</legend>
-      <label class="chip"><input type="radio" name="due" value="today" checked><span>Today</span></label>
-      <label class="chip"><input type="radio" name="due" value="tomorrow"><span>Tomorrow</span></label>
-      <label class="chip chip-date"><input type="radio" name="due" value="date"><span id="dateLabel">Date…</span>
-        <input type="date" id="dateInput" aria-label="Choose due date"></label>
-    </fieldset>
-
-    <div class="pair">
-      <label class="select-wrap"><span class="vh">Group</span><select id="group" name="group"></select></label>
-      <label class="chip"><input type="checkbox" id="priority" name="priority"><span>Top priority</span></label>
-    </div>
-    <input id="newGroup" type="text" aria-label="New group name" placeholder="Group name" autocomplete="off" hidden>
-
-    <fieldset class="field">
-      <legend>Repeat</legend>
-      <div class="seg">
-        <label><input type="radio" name="repeat" value="never" checked><span>Never</span></label>
-        <label><input type="radio" name="repeat" value="daily"><span>Daily</span></label>
-        <label><input type="radio" name="repeat" value="weekly"><span>Weekly</span></label>
-        <label><input type="radio" name="repeat" value="monthly"><span>Monthly</span></label>
-        <label><input type="radio" name="repeat" value="yearly"><span>Yearly</span></label>
-      </div>
-    </fieldset>
-    <fieldset id="weekdays" class="chips" hidden><legend class="vh">Repeat on</legend></fieldset>
-    <p id="repeatSummary" class="secondary" hidden></p>
-
     <div class="sheet-actions">
+      <button type="button" id="backBtn" class="text-btn" hidden>Back</button>
       <button type="submit" id="submitBtn" class="primary">Add</button>
       <button type="button" id="deleteBtn" class="text-btn danger" hidden>Delete</button>
     </div>

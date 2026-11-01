@@ -27,6 +27,8 @@ Type scale: 28 title, 17 body, 15 section, 13 meta. Sentence case everywhere. Ra
 
 Left-aligned. Gutter 16, plus safe-area insets. Rows 48 tall minimum, hit targets 44. Bottom bar holds Add (More joins it in M4). Hairlines only between groups.
 
+Adding a todo asks one thing per screen: Task name, Due date, Repeat, Repeat days (weekly only), Group, Priority. Labels are plain nouns, never questions. Editing shows the whole form.
+
 ## The one memorable thing
 
 The check button: a plain ring that fills with the accent when pressed. Everything else stays quiet.
