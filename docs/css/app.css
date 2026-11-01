@@ -1,0 +1,586 @@
+@font-face {
+  font-family: Kalam;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/Kalam-Regular.woff2") format("woff2");
+}
+
+:root {
+  color-scheme: light dark;
+  --bg: #fbfcfe;
+  --ink: #1b2433;
+  --ink-2: #667085;
+  --hairline: #dce5f1;
+  --margin: #efc2c2;
+  --accent: #2a4f9e;
+  --on-accent: #fbfcfe;
+  --overdue: #b4382f;
+  --hand: Kalam, "Bradley Hand", cursive;
+  --bar: 72px; /* the toast's row at the bottom; keeps the end of the list clear of it */
+  --kb: 0px;
+  --kb-pad: 0px; /* the iOS form bar above the keyboard; 0 when no keyboard is up */
+  --kb-open: 0; /* 1 while the keyboard is up */
+  --vv-top: 0px; /* how far iOS has panned the visible area down while typing */
+  --vvh: 100dvh;
+  --gutter: max(16px, env(safe-area-inset-left), env(safe-area-inset-right));
+  --margin-x: calc(env(safe-area-inset-left) + 28px);
+  --text-x: calc(env(safe-area-inset-left) + 44px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171d;
+    --ink: #e6e9ef;
+    --ink-2: #98a1b2;
+    --hairline: #252c38;
+    --margin: #5a3436;
+    --accent: #8fb0f0;
+    --on-accent: #14171d;
+    --overdue: #ef8a80;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html {
+  background: var(--bg);
+  font-family: var(--hand);
+  font-size: 17px;
+  line-height: 1.35;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The page's margin rule, behind everything. */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: var(--margin-x);
+  width: 1px;
+  background: var(--margin);
+  pointer-events: none;
+}
+
+h1, h2, p, ul { margin: 0; padding: 0; }
+ul { list-style: none; }
+
+button, input, select {
+  font: inherit;
+  color: inherit;
+}
+
+button { cursor: pointer; }
+
+.vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.secondary { color: var(--ink-2); }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Install gate */
+
+.gate {
+  padding: calc(env(safe-area-inset-top) + 48px) var(--gutter) 24px var(--text-x);
+  display: grid;
+  gap: 12px;
+  max-width: 32rem;
+}
+
+.gate[hidden] { display: none; }
+.gate h1 { font: 400 1.9rem/1.2 var(--hand); }
+.gate ol { padding-left: 1.25rem; display: grid; gap: 8px; }
+
+/* App shell */
+
+#app {
+  min-height: 100dvh;
+  padding: calc(env(safe-area-inset-top) + 12px) 0
+           calc(var(--bar) + env(safe-area-inset-bottom) + 24px);
+}
+
+.head {
+  position: relative;
+  padding: 8px var(--gutter) 14px var(--text-x);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.head h1 { display: flex; align-items: flex-end; gap: 12px; font-weight: 400; }
+.num { font: 400 3.4rem/0.95 var(--hand); }
+.when { display: grid; padding-bottom: 6px; }
+.wk { font: 400 1.4rem/1.1 var(--hand); }
+.mo { font-size: 0.76rem; color: var(--ink-2); }
+.head p { margin-top: 6px; font-size: 0.88rem; min-height: 1.2em; }
+
+.progress {
+  height: 6px;
+  margin-top: 8px;
+  background: var(--hairline);
+}
+
+.progress[hidden] { display: none; }
+.progress span { display: block; height: 100%; width: 0; background: var(--accent); transition: width 200ms; }
+
+/* Today list */
+
+#list h2 {
+  font: 400 1rem/1.3 var(--hand);
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  padding: 12px var(--gutter) 2px var(--text-x);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.row {
+  position: relative;
+  border-bottom: 1px solid var(--hairline);
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Top priority: a filled square sitting on the margin rule. */
+.row.top::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--margin-x) - 5px);
+  top: 17px;
+  width: 11px;
+  height: 11px;
+  background: var(--accent);
+}
+
+.row.done .title {
+  color: var(--ink-2);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
+.task {
+  display: block;
+  text-align: left;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  padding: 10px 52px 10px var(--text-x);
+  min-height: 48px;
+  width: 100%;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.task:active { background: var(--hairline); }
+.task:focus-visible { outline-offset: -2px; }
+
+/* Small arrow at the row's right edge; the button is a full 48px touch target. */
+.row-more {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  -webkit-touch-callout: none;
+}
+
+.row-more::before {
+  content: "";
+  display: block;
+  width: 7px;
+  height: 7px;
+  margin: 0 auto;
+  border-right: 1.5px solid var(--ink-2);
+  border-bottom: 1.5px solid var(--ink-2);
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.row-more[aria-expanded="true"]::before { transform: translateY(2px) rotate(-135deg); }
+.row-more:active { background: var(--hairline); }
+
+/* Touch has no keyboard focus to show; the ring only appears after a tap or a programmatic focus. */
+@media (hover: none) {
+  :focus-visible,
+  .chip input:focus-visible + span,
+  .seg input:focus-visible + span { outline: none; }
+}
+
+.title { display: block; font: 400 1.18rem/1.25 var(--hand); }
+.meta { display: block; font-size: 0.76rem; color: var(--ink-2); }
+.meta.overdue { color: var(--overdue); }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 var(--gutter) 12px var(--text-x);
+}
+
+.actions[hidden] { display: none; }
+.actions .detail { flex-basis: 100%; font-size: 0.76rem; color: var(--ink-2); }
+
+/* The add field sits right under the last task, like one more ruled line. */
+.quick-add { padding: 0 var(--gutter) 0 var(--text-x); border-bottom: 1px solid var(--hairline); }
+
+.quick-field {
+  display: block;
+  min-height: 48px;
+  padding: 11px 0;
+  font: 400 1.18rem/1.25 var(--hand);
+  -webkit-user-select: text;
+  user-select: text;
+  overflow-wrap: anywhere;
+}
+
+.empty { padding: 24px var(--gutter) 24px var(--text-x); font: 400 1.18rem/1.3 var(--hand); color: var(--ink-2); }
+
+/* Buttons */
+
+.primary,
+.action {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 0;
+  border: 1px solid var(--hairline);
+  background: none;
+  user-select: none;
+}
+
+.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.primary:active { opacity: 0.85; }
+.action:active { background: var(--hairline); }
+
+.text-btn {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.text-btn.danger { color: var(--overdue); }
+
+/* Backup banner */
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px var(--gutter) 6px var(--text-x);
+  border-bottom: 1px solid var(--hairline);
+  font-size: 0.88rem;
+}
+
+.banner[hidden] { display: none; }
+
+/* More screen and confirm */
+
+dialog.screen { height: calc(var(--vvh) - 16px); }
+
+.block { display: grid; gap: 8px; padding-top: 8px; border-top: 1px solid var(--hairline); }
+.block h3 { margin: 0; font: 400 1rem/1.3 var(--hand); letter-spacing: 0.04em; color: var(--ink-2); }
+
+.groups { display: grid; gap: 8px; }
+.groups li { display: grid; grid-template-columns: 1fr auto auto auto; gap: 4px; align-items: center; }
+.groups li button:disabled { opacity: 0.35; }
+
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-row .primary, .btn-row .action { flex: 1; }
+
+.confirm-title { font: 400 1.3rem/1.25 var(--hand); }
+.primary.danger { background: var(--overdue); border-color: var(--overdue); color: #fff; }
+
+/* Bottom bar */
+
+/* The plus sits bare in the bottom-right corner, inset to clear the rounded display. The options
+   button lives in the header (.more-btn). No bar, so nothing solid reaches the corners. */
+
+.more-btn {
+  width: 64px;
+  height: 64px;
+  min-height: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+}
+
+.more-btn svg {
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.more-btn {
+  position: absolute;
+  top: 0;
+  right: max(8px, env(safe-area-inset-right));
+  height: 56px;
+}
+
+.more-btn:active { opacity: 0.6; }
+
+/* Toast */
+
+.toast {
+  position: fixed;
+  left: var(--text-x);
+  right: auto;
+  top: auto;
+  bottom: calc(env(safe-area-inset-bottom) + 8px);
+  width: auto;
+  max-width: calc(100% - var(--text-x) - var(--gutter));
+  height: 64px;
+  margin: 0;
+  border: 0;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border-radius: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--hairline);
+  color: var(--ink);
+  transition: opacity 150ms;
+}
+
+.toast:not(.is-open) { opacity: 0; visibility: hidden; pointer-events: none; }
+.toast .text-btn { color: var(--ink); text-decoration: underline; }
+
+/* Add / edit sheet */
+
+dialog {
+  margin: auto 0 var(--kb);
+  width: 100%;
+  max-width: none;
+  max-height: calc(var(--vvh) - 16px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg);
+  color: var(--ink);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop { background: rgb(0 0 0 / 0.4); }
+
+/* The add / edit sheet covers the whole visible area. With the keyboard up it shrinks to the space
+   above it and follows iOS's pan (--vv-top), with extra bottom padding for the form bar. */
+#sheet {
+  top: var(--vv-top);
+  left: 0;
+  margin: 0;
+  height: var(--vvh);
+  max-height: none;
+}
+
+#sheet:focus { outline: none; }
+
+#sheet .sheet-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-top: calc(env(safe-area-inset-top) + 8px);
+  /* The keyboard covers the home-indicator inset, so it only counts while the keyboard is down. */
+  padding-bottom: calc(env(safe-area-inset-bottom) * (1 - var(--kb-open)) + 16px + var(--kb-pad));
+}
+
+#sheet .sheet-actions { margin-top: auto; }
+
+@media (prefers-reduced-motion: no-preference) {
+  dialog[open] { animation: slide-up 200ms ease-out; }
+  @keyframes slide-up { from { transform: translateY(24px); opacity: 0; } }
+
+  /* The add sheet rises from the + button's edge of the screen and settles. */
+  #sheet[open] { animation: sheet-in 340ms cubic-bezier(0.22, 1, 0.36, 1); }
+  #sheet[open]::backdrop { animation: fade-in 340ms ease-out; }
+  @keyframes sheet-in { from { transform: translateY(40%); opacity: 0; } }
+  @keyframes fade-in { from { opacity: 0; } }
+}
+
+.sheet-body {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  padding: 8px var(--gutter) calc(env(safe-area-inset-bottom) + 16px) var(--text-x);
+}
+
+.sheet-body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--margin-x);
+  width: 1px;
+  background: var(--margin);
+}
+
+.sheet-head { display: flex; justify-content: space-between; align-items: center; }
+.sheet-head h2 { font: 400 1.25rem/1.2 var(--hand); }
+
+.sheet-body input[type="text"],
+.sheet-body input[type="search"],
+.sheet-body .todo-text {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  font-family: inherit;
+  line-height: 1.3;
+  color: inherit;
+  resize: none;
+  field-sizing: content;
+  font-size: max(16px, 1em);
+  border: 0;
+  border-bottom: 2px solid var(--ink);
+  border-radius: 0;
+  background: none;
+}
+
+.sheet-body select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: max(16px, 1em);
+  border: 1px solid var(--hairline);
+  border-radius: 0;
+  background: var(--bg);
+}
+
+.sheet-body input[type="search"]::-webkit-search-cancel-button { display: none; }
+.sheet-body input[type="text"]:focus-visible,
+.sheet-body input[type="search"]:focus-visible,
+.sheet-body .todo-text:focus-visible { outline-offset: 4px; }
+.sheet-body .todo-text {
+  display: block;
+  padding-top: 10px;
+  -webkit-user-select: text;
+  user-select: text;
+  overflow-wrap: anywhere;
+}
+.todo-text:empty::before { content: attr(data-placeholder); color: var(--ink-2); }
+
+fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips[hidden], .sheet-body [hidden] { display: none; }
+
+.chip { position: relative; display: block; }
+
+.chip input[type="radio"],
+.chip input[type="checkbox"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+}
+
+/* Chips read as checkboxes: an empty box, filled when chosen. */
+.chip span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 0;
+  white-space: nowrap;
+}
+
+.chip span::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--ink-2);
+}
+
+.chip input:checked + span { border-color: var(--ink); }
+.chip input:checked + span::before { background: var(--ink); border-color: var(--ink); }
+
+.chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.chip-date input[type="date"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  font-size: 16px;
+}
+
+.sheet-body > section { display: contents; }
+.select-wrap { display: block; }
+
+.seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.field legend { padding: 0; margin-bottom: 4px; font-size: 0.88rem; color: var(--ink-2); }
+.seg label { position: relative; display: block; }
+.seg input { position: absolute; inset: 0; opacity: 0; margin: 0; }
+.seg span { display: grid; place-items: center; min-height: 44px; font-size: 0.88rem; }
+.seg input:checked + span { background: var(--ink); color: var(--bg); }
+.seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.interval { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sheet-body input[type="number"] {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: max(16px, 1em);
+  border: 1px solid var(--hairline);
+  border-radius: 0;
+  background: var(--bg);
+}
+.note { min-height: 1.2em; font-size: 0.88rem; color: var(--ink-2); }
+.note:empty { display: none; }
+.error { color: var(--overdue); font-size: 0.88rem; }
+
+.sheet-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sheet-actions .primary { flex: 1; }
+
+@media (hover: hover) {
+  .action:hover { background: var(--hairline); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

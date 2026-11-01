@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#fbfcfe" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14171d" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Planner">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Planner</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/180.png">
+<link rel="preload" href="fonts/Kalam-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<section id="gate" class="gate" hidden>
+  <h1>Add Planner to your Home Screen</h1>
+  <p class="secondary">Planner keeps your todos on this phone and only works as an installed app.</p>
+  <ol>
+    <li>Tap Share in Safari.</li>
+    <li>Choose Add to Home Screen.</li>
+    <li>Open Planner from your Home Screen.</li>
+  </ol>
+</section>
+
+<div id="app">
+  <header class="head">
+    <h1 id="date">
+      <span id="dayNum" class="num" aria-hidden="true"></span>
+      <span class="when" aria-hidden="true"><span id="weekday" class="wk"></span><span id="monthYear" class="mo"></span></span>
+    </h1>
+    <p id="count" class="secondary"></p>
+    <div id="progress" class="progress" role="progressbar" aria-label="Done today" hidden><span></span></div>
+    <button type="button" id="moreBtn" class="more-btn" aria-label="More" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+    </button>
+  </header>
+
+  <div id="banner" class="banner" hidden>
+    <span id="bannerText"></span>
+    <button type="button" id="bannerBtn" class="text-btn">Back up</button>
+  </div>
+
+  <main id="list" aria-label="Today"></main>
+
+  <div class="quick-add">
+    <div id="quickAdd" class="todo-text quick-field" contenteditable="plaintext-only" role="textbox" aria-label="New todo"
+         data-placeholder="Add a task" spellcheck="false" autocorrect="off"
+         autocapitalize="sentences" enterkeyhint="done"></div>
+  </div>
+
+  <div id="toast" class="toast" role="status" popover="manual">
+    <span id="toastMsg"></span>
+    <button type="button" id="toastUndo" class="text-btn">Undo</button>
+  </div>
+
+</div>
+
+<dialog id="sheet" aria-labelledby="sheetTitle" tabindex="-1" autofocus>
+  <form id="sheetForm" class="sheet-body" novalidate>
+    <header class="sheet-head">
+      <h2 id="sheetTitle">Edit todo</h2>
+      <button type="button" id="sheetDone" class="text-btn">Done</button>
+    </header>
+
+    <section>
+      <div id="todoText" class="todo-text" contenteditable="plaintext-only" role="textbox" aria-label="Todo"
+           data-placeholder="What needs doing?" spellcheck="false" autocorrect="off"
+           autocapitalize="sentences" enterkeyhint="done"></div>
+    </section>
+
+    <section>
+      <fieldset class="chips">
+        <legend class="vh">Due</legend>
+        <label class="chip"><input type="radio" name="due" value="today" checked><span>Today</span></label>
+        <label class="chip"><input type="radio" name="due" value="tomorrow"><span>Tomorrow</span></label>
+        <label class="chip chip-date"><input type="radio" name="due" value="date"><span id="dateLabel">Date…</span>
+          <input type="date" id="dateInput" aria-label="Choose due date"></label>
+      </fieldset>
+    </section>
+
+    <section>
+      <fieldset class="field">
+        <legend>Repeat</legend>
+        <div class="seg">
+          <label><input type="radio" name="repeat" value="never" checked><span>Never</span></label>
+          <label><input type="radio" name="repeat" value="daily"><span>Daily</span></label>
+          <label><input type="radio" name="repeat" value="weekly"><span>Weekly</span></label>
+          <label><input type="radio" name="repeat" value="monthly"><span>Monthly</span></label>
+          <label><input type="radio" name="repeat" value="yearly"><span>Yearly</span></label>
+          <label><input type="radio" name="repeat" value="interval"><span>Every…</span></label>
+        </div>
+      </fieldset>
+    </section>
+
+    <section>
+      <fieldset id="weekdays" class="chips" hidden><legend class="vh">Repeat on</legend></fieldset>
+    </section>
+
+    <section>
+      <div id="intervalFields" hidden>
+        <div class="interval">
+          <label class="vh" for="intervalN">Number</label>
+          <input id="intervalN" type="number" inputmode="numeric" min="1" max="365" step="1" value="2">
+          <label class="vh" for="intervalUnit">Unit</label>
+          <select id="intervalUnit"><option value="days">days</option><option value="weeks">weeks</option></select>
+        </div>
+        <p class="note">Counted from the day you finish it.</p>
+      </div>
+    </section>
+
+    <section>
+      <label class="select-wrap"><span class="vh">Group</span><select id="group" name="group"></select></label>
+      <input id="newGroup" type="text" aria-label="New group name" placeholder="Group name" autocomplete="off" hidden>
+    </section>
+
+    <section>
+      <label class="chip"><input type="checkbox" id="priority" name="priority"><span>Top priority</span></label>
+    </section>
+
+    <p id="formError" class="error" role="alert" hidden></p>
+
+    <div class="sheet-actions">
+      <button type="submit" id="submitBtn" class="primary">Save</button>
+      <button type="button" id="deleteBtn" class="text-btn danger">Delete</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="more" class="screen" aria-labelledby="moreTitle">
+  <div class="sheet-body">
+    <header class="sheet-head">
+      <h2 id="moreTitle">More</h2>
+      <button type="button" id="moreDone" class="text-btn">Done</button>
+    </header>
+
+    <section aria-labelledby="groupsHead" class="block">
+      <h3 id="groupsHead">Groups</h3>
+      <p id="groupsEmpty" class="secondary">No groups yet. Create one from the Add sheet.</p>
+      <ul id="groupsList" class="groups"></ul>
+      <p id="groupsError" class="error" role="alert" hidden></p>
+    </section>
+
+    <section aria-labelledby="backupHead" class="block">
+      <h3 id="backupHead">Backup</h3>
+      <p id="backupStatus" class="secondary"></p>
+      <div class="btn-row">
+        <button type="button" id="exportBtn" class="primary">Back up</button>
+        <button type="button" id="importBtn" class="action">Import backup</button>
+      </div>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+      <p id="importNote" class="secondary" role="status"></p>
+      <p id="importError" class="error" role="alert" hidden></p>
+      <p id="storageStatus" class="secondary"></p>
+    </section>
+
+    <section aria-labelledby="appHead" class="block">
+      <h3 id="appHead">App</h3>
+      <p id="versionLine" class="secondary"></p>
+      <div class="btn-row">
+        <button type="button" id="updateBtn" class="action">Check for updates</button>
+      </div>
+      <p id="updateNote" class="secondary" role="status"></p>
+    </section>
+  </div>
+</dialog>
+
+<dialog id="confirm" aria-labelledby="confirmTitle" aria-describedby="confirmMsg">
+  <div class="sheet-body">
+    <h2 id="confirmTitle" class="confirm-title"></h2>
+    <p id="confirmMsg"></p>
+    <div class="btn-row">
+      <button type="button" id="confirmYes" class="primary"></button>
+      <button type="button" id="confirmNo" class="action">Cancel</button>
+    </div>
+  </div>
+</dialog>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
