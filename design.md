@@ -6,7 +6,7 @@ Chosen 2026-11-01. The user excluded no styles and said simplicity and elegance 
 
 ## Don't use
 
-Cream or off-white ground with a serif display and clay accent. Near-black ground with a neon accent. Identical rounded cards with soft grey shadows. Gradient washes. All-caps tracked labels. Numbered section labels. Middle-dot meta strings. Spaced em-dash labels. Arrows on buttons. Italic or colored accent words in headings. Monospace labels. Pill buttons.
+Cream or off-white ground with a serif display and clay accent. Near-black ground with a neon accent. Identical rounded cards with soft grey shadows. Gradient washes. All-caps tracked labels. Numbered section labels. Middle-dot meta strings. Spaced em-dash labels. Arrows on buttons. Italic or colored accent words in headings. Monospace labels. Pill buttons. Circles or checkboxes beside tasks.
 
 Add to this list whenever the user rejects something.
 
@@ -31,7 +31,7 @@ Adding a todo asks one thing per screen: Task name, Due date, Repeat, Repeat day
 
 ## The one memorable thing
 
-The check button: a plain ring that fills with the accent when pressed. Everything else stays quiet.
+The task row: a bordered box holding only the task. Tap it and it is done; hold it for Tomorrow, Skip, and Edit. No ring, no checkbox. Everything else stays quiet.
 
 ## Motion
 

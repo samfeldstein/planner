@@ -1,5 +1,5 @@
-// The Today list: todos due today plus overdue, grouped. Tap the ring to complete;
-// tap the row to open Tomorrow, Skip (recurring only), and Edit.
+// The Today list: todos due today plus overdue, grouped. Tap a task to complete it;
+// long-press it (or right-click) to open Tomorrow, Skip (recurring only), and Edit.
 
 import { effectiveDue, isOverdue } from '../core/recur.js';
 import { buildToday } from '../core/today.js';
@@ -27,22 +27,17 @@ export function init({ store, clock }) {
     const li = el('li', `row${todo.priority ? ' top' : ''}`);
     li.dataset.id = todo.id;
 
-    const check = el('button', 'check');
-    check.type = 'button';
-    check.dataset.act = 'complete';
-    check.setAttribute('aria-label', `Complete: ${todo.title}`);
+    const task = el('button', 'task');
+    task.type = 'button';
+    task.dataset.act = 'complete';
+    task.setAttribute('aria-label', `Complete: ${todo.title}`);
 
-    const expander = el('button', 'expander');
-    expander.type = 'button';
-    expander.dataset.act = 'toggle';
-    expander.setAttribute('aria-expanded', 'false');
-
-    expander.append(el('span', 'title', todo.title));
-    if (todo.priority) expander.append(el('span', 'vh', ', top priority'));
+    task.append(el('span', 'title', todo.title));
+    if (todo.priority) task.append(el('span', 'vh', ', top priority'));
     if (overdue) {
-      expander.append(el('span', 'meta overdue', `Due ${shortDate(effectiveDue(todo, today))}`));
+      task.append(el('span', 'meta overdue', `Due ${shortDate(effectiveDue(todo, today))}`));
     } else if (todo.recur) {
-      expander.append(el('span', 'meta', recurSummary(todo.recur)));
+      task.append(el('span', 'meta', recurSummary(todo.recur)));
     }
 
     const actions = el('div', 'actions');
@@ -56,7 +51,7 @@ export function init({ store, clock }) {
       actions.append(b);
     }
 
-    li.append(check, expander, actions);
+    li.append(task, actions);
     return li;
   }
 
@@ -100,16 +95,10 @@ export function init({ store, clock }) {
   }
 
   function toggle(li) {
-    const open = li.querySelector('[data-act="toggle"]');
-    const wasOpen = open.getAttribute('aria-expanded') === 'true';
-    for (const other of list.querySelectorAll('[aria-expanded="true"]')) {
-      other.setAttribute('aria-expanded', 'false');
-      other.closest('.row').querySelector('.actions').hidden = true;
-    }
-    if (!wasOpen) {
-      open.setAttribute('aria-expanded', 'true');
-      li.querySelector('.actions').hidden = false;
-    }
+    const actions = li.querySelector('.actions');
+    const wasOpen = !actions.hidden;
+    for (const other of list.querySelectorAll('.actions:not([hidden])')) other.hidden = true;
+    actions.hidden = wasOpen;
   }
 
   async function act(kind, li) {
@@ -136,13 +125,40 @@ export function init({ store, clock }) {
     }
   }
 
+  // A long press opens the actions and swallows the click that follows the release.
+  const HOLD_MS = 500;
+  let hold = null;
+  let held = false;
+  let origin = null;
+  const cancelHold = () => { clearTimeout(hold); hold = null; };
+
+  list.addEventListener('pointerdown', (e) => {
+    const li = e.target.closest('.task')?.closest('.row');
+    if (!li || e.button) return;
+    held = false;
+    cancelHold();
+    hold = setTimeout(() => { held = true; toggle(li); }, HOLD_MS);
+    origin = { clientX: e.clientX, clientY: e.clientY };
+  });
+  list.addEventListener('pointermove', (e) => {
+    if (hold && origin && Math.hypot(e.clientX - origin.clientX, e.clientY - origin.clientY) > 8) cancelHold();
+  });
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) list.addEventListener(type, cancelHold);
+
+  list.addEventListener('contextmenu', (e) => {
+    const li = e.target.closest('.task')?.closest('.row');
+    if (!li) return;
+    e.preventDefault();
+    if (!held) toggle(li);
+  });
+
   list.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-act]');
     if (!btn) return;
+    if (held) { held = false; return; }
     const li = btn.closest('.row');
     const kind = btn.dataset.act;
-    if (kind === 'toggle') toggle(li);
-    else if (kind === 'edit') document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
+    if (kind === 'edit') document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
     else act(kind, li);
   });
 
