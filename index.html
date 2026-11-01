@@ -94,6 +94,7 @@
           <label><input type="radio" name="repeat" value="weekly"><span>Weekly</span></label>
           <label><input type="radio" name="repeat" value="monthly"><span>Monthly</span></label>
           <label><input type="radio" name="repeat" value="yearly"><span>Yearly</span></label>
+          <label><input type="radio" name="repeat" value="interval"><span>Every…</span></label>
         </div>
       </fieldset>
     </section>
@@ -101,6 +102,19 @@
     <section data-step="days">
       <h3 class="step-label">Repeat days</h3>
       <fieldset id="weekdays" class="chips" hidden><legend class="vh">Repeat on</legend></fieldset>
+    </section>
+
+    <section data-step="interval">
+      <h3 class="step-label">Repeat every</h3>
+      <div id="intervalFields" hidden>
+        <div class="interval">
+          <label class="vh" for="intervalN">Number</label>
+          <input id="intervalN" type="number" inputmode="numeric" min="1" max="365" step="1" value="2">
+          <label class="vh" for="intervalUnit">Unit</label>
+          <select id="intervalUnit"><option value="days">days</option><option value="weeks">weeks</option></select>
+        </div>
+        <p class="note">Counted from the day you finish it.</p>
+      </div>
     </section>
 
     <section data-step="group">

@@ -96,7 +96,7 @@ export function init({ store, clock }) {
 
     sections.forEach((s, i) => {
       const section = el('section');
-      const h = el('h2', '', s.group ? s.group.name : 'Other');
+      const h = el('h2', '', s.priority ? 'Priority' : s.group ? s.group.name : 'Other');
       h.id = `grp${i}`;
       section.setAttribute('aria-labelledby', h.id);
       const ul = el('ul');

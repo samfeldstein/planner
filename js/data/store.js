@@ -3,7 +3,7 @@
 // Actions read today() when they run, not when the list was rendered.
 
 import { isValid, todayLocal } from '../core/date.js';
-import { normalizeTodo, validateGroup, validateTodo } from '../core/model.js';
+import { normalizeTodo, sortGroups, validateGroup, validateTodo } from '../core/model.js';
 import { DELETE, complete, schedule, skip, tomorrow } from '../core/recur.js';
 
 const WEEK_MS = 7 * 24 * 36e5;
@@ -157,6 +157,20 @@ export function createStore({
       groups.set(group.id, group);
       emit({ type: 'group', ids: [group.id] });
       return group;
+    },
+
+    // Moves a group one place up (-1) or down (1) and renumbers them 1..n so ties can't linger.
+    async moveGroup(id, delta) {
+      need(groups, id, 'group');
+      const list = sortGroups([...groups.values()]);
+      const from = list.findIndex((g) => g.id === id);
+      const to = from + delta;
+      if (to < 0 || to >= list.length) return;
+      list.splice(to, 0, ...list.splice(from, 1));
+      const changed = list.map((g, i) => ({ ...g, order: i + 1 })).filter((g) => groups.get(g.id).order !== g.order);
+      await adapter.commit(changed.map((g) => put('groups', g)));
+      for (const g of changed) groups.set(g.id, g);
+      emit({ type: 'group', ids: changed.map((g) => g.id) });
     },
 
     async renameGroup(id, name) {

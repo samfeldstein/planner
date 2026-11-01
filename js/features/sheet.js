@@ -3,6 +3,7 @@
 // showModal() and title.focus() run synchronously in the tap handler so iOS opens the keyboard.
 
 import { addDays, weekday } from '../core/date.js';
+import { sortGroups } from '../core/model.js';
 import { anchorRule } from '../core/recur.js';
 import { WEEK_ORDER, shortDate, weekdayName } from '../ui/format.js';
 
@@ -20,6 +21,9 @@ export function init({ store, clock }) {
   const newGroupEl = $('newGroup');
   const priorityEl = $('priority');
   const weekdaysEl = $('weekdays');
+  const intervalEl = $('intervalFields');
+  const intervalN = $('intervalN');
+  const intervalUnit = $('intervalUnit');
   const errorEl = $('formError');
   const submitBtn = $('submitBtn');
   const deleteBtn = $('deleteBtn');
@@ -56,12 +60,16 @@ export function init({ store, clock }) {
       const days = weekdayBoxes().filter((b) => b.checked).map((b) => Number(b.value));
       return { freq, weekdays: days.length ? days : [weekday(dueValue())] };
     }
+    if (freq === 'interval') return { freq, n: intervalCount(), unit: intervalUnit.value };
     return { freq };
   }
+
+  const intervalCount = () => Math.min(365, Math.max(1, Math.floor(Number(intervalN.value)) || 1));
 
   function refreshRepeat() {
     const freq = radio('repeat');
     weekdaysEl.hidden = freq !== 'weekly';
+    intervalEl.hidden = freq !== 'interval';
     if (freq === 'weekly' && !weekdayBoxes().some((b) => b.checked)) {
       const box = weekdayBoxes().find((b) => Number(b.value) === weekday(dueValue()));
       if (box) box.checked = true;
@@ -70,14 +78,14 @@ export function init({ store, clock }) {
 
   function fillGroups(selected) {
     groupEl.replaceChildren(new Option('No group', ''));
-    for (const g of [...store.groups()].sort((a, b) => a.name.localeCompare(b.name))) groupEl.append(new Option(g.name, g.id));
+    for (const g of sortGroups(store.groups())) groupEl.append(new Option(g.name, g.id));
     groupEl.append(new Option('New group…', NEW_GROUP));
     groupEl.value = selected ?? '';
     if (groupEl.value !== (selected ?? '')) groupEl.value = '';
     newGroupEl.hidden = groupEl.value !== NEW_GROUP;
   }
 
-  const steps = () => ['title', 'due', 'repeat', ...(radio('repeat') === 'weekly' ? ['days'] : []), 'group', 'priority'];
+  const steps = () => ['title', 'due', 'repeat', ...(radio('repeat') === 'weekly' ? ['days'] : []), ...(radio('repeat') === 'interval' ? ['interval'] : []), 'group', 'priority'];
 
   function showStep(i) {
     const list = steps();
@@ -91,6 +99,7 @@ export function init({ store, clock }) {
   function stepError() {
     const name = steps()[step];
     if (name === 'title' && !titleEl.value.trim()) return ['Add a task name.', titleEl];
+    if (name === 'interval' && !(Number(intervalN.value) >= 1)) return ['Enter a number of 1 or more.', intervalN];
     if (name === 'group' && groupEl.value === NEW_GROUP && !newGroupEl.value.trim()) return ['Name the group.', newGroupEl];
     return null;
   }
@@ -127,6 +136,7 @@ export function init({ store, clock }) {
       else { setRadio('due', 'date'); setDate(todo.due); }
       setRadio('repeat', todo.recur?.freq ?? 'never');
       for (const b of weekdayBoxes()) b.checked = todo.recur?.weekdays?.includes(Number(b.value)) ?? false;
+      if (todo.recur?.freq === 'interval') { intervalN.value = todo.recur.n; intervalUnit.value = todo.recur.unit; }
     }
     fillGroups(todo?.groupId);
     refreshRepeat();

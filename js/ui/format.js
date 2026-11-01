@@ -48,6 +48,8 @@ export function recurSummary(rule) {
       return 'Every day';
     case 'weekly':
       return `Every ${WEEK_ORDER.filter((n) => rule.weekdays.includes(n)).map(weekdayName).join(', ')}`;
+    case 'interval':
+      return `Every ${rule.n === 1 ? rule.unit.slice(0, -1) : `${rule.n} ${rule.unit}`}`;
     case 'monthly':
       return `Every month on the ${ordinal(rule.monthDay)}${rule.monthDay > 28 ? ', or the last day' : ''}`;
     case 'yearly':
