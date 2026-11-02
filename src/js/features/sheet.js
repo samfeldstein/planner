@@ -228,6 +228,7 @@ export function init({ store, clock }) {
       root.setProperty('--vv-top', `${top}px`);
       root.setProperty('--kb-open', open ? '1' : '0');
       root.setProperty('--kb-pad', open ? `${FORM_BAR}px` : '0px');
+      document.documentElement.classList.toggle('kb-open', open);
     };
     vv.addEventListener('resize', fit);
     vv.addEventListener('scroll', fit);

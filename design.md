@@ -4,7 +4,7 @@ A printed day-planner page. Ink on ruled paper, handwritten type, flat and squar
 
 ## Style words
 
-Ruled, flat, square corners, no shadows, airy, restrained motion.
+Ruled, flat, square corners, no shadows (except the round + button), airy, restrained motion.
 
 ## Type
 
@@ -32,9 +32,9 @@ Ruled, flat, square corners, no shadows, airy, restrained motion.
 - **Group order:** the user's own order (arrows in More); Other last.
 - **Done:** 1.5px strike-through.
 - **Group label:** Kalam, letter-spaced, ruled underline.
-- **Add / More:** inline add field at the top of the list (no + button); ink three-dot button top-right of the header.
+- **Add / More:** inline add field under the list, plus a round accent + button bottom right that focuses it (hidden while the keyboard is up); ink three-dot button top-right of the header.
 - **Sheets:** square, margin rule continues; text input is an underline; chips show a checkbox square.
 
 ## Motion
 
-Sheet slides up 200ms; done row strikes for 160ms. Nothing else.
+Sheet slides up 200ms; done row strikes for 160ms; the + button scales on press. Nothing else.
