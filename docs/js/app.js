@@ -31,6 +31,7 @@ function fail(message) {
   p.textContent = message;
   document.getElementById('list').append(p);
   document.getElementById('quickAdd').contentEditable = 'false';
+  document.getElementById('addBtn').hidden = true;
 }
 
 async function boot() {
