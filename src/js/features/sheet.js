@@ -172,7 +172,7 @@ export function init({ store, clock }) {
   });
 
   form.addEventListener('submit', submit);
-  $('sheetDone').addEventListener('click', close);
+  $('sheetDone').addEventListener('click', () => form.requestSubmit());
   sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
   sheet.addEventListener('close', () => { editing = null; });
 
