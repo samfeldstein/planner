@@ -21,6 +21,12 @@ export function init({ store, clock }) {
     }
   }
 
+  document.getElementById('addBtn').addEventListener('click', () => {
+    if (text()) add();
+    field.focus();
+    field.scrollIntoView({ block: 'center' });
+  });
+
   field.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); add(); }
   });
