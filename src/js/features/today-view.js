@@ -143,7 +143,9 @@ export function init({ store, clock }) {
   }
 
   function setOpen(li, open) {
-    li.querySelector('.actions').hidden = !open;
+    const actions = li.querySelector('.actions');
+    if (!actions) return; // a finished row has no actions to open
+    actions.hidden = !open;
     li.querySelector('.row-more').setAttribute('aria-expanded', String(open));
   }
 
