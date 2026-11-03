@@ -143,12 +143,15 @@ export function init({ store, clock }) {
   }
 
   function setOpen(li, open) {
-    li.querySelector('.actions').hidden = !open;
+    const actions = li.querySelector('.actions');
+    if (!actions) return; // a finished row has no actions to open
+    actions.hidden = !open;
     li.querySelector('.row-more').setAttribute('aria-expanded', String(open));
   }
 
   function toggle(li) {
     const actions = li.querySelector('.actions');
+    if (!actions) return; // finished rows have none
     const wasOpen = !actions.hidden;
     for (const other of list.querySelectorAll('.actions:not([hidden])')) setOpen(other.closest('.row'), false);
     setOpen(li, !wasOpen);
@@ -176,7 +179,7 @@ export function init({ store, clock }) {
         // Strike the row first: the store's change event re-renders before this call returns.
         finished.set(id, before);
         saveFinished();
-        render();
+        try { render(); } catch (err) { console.error(err); } // never skip the save below
       }
       try {
         await store[kind](id);
