@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Check-off with options open</title>
+<pre id="out">running…</pre>
+<iframe id="app" style="width:400px;height:700px"></iframe>
+<script type="module">
+// Regression: expanding a row's options and then checking it off must still save the completion.
+// Once threw in render() before the save, so a monthly todo never moved and came back every day.
+import { createIdbAdapter } from '../../src/js/data/db.js';
+import { todayLocal } from '../../src/js/core/date.js';
+
+const failures = [];
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+async function until(fn, what, ms = 8000) {
+  for (let t = 0; t < ms; t += 50) {
+    const v = await fn();
+    if (v) return v;
+    await wait(50);
+  }
+  failures.push(`timed out waiting for ${what}`);
+  return null;
+}
+
+async function run() {
+  await new Promise((res) => { const r = indexedDB.deleteDatabase('planner'); r.onsuccess = r.onerror = r.onblocked = res; });
+  localStorage.removeItem('planner:finished');
+
+  const [y, m] = todayLocal().split('-').map(Number);
+  const pad = (n) => String(n).padStart(2, '0');
+  const due = `${y}-${pad(m)}-01`; // the 1st of this month: due today or overdue
+  const next = m === 12 ? `${y + 1}-01-01` : `${y}-${pad(m + 1)}-01`;
+  const stamp = new Date().toISOString();
+  const id = 'checkoff-test';
+  const adapter = createIdbAdapter();
+  await adapter.commit([{ store: 'todos', type: 'put', value: {
+    id, title: 'Pay rent', due, groupId: null, priority: 1,
+    recur: { freq: 'monthly', monthDay: 1 }, lastDone: null, createdAt: stamp, updatedAt: stamp,
+  } }]);
+
+  const frame = document.getElementById('app');
+  frame.src = '../../src/index.html';
+  await new Promise((r) => { frame.onload = r; });
+  frame.contentWindow.addEventListener('error', (e) => failures.push(`page error: ${e.message}`));
+  frame.contentWindow.addEventListener('unhandledrejection', (e) => failures.push(`unhandled rejection: ${e.reason}`));
+  const logError = frame.contentWindow.console.error.bind(frame.contentWindow.console);
+  frame.contentWindow.console.error = (...args) => { failures.push(`console.error: ${args.join(' ')}`); logError(...args); };
+  const doc = frame.contentDocument;
+  const row = await until(() => doc.querySelector(`.row[data-id="${id}"]`), 'the todo row');
+  if (!row) return;
+
+  row.querySelector('.row-more').click();
+  if (row.querySelector('.actions').hidden) failures.push('options did not expand');
+  row.querySelector('.task').click();
+
+  const saved = await until(async () => {
+    const t = (await adapter.load()).todos.find((x) => x.id === id);
+    return t && t.due === next ? t : null;
+  }, `due to move to ${next}`);
+  if (saved && !saved.lastDone) failures.push('lastDone was not set');
+  if (!doc.querySelector(`.row.done[data-id="${id}"]`)) failures.push('row is not drawn as done');
+}
+
+try {
+  await run();
+} catch (err) {
+  failures.push(`threw: ${err?.name} ${err?.message}`);
+}
+window.__result = failures.length ? `FAIL\n${failures.join('\n')}` : 'PASS';
+document.getElementById('out').textContent = window.__result;
+fetch('/__result', { method: 'POST', body: window.__result }).catch(() => {});
+</script>
