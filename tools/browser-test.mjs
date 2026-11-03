@@ -28,7 +28,8 @@ const server = createServer(async (req, res) => {
   const file = normalize(join(root, decodeURIComponent(new URL(req.url, 'http://x').pathname)));
   if (file !== root && !file.startsWith(root + sep)) { res.writeHead(403).end(); return; }
   try {
-    res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' }).end(await readFile(file));
+    const body = await readFile(file);
+    res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' }).end(body);
   } catch {
     res.writeHead(404).end();
   }
@@ -37,18 +38,34 @@ await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const { port } = server.address();
 
 const profile = await mkdtemp(join(tmpdir(), 'planner-browser-'));
+// HOME points at the temp profile so Chrome's crash reporter and caches stay out of the real one.
+// CI runners are often root in a container, where Chrome needs --no-sandbox.
+const flags = ['--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--disable-crash-reporter', '--use-mock-keychain', '--password-store=basic'];
+if (process.env.CI) flags.push('--no-sandbox', '--disable-dev-shm-usage');
 const proc = spawn(chrome, [
-  '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
-  `--user-data-dir=${profile}`, `http://127.0.0.1:${port}/tests/browser/${page}`,
-], { stdio: 'ignore' });
+  ...flags, `--user-data-dir=${profile}`, `http://127.0.0.1:${port}/tests/browser/${page}`,
+], { stdio: 'ignore', env: { ...process.env, HOME: profile } });
 proc.on('error', (err) => finish(`FAIL\ncould not start Chrome (${chrome}): ${err.message}`));
+proc.on('exit', (code, signal) => finish(`FAIL\nChrome exited before the page reported (code ${code}, signal ${signal})`));
 
 const timeout = setTimeout(() => finish('FAIL\ntimed out after 30 s with no result'), 30000);
-const out = await result;
-clearTimeout(timeout);
-proc.kill();
-server.close();
-await rm(profile, { recursive: true, force: true }).catch(() => {});
+let cleaned = false;
+async function cleanup() {
+  if (cleaned) return;
+  cleaned = true;
+  clearTimeout(timeout);
+  proc.kill('SIGKILL');
+  server.close();
+  await rm(profile, { recursive: true, force: true }).catch(() => {});
+}
+process.on('SIGINT', () => cleanup().then(() => process.exit(130)));
+
+let out;
+try {
+  out = await result;
+} finally {
+  await cleanup();
+}
 
 console.log(`${page}: ${out}`);
 process.exit(out.startsWith('PASS') ? 0 : 1);
