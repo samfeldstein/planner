@@ -142,7 +142,7 @@ button { cursor: pointer; }
   padding: 12px var(--gutter) 2px var(--text-x);
 }
 
-#list h2:not(:first-child) { margin-top: 28px; }
+#list > section + section { margin-top: 28px; }
 
 .row {
   position: relative;
