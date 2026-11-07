@@ -99,11 +99,14 @@ test('removing the repeat rule clears lastDone', async () => {
   assert.equal(store.todo(id).lastDone, null);
 });
 
-test('group names: unique case-insensitively, "Other" reserved', async () => {
+test('group names: unique case-insensitively, "Other" and the parts reserved', async () => {
   const { store } = await makeEnv();
   await store.addGroup('Work');
   await assert.rejects(store.addGroup('work'));
   await assert.rejects(store.addGroup(' Other '));
+  for (const name of ['Morning', 'afternoon', ' NIGHT ']) await assert.rejects(store.addGroup(name), /cannot be named/);
+  const w = store.groups()[0];
+  await assert.rejects(store.renameGroup(w.id, 'Night'));
   await assert.rejects(store.addGroup('  '));
   const g = await store.addGroup('Home');
   await assert.rejects(store.renameGroup(g.id, 'WORK'));
@@ -175,17 +178,17 @@ test('stale banner: hidden when empty, shown after 7 days, hidden after backup (
 
 test('moveGroup swaps places, renumbers, and survives a reload', async () => {
   const { store, adapter } = await makeEnv();
-  const a = await store.addGroup('Morning');
-  const b = await store.addGroup('Afternoon');
-  const c = await store.addGroup('Night');
+  const a = await store.addGroup('Home');
+  const b = await store.addGroup('Work');
+  const c = await store.addGroup('Errands');
   const names = () => sortGroups(store.groups()).map((g) => g.name);
-  assert.deepEqual(names(), ['Morning', 'Afternoon', 'Night']);
+  assert.deepEqual(names(), ['Home', 'Work', 'Errands']);
   await store.moveGroup(c.id, -1);
-  assert.deepEqual(names(), ['Morning', 'Night', 'Afternoon']);
+  assert.deepEqual(names(), ['Home', 'Errands', 'Work']);
   await store.moveGroup(a.id, 1);
-  assert.deepEqual(names(), ['Night', 'Morning', 'Afternoon']);
+  assert.deepEqual(names(), ['Errands', 'Home', 'Work']);
   await store.moveGroup(b.id, 1); // already last: no change
-  assert.deepEqual(names(), ['Night', 'Morning', 'Afternoon']);
+  assert.deepEqual(names(), ['Errands', 'Home', 'Work']);
   assert.deepEqual(sortGroups((await adapter.load()).groups).map((g) => g.name), names());
   await assert.rejects(store.moveGroup('nope', 1));
 });
@@ -197,4 +200,35 @@ test('an interval todo restarts its count when completed', async () => {
   await store.complete(id);
   assert.equal(store.todo(id).due, '2026-11-15');
   assert.equal(store.todo(id).lastDone, '2026-11-01');
+});
+
+test('a new todo lands in the part of the day it is now: Morning to noon, Afternoon to 5 pm, Night after', async () => {
+  const env = await makeEnv();
+  const at = async (hour) => {
+    env.hour = hour;
+    const { id } = await env.store.addTodo({ title: `at ${hour}` });
+    return env.store.todo(id).part;
+  };
+  assert.deepEqual([await at(0), await at(11), await at(12), await at(16), await at(17), await at(23)],
+    ['morning', 'morning', 'afternoon', 'afternoon', 'night', 'night']);
+  const { id } = await env.store.addTodo({ title: 'given', part: 'afternoon' });
+  assert.equal(env.store.todo(id).part, 'afternoon');
+  await assert.rejects(env.store.addTodo({ title: 'bad', part: 'evening' }));
+});
+
+test('the edit sheet can move a todo to another part; a bad part is refused', async () => {
+  const { store } = await makeEnv();
+  const { id } = await store.addTodo({ title: 'x', part: 'morning' });
+  await store.updateTodo(id, { part: 'night' });
+  assert.equal(store.todo(id).part, 'night');
+  await assert.rejects(store.updateTodo(id, { part: null }));
+  assert.equal(store.todo(id).part, 'night');
+});
+
+test('restoring a snapshot from before parts existed puts it in Morning', async () => {
+  const { store } = await makeEnv();
+  const { id } = await store.addTodo({ title: 'x', part: 'night' });
+  const { part, ...old } = store.todo(id);
+  await store.restoreTodo(old);
+  assert.equal(store.todo(id).part, 'morning');
 });

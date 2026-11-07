@@ -17,7 +17,7 @@ async function rentOnThe5th() {
 }
 
 // What the sheet sends when Done is tapped with the form as it opened.
-const untouched = (todo) => ({ title: todo.title, groupId: todo.groupId, priority: todo.priority, due: todo.due, recur: todo.recur && { freq: todo.recur.freq } });
+const untouched = (todo) => ({ title: todo.title, part: todo.part, groupId: todo.groupId, priority: todo.priority, due: todo.due, recur: todo.recur && { freq: todo.recur.freq } });
 
 test('Tomorrow on the 5th, not done on the 6th: overdue on the 7th, rule still the 5th', async () => {
   const { env, id, todo } = await rentOnThe5th();

@@ -33,7 +33,7 @@ async function run() {
   const id = 'checkoff-test';
   const adapter = createIdbAdapter();
   await adapter.commit([{ store: 'todos', type: 'put', value: {
-    id, title: 'Pay rent', due, groupId: null, priority: 1,
+    id, title: 'Pay rent', due, part: 'morning', groupId: null, priority: 1,
     recur: { freq: 'monthly', monthDay: 1 }, lastDone: null, createdAt: stamp, updatedAt: stamp,
   } }]);
 

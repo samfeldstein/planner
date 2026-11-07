@@ -2,7 +2,7 @@
 // `check` is assert.* in node and a small recorder in the browser.
 
 const todo = (id, extra = {}) => ({
-  id, title: id, due: '2026-11-01', groupId: null, priority: 0, recur: null, lastDone: null,
+  id, title: id, due: '2026-11-01', part: 'morning', groupId: null, priority: 0, recur: null, lastDone: null,
   createdAt: 'x', updatedAt: 'x', ...extra,
 });
 

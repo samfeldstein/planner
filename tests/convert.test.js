@@ -79,3 +79,13 @@ test('open items import; undated ones are due today; events and finished ones do
     ['Party', 'event'],
   ]);
 });
+
+test('importing the converted file turns the Morning, Afternoon, and Night groups into parts', () => {
+  const parsed = parseBackup(JSON.stringify(convert(data, opts).backup));
+  const by = (title) => parsed.todos.find((t) => t.title === title);
+  assert.deepEqual(parsed.groups.map((g) => g.name), ['All day', 'One-off']);
+  assert.deepEqual([by('Floss').part, by('Floss').groupId], ['night', null]);
+  assert.deepEqual([by('Eye doctor').part, by('Eye doctor').groupId], ['afternoon', null]);
+  assert.equal(by('Rent').part, 'morning');
+  assert.equal(by('Rent').groupId, parsed.groups.find((g) => g.name === 'All day').id);
+});

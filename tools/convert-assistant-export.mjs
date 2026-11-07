@@ -64,7 +64,7 @@ export function convert(data, { today = todayLocal(), now = new Date(), uuid = (
 
   // One bad old record is reported, not allowed to abort the whole conversion.
   const valid = pending.filter((p) => {
-    const err = validateTodo({ id: 'x', title: p.title, due: p.due, priority: 0, recur: p.recur, lastDone: p.lastDone });
+    const err = validateTodo({ id: 'x', title: p.title, due: p.due, part: 'morning', priority: 0, recur: p.recur, lastDone: p.lastDone });
     if (err) dropped.push({ label: p.title, reason: 'invalid record' });
     return !err;
   });

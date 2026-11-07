@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>IndexedDB migration to parts of the day</title>
+<pre id="out">running…</pre>
+<script type="module">
+// A version 1 database (before parts) opens at the current version with every todo in a part,
+// and the Morning, Afternoon, and Night groups the old import made folded into the parts.
+import { createIdbAdapter } from '../../src/js/data/db.js';
+
+const failures = [];
+const req = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+
+async function run() {
+  await new Promise((res) => { const r = indexedDB.deleteDatabase('planner'); r.onsuccess = r.onerror = r.onblocked = res; });
+  const open = indexedDB.open('planner', 1);
+  open.onupgradeneeded = () => {
+    const db = open.result;
+    db.createObjectStore('todos', { keyPath: 'id' });
+    db.createObjectStore('groups', { keyPath: 'id' });
+    db.createObjectStore('meta', { keyPath: 'key' });
+  };
+  const v1 = await req(open);
+  const tx = v1.transaction(['todos', 'groups'], 'readwrite');
+  const old = (id, groupId) => ({ id, title: id, due: '2026-11-01', groupId, priority: 0, recur: null, lastDone: null, createdAt: 'x', updatedAt: 'x' });
+  for (const g of [{ id: 'gn', name: 'Night', order: 1 }, { id: 'ga', name: 'Afternoon', order: 2 }, { id: 'gw', name: 'Work', order: 3 }]) tx.objectStore('groups').put(g);
+  for (const t of [old('floss', 'gn'), old('call', 'ga'), old('report', 'gw'), old('loose', null)]) tx.objectStore('todos').put(t);
+  await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+  v1.close();
+
+  const data = await createIdbAdapter().load();
+  const by = Object.fromEntries(data.todos.map((t) => [t.id, [t.part, t.groupId]]));
+  const want = { floss: ['night', null], call: ['afternoon', null], report: ['morning', 'gw'], loose: ['morning', null] };
+  for (const [id, w] of Object.entries(want)) {
+    if (JSON.stringify(by[id]) !== JSON.stringify(w)) failures.push(`${id}: got ${JSON.stringify(by[id])}, want ${JSON.stringify(w)}`);
+  }
+  const names = data.groups.map((g) => g.name);
+  if (JSON.stringify(names) !== '["Work"]') failures.push(`groups left: ${JSON.stringify(names)}`);
+}
+
+try {
+  await run();
+} catch (err) {
+  failures.push(`threw: ${err?.name} ${err?.message}`);
+}
+window.__result = failures.length ? `FAIL\n${failures.join('\n')}` : 'PASS';
+document.getElementById('out').textContent = window.__result;
+fetch('/__result', { method: 'POST', body: window.__result }).catch(() => {});
+</script>
