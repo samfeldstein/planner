@@ -42,8 +42,8 @@ test('choosing the preset for a matching weekly rule changes nothing', () => {
 });
 
 test('summary names the presets', () => {
-  assert.equal(recurSummary(presetRule('weekdays')), 'Every weekday');
-  assert.equal(recurSummary(presetRule('weekends')), 'Every weekend');
+  assert.equal(recurSummary(presetRule('weekdays')), 'Weekdays');
+  assert.equal(recurSummary(presetRule('weekends')), 'Weekends');
 });
 
 test('a preset todo validates and survives completion', async () => {

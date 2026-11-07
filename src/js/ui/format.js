@@ -48,8 +48,8 @@ export function recurSummary(rule) {
     case 'daily':
       return 'Every day';
     case 'weekly':
-      if (repeatChoice(rule) === 'weekdays') return 'Every weekday';
-      if (repeatChoice(rule) === 'weekends') return 'Every weekend';
+      if (repeatChoice(rule) === 'weekdays') return 'Weekdays';
+      if (repeatChoice(rule) === 'weekends') return 'Weekends';
       return `Every ${WEEK_ORDER.filter((n) => rule.weekdays.includes(n)).map(weekdayName).join(', ')}`;
     case 'interval':
       return `Every ${rule.n === 1 ? rule.unit.slice(0, -1) : `${rule.n} ${rule.unit}`}`;
