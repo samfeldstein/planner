@@ -26,6 +26,8 @@ async function run() {
   for (const t of [old('floss', 'gn'), old('call', 'ga'), old('report', 'gw'), old('loose', null)]) tx.objectStore('todos').put(t);
   await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
   v1.close();
+  // A check-off saved before the update: its snapshot has no part and the Night group.
+  localStorage.setItem('planner:finished', JSON.stringify({ date: '2026-11-01', todos: [old('floss', 'gn')] }));
 
   const data = await createIdbAdapter().load();
   const by = Object.fromEntries(data.todos.map((t) => [t.id, [t.part, t.groupId]]));
@@ -33,6 +35,9 @@ async function run() {
   for (const [id, w] of Object.entries(want)) {
     if (JSON.stringify(by[id]) !== JSON.stringify(w)) failures.push(`${id}: got ${JSON.stringify(by[id])}, want ${JSON.stringify(w)}`);
   }
+  const snap = JSON.parse(localStorage.getItem('planner:finished')).todos[0];
+  if (snap.part !== 'night' || snap.groupId !== null) failures.push(`finished snapshot: got ${snap.part}, ${snap.groupId}`);
+  localStorage.removeItem('planner:finished');
   const names = data.groups.map((g) => g.name);
   if (JSON.stringify(names) !== '["Work"]') failures.push(`groups left: ${JSON.stringify(names)}`);
 }

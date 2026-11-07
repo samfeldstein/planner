@@ -5,6 +5,7 @@
 import { effectiveDue, isOverdue } from '../core/recur.js';
 import { PART_NAMES } from '../core/model.js';
 import { addDays } from '../core/date.js';
+import { FINISHED_KEY, reconcile } from '../core/finished.js';
 import { buildToday, sectionTodos } from '../core/today.js';
 import { buildUpcoming } from '../core/upcoming.js';
 import { dateParts, longDate, recurSummary, shortDate } from '../ui/format.js';
@@ -25,7 +26,6 @@ export function init({ store, clock }) {
 
   // Completed todos leave the store's due list (or move on), so today's finished ones are kept
   // here as pre-completion snapshots and drawn struck through, in place, until the day rolls over.
-  const DONE_KEY = 'planner:finished';
   const finished = new Map();
   let finishedDay = null;
   function loadFinished(today) {
@@ -33,14 +33,27 @@ export function init({ store, clock }) {
     finishedDay = today;
     finished.clear();
     try {
-      const saved = JSON.parse(localStorage.getItem(DONE_KEY));
+      const saved = JSON.parse(localStorage.getItem(FINISHED_KEY));
       if (saved?.date === today) for (const t of saved.todos) finished.set(t.id, t);
     } catch { /* storage unavailable: finished rows restart */ }
   }
   function saveFinished() {
     try {
-      localStorage.setItem(DONE_KEY, JSON.stringify({ date: finishedDay, todos: [...finished.values()] }));
+      localStorage.setItem(FINISHED_KEY, JSON.stringify({ date: finishedDay, todos: [...finished.values()] }));
     } catch { /* storage unavailable */ }
+  }
+  // Bring each snapshot up to date with the live todo (see core/finished.js); drop the ones that
+  // can no longer be undone.
+  function reconcileFinished() {
+    let changed = false;
+    for (const [id, snap] of finished) {
+      const next = reconcile(snap, store.todo(id), finishedDay);
+      if (next && JSON.stringify(next) === JSON.stringify(snap)) continue;
+      if (next) finished.set(id, next);
+      else finished.delete(id);
+      changed = true;
+    }
+    if (changed) saveFinished();
   }
   const quickAdd = document.getElementById('quickAdd');
 
@@ -158,6 +171,7 @@ export function init({ store, clock }) {
     document.getElementById('weekday').textContent = parts.weekday;
     document.getElementById('monthYear').textContent = parts.monthYear;
     loadFinished(today);
+    reconcileFinished();
     const live = store.todos().filter((t) => !finished.has(t.id));
     const sections = buildToday([...live, ...finished.values()], store.groups(), today);
     const all = sections.flatMap(sectionTodos);
@@ -243,8 +257,10 @@ export function init({ store, clock }) {
     const index = checks().indexOf(li.querySelector('[data-act]'));
     try {
       if (kind === 'uncomplete') {
-        // Put the todo back as it was before it was completed, then draw it unstruck.
-        await store.restoreTodo(finished.get(id));
+        // Put the todo back as it was before it was completed, keeping any edit made since,
+        // then draw it unstruck. If it was deleted or rescheduled since, only the mark goes.
+        const snap = finished.get(id) && reconcile(finished.get(id), store.todo(id), finishedDay);
+        if (snap) await store.restoreTodo(snap);
         finished.delete(id);
         saveFinished();
         render();

@@ -58,6 +58,30 @@ async function run() {
   }, `due to move to ${next}`);
   if (saved && !saved.lastDone) failures.push('lastDone was not set');
   if (!doc.querySelector(`.row.done[data-id="${id}"]`)) failures.push('row is not drawn as done');
+
+  // Regression: editing the next instance from Upcoming, then undoing the check-off, keeps the
+  // edit. Undo used to write back the whole pre-check-off snapshot.
+  const upcoming = doc.querySelector(`.upcoming .row[data-id="${id}"] .task`);
+  if (!upcoming) { failures.push('checked-off todo is not in Upcoming'); return; }
+  doc.querySelector('.upcoming details').open = true;
+  upcoming.click();
+  const sheet = doc.getElementById('sheet');
+  if (!await until(() => sheet.open, 'the edit sheet')) return;
+  doc.getElementById('todoText').textContent = 'Pay the rent';
+  doc.querySelector('input[name="part"][value="night"]').click();
+  doc.getElementById('sheetDone').click();
+  await until(async () => (await adapter.load()).todos.find((x) => x.id === id)?.title === 'Pay the rent', 'the edit to save');
+  const struck = await until(() => doc.querySelector(`.row.done[data-id="${id}"]`), 'the struck row');
+  if (struck?.closest('section')?.getAttribute('aria-labelledby') !== 'part-night') failures.push('struck row did not follow the edit to Night');
+  if (struck && !struck.textContent.includes('Pay the rent')) failures.push('struck row shows the old title');
+  struck?.querySelector('.task').click();
+  const undone = await until(async () => {
+    const t = (await adapter.load()).todos.find((x) => x.id === id);
+    return t && t.due === due ? t : null;
+  }, `undo to move due back to ${due}`);
+  if (undone && (undone.title !== 'Pay the rent' || undone.part !== 'night')) {
+    failures.push(`undo lost the edit: ${undone.title}, ${undone.part}`);
+  }
 }
 
 try {
