@@ -1,9 +1,12 @@
 // The Today list: todos due today plus overdue, in Morning, Afternoon, and Night, grouped inside. Tap a task to complete it; it stays
 // struck through until the day ends, and tapping it again undoes it. Tap its arrow (or right-click) to open Tomorrow, Skip (recurring only), and Edit.
+// Below Night, a collapsed Upcoming list shows later todos by day; tapping one opens the edit sheet.
 
 import { effectiveDue, isOverdue } from '../core/recur.js';
 import { PART_NAMES } from '../core/model.js';
+import { addDays } from '../core/date.js';
 import { buildToday, sectionTodos } from '../core/today.js';
+import { buildUpcoming } from '../core/upcoming.js';
 import { dateParts, longDate, recurSummary, shortDate } from '../ui/format.js';
 
 
@@ -40,6 +43,61 @@ export function init({ store, clock }) {
     } catch { /* storage unavailable */ }
   }
   const quickAdd = document.getElementById('quickAdd');
+
+  // Whether Upcoming is open, remembered on this device only. Starts collapsed.
+  const OPEN_KEY = 'planner:upcomingOpen';
+  let upcomingOpen = false;
+  try { upcomingOpen = localStorage.getItem(OPEN_KEY) === '1'; } catch { /* storage unavailable */ }
+  list.addEventListener('toggle', (e) => {
+    if (!e.target.matches('.upcoming details')) return;
+    upcomingOpen = e.target.open;
+    try { localStorage.setItem(OPEN_KEY, upcomingOpen ? '1' : '0'); } catch { /* storage unavailable */ }
+  }, true); // toggle doesn't bubble
+
+  // An upcoming row: tapping it opens the edit sheet.
+  function upcomingRow(todo) {
+    const li = el('li', `row${todo.priority ? ' top' : ''}`);
+    li.dataset.id = todo.id;
+    const task = el('button', 'task');
+    task.type = 'button';
+    task.dataset.act = 'edit';
+    task.setAttribute('aria-label', `Edit: ${todo.title}`);
+    task.append(el('span', 'title', todo.title));
+    if (todo.priority) task.append(el('span', 'vh', ', top priority'));
+    const meta = [PART_NAMES[todo.part], todo.recur && recurSummary(todo.recur)].filter(Boolean).join(', ');
+    if (meta) task.append(el('span', 'meta', meta));
+    li.append(task);
+    return li;
+  }
+
+  function upcoming(today) {
+    const section = el('section', 'upcoming');
+    const details = el('details');
+    const days = buildUpcoming(store.todos(), today);
+    const summary = el('summary', '', 'Upcoming');
+    const n = days.reduce((sum, d) => sum + d.todos.length, 0);
+    if (n) {
+      summary.append(el('span', 'count', String(n)));
+      summary.setAttribute('aria-label', `Upcoming, ${n} ${n === 1 ? 'todo' : 'todos'}`);
+    }
+    details.append(summary);
+    if (!days.length) details.append(el('p', 'empty', 'Nothing coming up.'));
+    const tomorrow = addDays(today, 1);
+    days.forEach((day, i) => {
+      const sub = el('div', 'group');
+      const h3 = el('h3', '', day.date === tomorrow ? 'Tomorrow' : shortDate(day.date));
+      h3.id = `upcoming-d${i}`;
+      sub.setAttribute('role', 'group');
+      sub.setAttribute('aria-labelledby', h3.id);
+      const ul = el('ul');
+      for (const todo of day.todos) ul.append(upcomingRow(todo));
+      sub.append(h3, ul);
+      details.append(sub);
+    });
+    details.open = upcomingOpen;
+    section.append(details);
+    return section;
+  }
 
   function row(todo, today) {
     const isDone = finished.has(todo.id);
@@ -140,6 +198,7 @@ export function init({ store, clock }) {
       if (s.ungrouped.length) section.append(rows(s.ungrouped));
       list.append(section);
     }
+    list.append(upcoming(today));
 
     if (openId) {
       const open = list.querySelector(`[data-id="${CSS.escape(openId)}"]`);

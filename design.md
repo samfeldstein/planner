@@ -30,6 +30,7 @@ Ruled, flat, square corners, no shadows (except the round + button), airy, restr
 - **Rows:** full-bleed, separated by a ruled line, no card borders.
 - **Sections:** Morning, Afternoon, and Night, always shown (even empty), 2rem headings, a ruled line between them. Every todo is in exactly one.
 - **Priority:** top-priority todos come first in their section; each keeps a filled accent square on the margin rule.
+- **Upcoming:** a collapsed disclosure below Night, its summary set like a section heading with the count and the row arrow. Later todos by day, each day labelled like a group (Tomorrow, then short dates); a repeating todo shows only its next due date. Tapping one opens the edit sheet. Open or closed is remembered on the device.
 - **Groups:** subgroups inside a section, in the user's own order (arrows in More), with ungrouped todos last.
 - **Done:** 1.5px strike-through.
 - **Group label:** Kalam, smaller than a section heading (1.05rem), letter-spaced, ruled underline.

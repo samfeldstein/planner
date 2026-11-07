@@ -21,7 +21,7 @@ Sources: [ios-pwa.md](ios-pwa.md), [data-extensibility.md](data-extensibility.md
 
 | # | Question | Default |
 |---|----------|---------|
-| 1 | **Upcoming screen.** Decided 2026-11-01: **no, Today only.** Future todos are not listed or editable until they come due. Bottom bar is `Add` and `More`. Drop `upcoming` from features and from M4. | Closed |
+| 1 | **Upcoming screen.** Decided 2026-11-01: **no, Today only.** Future todos are not listed or editable until they come due. Bottom bar is `Add` and `More`. Drop `upcoming` from features and from M4. Superseded 2026-11-07: a collapsed Upcoming list below Night (see roadmap). | Closed |
 
 ## 3. Final structure
 
