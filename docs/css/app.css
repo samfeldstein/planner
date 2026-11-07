@@ -24,6 +24,7 @@
   --gutter: max(16px, env(safe-area-inset-left), env(safe-area-inset-right));
   --margin-x: calc(env(safe-area-inset-left) + 28px);
   --text-x: calc(env(safe-area-inset-left) + 44px);
+  --strip: calc(env(safe-area-inset-top) + 12px); /* the solid top strip: status bar plus 12px */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -69,14 +70,16 @@ body::before {
 }
 
 /* A solid strip pinned to the top. iOS 26 blurs the top edge of a home-screen app unless a
-   full-width, opaque, fixed box sits there (the margin rule above would smear into a haze). */
+   full-width, opaque, fixed box sits there (the margin rule above would smear into a haze).
+   It covers the whole status-bar inset, and #app starts 12px below it so iOS's soft edge under
+   the strip never reaches the first line. */
 body::after {
   content: "";
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 12px;
+  height: var(--strip);
   background: var(--bg);
   z-index: 10;
   pointer-events: none;
@@ -122,7 +125,7 @@ button { cursor: pointer; }
 
 #app {
   min-height: 100dvh;
-  padding: calc(env(safe-area-inset-top) + 12px) 0
+  padding: calc(var(--strip) + 12px) 0
            calc(env(safe-area-inset-bottom) + 80px); /* clears the + button */
 }
 
@@ -156,7 +159,61 @@ button { cursor: pointer; }
   padding: 12px var(--gutter) 2px var(--text-x);
 }
 
-#list > section + section { margin-top: 28px; }
+/* A group inside a part: a smaller label with a ruled underline, so it never reads as a part. */
+#list h3 {
+  margin: 10px var(--gutter) 0 var(--text-x);
+  padding-bottom: 2px;
+  font: 400 1.05rem/1.3 var(--hand);
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* Ungrouped todos come after the groups; a gap keeps them out of the last group. */
+#list .group + ul { margin-top: 14px; }
+
+/* A ruled line between sections, full bleed like the page's own lines, centred in the gap. */
+#list > section + section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+
+/* Upcoming: below Night, collapsed by default; the summary reads like a section heading. */
+#list .upcoming summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  list-style: none;
+  cursor: pointer;
+  font: 400 2rem/1.3 var(--hand);
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  padding: 12px 0 2px var(--text-x); /* the arrow lines up with the rows' arrows */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#list .upcoming summary::-webkit-details-marker { display: none; }
+#list .upcoming summary:focus-visible { outline-offset: -2px; }
+#list .upcoming .count { font-size: 0.88rem; letter-spacing: 0; }
+
+/* The same small arrow as a row's, pointing down while closed and up while open. */
+#list .upcoming summary::after {
+  content: "";
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  margin-right: 20px;
+  border-right: 1.5px solid var(--ink-2);
+  border-bottom: 1.5px solid var(--ink-2);
+  transform: translateY(-2px) rotate(45deg);
+}
+
+#list .upcoming details[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+#list .upcoming .empty { padding-top: 8px; }
 
 .row {
   position: relative;
@@ -557,6 +614,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 }
 
 .field legend { padding: 0; margin-bottom: 4px; font-size: 0.88rem; color: var(--ink-2); }
+.seg-4 { grid-template-columns: repeat(4, 1fr); }
 .seg label { position: relative; display: block; }
 .seg input { position: absolute; inset: 0; opacity: 0; margin: 0; }
 .seg span { display: grid; place-items: center; min-height: 44px; font-size: 0.88rem; }

@@ -2,8 +2,8 @@
 // (quick-add.js) and refined here afterwards. Nothing is focused on open; tap a field to type.
 
 import { addDays, weekday } from '../core/date.js';
-import { sortGroups } from '../core/model.js';
-import { anchorRule } from '../core/recur.js';
+import { isPart, sortGroups } from '../core/model.js';
+import { editPatch, presetRule, repeatChoice } from '../core/edit.js';
 import { WEEK_ORDER, shortDate, weekdayName } from '../ui/format.js';
 
 const NEW_GROUP = '__new__';
@@ -58,6 +58,7 @@ export function init({ store, clock }) {
   function chosenRecur() {
     const freq = radio('repeat');
     if (freq === 'never') return null;
+    if (presetRule(freq)) return presetRule(freq);
     if (freq === 'weekly') {
       const days = weekdayBoxes().filter((b) => b.checked).map((b) => Number(b.value));
       return { freq, weekdays: days.length ? days : [weekday(dueValue())] };
@@ -108,10 +109,11 @@ export function init({ store, clock }) {
     for (const b of weekdayBoxes()) b.checked = false;
     titleEl.value = todo.title;
     priorityEl.checked = todo.priority === 1;
+    setRadio('part', isPart(todo.part) ? todo.part : 'morning');
     if (todo.due === today) setRadio('due', 'today');
     else if (todo.due === addDays(today, 1)) setRadio('due', 'tomorrow');
     else { setRadio('due', 'date'); setDate(todo.due); }
-    setRadio('repeat', todo.recur?.freq ?? 'never');
+    setRadio('repeat', repeatChoice(todo.recur));
     for (const b of weekdayBoxes()) b.checked = todo.recur?.weekdays?.includes(Number(b.value)) ?? false;
     if (todo.recur?.freq === 'interval') { intervalN.value = todo.recur.n; intervalUnit.value = todo.recur.unit; }
     fillGroups(todo.groupId);
@@ -144,17 +146,10 @@ export function init({ store, clock }) {
       const due = dueValue();
       const recur = chosenRecur();
       const priority = priorityEl.checked ? 1 : 0;
+      const part = radio('part');
 
       // Send only what changed, so editing a title never re-snaps a pushed-off due date.
-      const patch = {};
-      if (title !== todo.title) patch.title = title;
-      if (groupId !== todo.groupId) patch.groupId = groupId;
-      if (priority !== todo.priority) patch.priority = priority;
-      const anchored = recur ? anchorRule(recur, due) : null;
-      if (due !== todo.due || JSON.stringify(anchored) !== JSON.stringify(todo.recur)) {
-        patch.due = due;
-        patch.recur = recur;
-      }
+      const patch = editPatch(todo, { title, part, groupId, priority, due, recur });
       if (!Object.keys(patch).length) { close(); return; }
       await store.updateTodo(todo.id, patch);
       close();

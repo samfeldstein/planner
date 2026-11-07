@@ -1,8 +1,13 @@
-// The Today list: todos due today plus overdue, grouped. Tap a task to complete it; it stays
+// The Today list: todos due today plus overdue, in Morning, Afternoon, and Night, grouped inside. Tap a task to complete it; it stays
 // struck through until the day ends, and tapping it again undoes it. Tap its arrow (or right-click) to open Tomorrow, Skip (recurring only), and Edit.
+// Below Night, a collapsed Upcoming list shows later todos by day; tapping one opens the edit sheet.
 
 import { effectiveDue, isOverdue } from '../core/recur.js';
-import { buildToday } from '../core/today.js';
+import { PART_NAMES } from '../core/model.js';
+import { addDays } from '../core/date.js';
+import { FINISHED_KEY, reconcile } from '../core/finished.js';
+import { buildToday, sectionTodos } from '../core/today.js';
+import { buildUpcoming } from '../core/upcoming.js';
 import { dateParts, longDate, recurSummary, shortDate } from '../ui/format.js';
 
 
@@ -21,7 +26,6 @@ export function init({ store, clock }) {
 
   // Completed todos leave the store's due list (or move on), so today's finished ones are kept
   // here as pre-completion snapshots and drawn struck through, in place, until the day rolls over.
-  const DONE_KEY = 'planner:finished';
   const finished = new Map();
   let finishedDay = null;
   function loadFinished(today) {
@@ -29,16 +33,84 @@ export function init({ store, clock }) {
     finishedDay = today;
     finished.clear();
     try {
-      const saved = JSON.parse(localStorage.getItem(DONE_KEY));
+      const saved = JSON.parse(localStorage.getItem(FINISHED_KEY));
       if (saved?.date === today) for (const t of saved.todos) finished.set(t.id, t);
     } catch { /* storage unavailable: finished rows restart */ }
   }
   function saveFinished() {
     try {
-      localStorage.setItem(DONE_KEY, JSON.stringify({ date: finishedDay, todos: [...finished.values()] }));
+      localStorage.setItem(FINISHED_KEY, JSON.stringify({ date: finishedDay, todos: [...finished.values()] }));
     } catch { /* storage unavailable */ }
   }
+  // Bring each snapshot up to date with the live todo (see core/finished.js); drop the ones that
+  // can no longer be undone.
+  function reconcileFinished() {
+    let changed = false;
+    for (const [id, snap] of finished) {
+      const next = reconcile(snap, store.todo(id), finishedDay);
+      if (next && JSON.stringify(next) === JSON.stringify(snap)) continue;
+      if (next) finished.set(id, next);
+      else finished.delete(id);
+      changed = true;
+    }
+    if (changed) saveFinished();
+  }
   const quickAdd = document.getElementById('quickAdd');
+
+  // Whether Upcoming is open, remembered on this device only. Starts collapsed.
+  const OPEN_KEY = 'planner:upcomingOpen';
+  let upcomingOpen = false;
+  try { upcomingOpen = localStorage.getItem(OPEN_KEY) === '1'; } catch { /* storage unavailable */ }
+  list.addEventListener('toggle', (e) => {
+    if (!e.target.matches('.upcoming details')) return;
+    upcomingOpen = e.target.open;
+    try { localStorage.setItem(OPEN_KEY, upcomingOpen ? '1' : '0'); } catch { /* storage unavailable */ }
+  }, true); // toggle doesn't bubble
+
+  // An upcoming row: tapping it opens the edit sheet.
+  function upcomingRow(todo) {
+    const li = el('li', `row${todo.priority ? ' top' : ''}`);
+    li.dataset.id = todo.id;
+    const task = el('button', 'task');
+    task.type = 'button';
+    task.dataset.act = 'edit';
+    task.setAttribute('aria-label', `Edit: ${todo.title}`);
+    task.append(el('span', 'title', todo.title));
+    if (todo.priority) task.append(el('span', 'vh', ', top priority'));
+    const meta = [PART_NAMES[todo.part], todo.recur && recurSummary(todo.recur)].filter(Boolean).join(', ');
+    if (meta) task.append(el('span', 'meta', meta));
+    li.append(task);
+    return li;
+  }
+
+  function upcoming(today) {
+    const section = el('section', 'upcoming');
+    const details = el('details');
+    const days = buildUpcoming(store.todos(), today);
+    const summary = el('summary', '', 'Upcoming');
+    const n = days.reduce((sum, d) => sum + d.todos.length, 0);
+    if (n) {
+      summary.append(el('span', 'count', String(n)));
+      summary.setAttribute('aria-label', `Upcoming, ${n} ${n === 1 ? 'todo' : 'todos'}`);
+    }
+    details.append(summary);
+    if (!days.length) details.append(el('p', 'empty', 'Nothing coming up.'));
+    const tomorrow = addDays(today, 1);
+    days.forEach((day, i) => {
+      const sub = el('div', 'group');
+      const h3 = el('h3', '', day.date === tomorrow ? 'Tomorrow' : shortDate(day.date));
+      h3.id = `upcoming-d${i}`;
+      sub.setAttribute('role', 'group');
+      sub.setAttribute('aria-labelledby', h3.id);
+      const ul = el('ul');
+      for (const todo of day.todos) ul.append(upcomingRow(todo));
+      sub.append(h3, ul);
+      details.append(sub);
+    });
+    details.open = upcomingOpen;
+    section.append(details);
+    return section;
+  }
 
   function row(todo, today) {
     const isDone = finished.has(todo.id);
@@ -99,10 +171,12 @@ export function init({ store, clock }) {
     document.getElementById('weekday').textContent = parts.weekday;
     document.getElementById('monthYear').textContent = parts.monthYear;
     loadFinished(today);
+    reconcileFinished();
     const live = store.todos().filter((t) => !finished.has(t.id));
     const sections = buildToday([...live, ...finished.values()], store.groups(), today);
-    const total = sections.reduce((n, s) => n + s.todos.length, 0);
-    const done = sections.reduce((n, s) => n + s.todos.filter((t) => finished.has(t.id)).length, 0);
+    const all = sections.flatMap(sectionTodos);
+    const total = all.length;
+    const done = all.filter((t) => finished.has(t.id)).length;
     const count = total - done;
     countEl.textContent = total ? `${done} of ${total}` : '';
     progressEl.hidden = !total;
@@ -113,16 +187,32 @@ export function init({ store, clock }) {
     list.replaceChildren();
     if (!total) list.append(el('p', 'empty', 'Nothing due today.'));
 
-    sections.forEach((s, i) => {
-      const section = el('section');
-      const h = el('h2', '', s.priority ? 'Priority' : s.group ? s.group.name : 'Other');
-      h.id = `grp${i}`;
-      section.setAttribute('aria-labelledby', h.id);
+    // Each part always shows its heading. Groups are smaller subheadings inside it.
+    const rows = (todos) => {
       const ul = el('ul');
-      for (const todo of s.todos) ul.append(row(todo, today));
-      section.append(h, ul);
+      for (const todo of todos) ul.append(row(todo, today));
+      return ul;
+    };
+    for (const s of sections) {
+      const section = el('section', 'part');
+      const h = el('h2', '', PART_NAMES[s.part]);
+      h.id = `part-${s.part}`;
+      section.setAttribute('aria-labelledby', h.id);
+      section.append(h);
+      if (s.priority.length) section.append(rows(s.priority));
+      s.groups.forEach((g, i) => {
+        const sub = el('div', 'group');
+        const h3 = el('h3', '', g.group.name);
+        h3.id = `${h.id}-g${i}`;
+        sub.setAttribute('role', 'group');
+        sub.setAttribute('aria-labelledby', h3.id);
+        sub.append(h3, rows(g.todos));
+        section.append(sub);
+      });
+      if (s.ungrouped.length) section.append(rows(s.ungrouped));
       list.append(section);
-    });
+    }
+    list.append(upcoming(today));
 
     if (openId) {
       const open = list.querySelector(`[data-id="${CSS.escape(openId)}"]`);
@@ -167,8 +257,10 @@ export function init({ store, clock }) {
     const index = checks().indexOf(li.querySelector('[data-act]'));
     try {
       if (kind === 'uncomplete') {
-        // Put the todo back as it was before it was completed, then draw it unstruck.
-        await store.restoreTodo(finished.get(id));
+        // Put the todo back as it was before it was completed, keeping any edit made since,
+        // then draw it unstruck. If it was deleted or rescheduled since, only the mark goes.
+        const snap = finished.get(id) && reconcile(finished.get(id), store.todo(id), finishedDay);
+        if (snap) await store.restoreTodo(snap);
         finished.delete(id);
         saveFinished();
         render();

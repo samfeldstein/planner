@@ -3,8 +3,9 @@
 // Actions read today() when they run, not when the list was rendered.
 
 import { isValid, todayLocal } from '../core/date.js';
-import { normalizeTodo, sortGroups, validateGroup, validateTodo } from '../core/model.js';
+import { isPart, normalizeTodo, sortGroups, validateGroup, validateTodo } from '../core/model.js';
 import { DELETE, complete, schedule, skip, tomorrow } from '../core/recur.js';
+import { partAt } from '../core/today.js';
 
 const WEEK_MS = 7 * 24 * 36e5;
 
@@ -61,9 +62,10 @@ export function createStore({
     return { id: next.id, undo: () => restore(before) };
   }
 
-  // Put a snapshot back. If its group was deleted meanwhile it returns to "Other".
+  // Put a snapshot back. If its group was deleted meanwhile it comes back ungrouped; a snapshot
+  // from before parts existed comes back in Morning.
   async function restore(before) {
-    const rec = { ...before, groupId: knownGroup(before.groupId) };
+    const rec = { ...before, part: isPart(before.part) ? before.part : 'morning', groupId: knownGroup(before.groupId) };
     await adapter.commit([put('todos', rec)]);
     todos.set(rec.id, rec);
     emit({ type: 'undo', ids: [rec.id] });
@@ -114,6 +116,7 @@ export function createStore({
         id: uuid(),
         title: String(input.title ?? '').trim(),
         due,
+        part: input.part ?? partAt(now()),
         groupId: knownGroup(input.groupId),
         priority: input.priority ? 1 : 0,
         recur,
@@ -191,7 +194,7 @@ export function createStore({
       emit({ type: 'group', ids: [id] });
     },
 
-    // Its todos move to "Other" in the same transaction.
+    // Its todos become ungrouped, in the same transaction.
     async deleteGroup(id) {
       need(groups, id, 'group');
       const moved = [...todos.values()]

@@ -1,5 +1,5 @@
 // Group management inside the More screen: rename in place, reorder, delete with a confirm.
-// Deleting a group moves its todos to "Other". Groups are created from the Add sheet.
+// Deleting a group leaves its todos ungrouped, in their sections. Groups are created from the Add sheet.
 
 import { sortGroups } from '../core/model.js';
 import { confirmDialog } from '../ui/confirm.js';
@@ -80,7 +80,7 @@ export function init({ store }) {
     }
     const ok = await confirmDialog({
       title: `Delete ${group.name}?`,
-      message: `Todos in ${group.name} move to Other.`,
+      message: `Its todos stay in their sections, without a group.`,
       action: 'Delete group',
       danger: true,
     });

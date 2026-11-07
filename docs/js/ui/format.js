@@ -1,6 +1,7 @@
 // Display helpers shared by features. Dates arrive as civil "YYYY-MM-DD" strings.
 
 import { parse } from '../core/date.js';
+import { repeatChoice } from '../core/edit.js';
 
 const civil = (s) => {
   const [y, m, d] = parse(s);
@@ -47,6 +48,8 @@ export function recurSummary(rule) {
     case 'daily':
       return 'Every day';
     case 'weekly':
+      if (repeatChoice(rule) === 'weekdays') return 'Weekdays';
+      if (repeatChoice(rule) === 'weekends') return 'Weekends';
       return `Every ${WEEK_ORDER.filter((n) => rule.weekdays.includes(n)).map(weekdayName).join(', ')}`;
     case 'interval':
       return `Every ${rule.n === 1 ? rule.unit.slice(0, -1) : `${rule.n} ${rule.unit}`}`;
