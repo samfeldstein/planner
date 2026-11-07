@@ -1,5 +1,7 @@
 # Form and Claude: decision report
 
+**Decided 2026-11-07:** none of these. The planner stays the PWA, with no Claude integration and no events; the schedule lives in the iOS Calendar app. Kept for reference.
+
 Written 2026-11-07. Answers the two open questions in the week's notes: what form the planner takes, and how Claude fits in. Facts were checked on the web that day; sources are at the end.
 
 ## The goal, restated
