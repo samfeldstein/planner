@@ -14,3 +14,4 @@
 
 - [x] Weekday and weekend repeat labels: the row under the title says "Weekdays" and "Weekends" instead of "Every weekday" and "Every weekend".
 - [ ] Keyboard covers the new group name field: on the phone, adding a group puts the name field under the keyboard, so you can't see where you're typing. Keep the field in view above the keyboard.
+- [ ] Save ignores a typed new group name: in the edit sheet, typing a new group name and tapping Save doesn't create the group; only the keyboard's return key (the check mark) does. Save should create the group and put the todo in it.
