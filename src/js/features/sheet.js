@@ -3,7 +3,7 @@
 
 import { addDays, weekday } from '../core/date.js';
 import { sortGroups } from '../core/model.js';
-import { anchorRule } from '../core/recur.js';
+import { editPatch } from '../core/edit.js';
 import { WEEK_ORDER, shortDate, weekdayName } from '../ui/format.js';
 
 const NEW_GROUP = '__new__';
@@ -146,15 +146,7 @@ export function init({ store, clock }) {
       const priority = priorityEl.checked ? 1 : 0;
 
       // Send only what changed, so editing a title never re-snaps a pushed-off due date.
-      const patch = {};
-      if (title !== todo.title) patch.title = title;
-      if (groupId !== todo.groupId) patch.groupId = groupId;
-      if (priority !== todo.priority) patch.priority = priority;
-      const anchored = recur ? anchorRule(recur, due) : null;
-      if (due !== todo.due || JSON.stringify(anchored) !== JSON.stringify(todo.recur)) {
-        patch.due = due;
-        patch.recur = recur;
-      }
+      const patch = editPatch(todo, { title, groupId, priority, due, recur });
       if (!Object.keys(patch).length) { close(); return; }
       await store.updateTodo(todo.id, patch);
       close();
