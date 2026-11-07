@@ -16,6 +16,7 @@ export function sameRule(rule, form) {
 export function editPatch(todo, form) {
   const patch = {};
   if (form.title !== todo.title) patch.title = form.title;
+  if (form.part !== todo.part) patch.part = form.part;
   if (form.groupId !== todo.groupId) patch.groupId = form.groupId;
   if (form.priority !== todo.priority) patch.priority = form.priority;
   if (form.due !== todo.due || !sameRule(todo.recur, form.recur)) {

@@ -1,6 +1,6 @@
 // The "Add a task" field under the list. Return, or leaving the field (the form bar's checkmark),
-// adds a todo due today with no group, priority, or repeat; open the row's arrow and tap Edit to
-// set those. The round + button focuses the field.
+// adds a todo due today with no group, priority, or repeat, in the part of the day it is now (the
+// store picks it); open the row's arrow and tap Edit to change those. The round + button focuses the field.
 
 export function init({ store, clock }) {
   const field = document.getElementById('quickAdd');

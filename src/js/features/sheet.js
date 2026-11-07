@@ -2,7 +2,7 @@
 // (quick-add.js) and refined here afterwards. Nothing is focused on open; tap a field to type.
 
 import { addDays, weekday } from '../core/date.js';
-import { sortGroups } from '../core/model.js';
+import { isPart, sortGroups } from '../core/model.js';
 import { editPatch, presetRule, repeatChoice } from '../core/edit.js';
 import { WEEK_ORDER, shortDate, weekdayName } from '../ui/format.js';
 
@@ -109,6 +109,7 @@ export function init({ store, clock }) {
     for (const b of weekdayBoxes()) b.checked = false;
     titleEl.value = todo.title;
     priorityEl.checked = todo.priority === 1;
+    setRadio('part', isPart(todo.part) ? todo.part : 'morning');
     if (todo.due === today) setRadio('due', 'today');
     else if (todo.due === addDays(today, 1)) setRadio('due', 'tomorrow');
     else { setRadio('due', 'date'); setDate(todo.due); }
@@ -145,9 +146,10 @@ export function init({ store, clock }) {
       const due = dueValue();
       const recur = chosenRecur();
       const priority = priorityEl.checked ? 1 : 0;
+      const part = radio('part');
 
       // Send only what changed, so editing a title never re-snaps a pushed-off due date.
-      const patch = editPatch(todo, { title, groupId, priority, due, recur });
+      const patch = editPatch(todo, { title, part, groupId, priority, due, recur });
       if (!Object.keys(patch).length) { close(); return; }
       await store.updateTodo(todo.id, patch);
       close();

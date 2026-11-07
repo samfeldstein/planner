@@ -1,8 +1,9 @@
-// The Today list: todos due today plus overdue, grouped. Tap a task to complete it; it stays
+// The Today list: todos due today plus overdue, in Morning, Afternoon, and Night, grouped inside. Tap a task to complete it; it stays
 // struck through until the day ends, and tapping it again undoes it. Tap its arrow (or right-click) to open Tomorrow, Skip (recurring only), and Edit.
 
 import { effectiveDue, isOverdue } from '../core/recur.js';
-import { buildToday } from '../core/today.js';
+import { PART_NAMES } from '../core/model.js';
+import { buildToday, sectionTodos } from '../core/today.js';
 import { dateParts, longDate, recurSummary, shortDate } from '../ui/format.js';
 
 
@@ -101,8 +102,9 @@ export function init({ store, clock }) {
     loadFinished(today);
     const live = store.todos().filter((t) => !finished.has(t.id));
     const sections = buildToday([...live, ...finished.values()], store.groups(), today);
-    const total = sections.reduce((n, s) => n + s.todos.length, 0);
-    const done = sections.reduce((n, s) => n + s.todos.filter((t) => finished.has(t.id)).length, 0);
+    const all = sections.flatMap(sectionTodos);
+    const total = all.length;
+    const done = all.filter((t) => finished.has(t.id)).length;
     const count = total - done;
     countEl.textContent = total ? `${done} of ${total}` : '';
     progressEl.hidden = !total;
@@ -113,16 +115,31 @@ export function init({ store, clock }) {
     list.replaceChildren();
     if (!total) list.append(el('p', 'empty', 'Nothing due today.'));
 
-    sections.forEach((s, i) => {
-      const section = el('section');
-      const h = el('h2', '', s.priority ? 'Priority' : s.group ? s.group.name : 'Other');
-      h.id = `grp${i}`;
-      section.setAttribute('aria-labelledby', h.id);
+    // Each part always shows its heading. Groups are smaller subheadings inside it.
+    const rows = (todos) => {
       const ul = el('ul');
-      for (const todo of s.todos) ul.append(row(todo, today));
-      section.append(h, ul);
+      for (const todo of todos) ul.append(row(todo, today));
+      return ul;
+    };
+    for (const s of sections) {
+      const section = el('section', 'part');
+      const h = el('h2', '', PART_NAMES[s.part]);
+      h.id = `part-${s.part}`;
+      section.setAttribute('aria-labelledby', h.id);
+      section.append(h);
+      if (s.priority.length) section.append(rows(s.priority));
+      s.groups.forEach((g, i) => {
+        const sub = el('div', 'group');
+        const h3 = el('h3', '', g.group.name);
+        h3.id = `${h.id}-g${i}`;
+        sub.setAttribute('role', 'group');
+        sub.setAttribute('aria-labelledby', h3.id);
+        sub.append(h3, rows(g.todos));
+        section.append(sub);
+      });
+      if (s.ungrouped.length) section.append(rows(s.ungrouped));
       list.append(section);
-    });
+    }
 
     if (openId) {
       const open = list.querySelector(`[data-id="${CSS.escape(openId)}"]`);

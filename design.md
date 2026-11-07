@@ -28,10 +28,11 @@ Ruled, flat, square corners, no shadows (except the round + button), airy, restr
 
 - **Page:** a fixed 1px margin rule at 28px; text starts at 36px.
 - **Rows:** full-bleed, separated by a ruled line, no card borders.
-- **Priority:** top-priority todos form a Priority section above the groups; each keeps a filled accent square on the margin rule.
-- **Group order:** the user's own order (arrows in More); Other last.
+- **Sections:** Morning, Afternoon, and Night, always shown (even empty), 2rem headings, a ruled line between them. Every todo is in exactly one.
+- **Priority:** top-priority todos come first in their section; each keeps a filled accent square on the margin rule.
+- **Groups:** subgroups inside a section, in the user's own order (arrows in More), with ungrouped todos last.
 - **Done:** 1.5px strike-through.
-- **Group label:** Kalam, letter-spaced, ruled underline.
+- **Group label:** Kalam, smaller than a section heading (1.05rem), letter-spaced, ruled underline.
 - **Add / More:** inline add field under the list, plus a round accent + button bottom right that focuses it (hidden while the keyboard is up); ink three-dot button top-right of the header.
 - **Sheets:** square, margin rule continues; text input is an underline; chips show a checkbox square.
 
