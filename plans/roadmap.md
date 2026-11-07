@@ -13,3 +13,4 @@
 ## To do
 
 - [x] Weekday and weekend repeat labels: the row under the title says "Weekdays" and "Weekends" instead of "Every weekday" and "Every weekend".
+- [ ] Keyboard covers the new group name field: on the phone, adding a group puts the name field under the keyboard, so you can't see where you're typing. Keep the field in view above the keyboard.
