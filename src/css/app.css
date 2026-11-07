@@ -24,6 +24,7 @@
   --gutter: max(16px, env(safe-area-inset-left), env(safe-area-inset-right));
   --margin-x: calc(env(safe-area-inset-left) + 28px);
   --text-x: calc(env(safe-area-inset-left) + 44px);
+  --strip: calc(env(safe-area-inset-top) + 12px); /* the solid top strip: status bar plus 12px */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -69,14 +70,16 @@ body::before {
 }
 
 /* A solid strip pinned to the top. iOS 26 blurs the top edge of a home-screen app unless a
-   full-width, opaque, fixed box sits there (the margin rule above would smear into a haze). */
+   full-width, opaque, fixed box sits there (the margin rule above would smear into a haze).
+   It covers the whole status-bar inset, and #app starts 12px below it so iOS's soft edge under
+   the strip never reaches the first line. */
 body::after {
   content: "";
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 12px;
+  height: var(--strip);
   background: var(--bg);
   z-index: 10;
   pointer-events: none;
@@ -122,7 +125,7 @@ button { cursor: pointer; }
 
 #app {
   min-height: 100dvh;
-  padding: calc(env(safe-area-inset-top) + 12px) 0
+  padding: calc(var(--strip) + 12px) 0
            calc(env(safe-area-inset-bottom) + 80px); /* clears the + button */
 }
 
@@ -156,7 +159,12 @@ button { cursor: pointer; }
   padding: 12px var(--gutter) 2px var(--text-x);
 }
 
-#list > section + section { margin-top: 28px; }
+/* A ruled line between sections, full bleed like the page's own lines, centred in the gap. */
+#list > section + section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
 
 .row {
   position: relative;
