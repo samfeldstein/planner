@@ -68,6 +68,20 @@ body::before {
   pointer-events: none;
 }
 
+/* A solid strip pinned to the top. iOS 26 blurs the top edge of a home-screen app unless a
+   full-width, opaque, fixed box sits there (the margin rule above would smear into a haze). */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: var(--bg);
+  z-index: 10;
+  pointer-events: none;
+}
+
 h1, h2, p, ul { margin: 0; padding: 0; }
 ul { list-style: none; }
 
