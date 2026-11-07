@@ -24,3 +24,17 @@ export function editPatch(todo, form) {
   }
   return patch;
 }
+
+// Weekdays and Weekends are shortcuts in the picker, stored as a plain weekly rule, so backups
+// and validation see nothing new. A weekly rule whose days match one exactly shows as it.
+export const PRESETS = { weekdays: [1, 2, 3, 4, 5], weekends: [0, 6] };
+
+export function repeatChoice(rule) {
+  if (!rule) return 'never';
+  if (rule.freq === 'weekly') {
+    for (const [name, list] of Object.entries(PRESETS)) if (days(rule) === list.join()) return name;
+  }
+  return rule.freq;
+}
+
+export const presetRule = (choice) => (PRESETS[choice] ? { freq: 'weekly', weekdays: [...PRESETS[choice]] } : null);

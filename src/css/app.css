@@ -565,6 +565,7 @@ fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 }
 
 .field legend { padding: 0; margin-bottom: 4px; font-size: 0.88rem; color: var(--ink-2); }
+.seg-4 { grid-template-columns: repeat(4, 1fr); }
 .seg label { position: relative; display: block; }
 .seg input { position: absolute; inset: 0; opacity: 0; margin: 0; }
 .seg span { display: grid; place-items: center; min-height: 44px; font-size: 0.88rem; }
