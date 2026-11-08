@@ -16,3 +16,5 @@
 - [ ] Keyboard covers the new group name field: on the phone, adding a group puts the name field under the keyboard, so you can't see where you're typing. Keep the field in view above the keyboard.
 - [ ] Save ignores a typed new group name: in the edit sheet, typing a new group name and tapping Save doesn't create the group; only the keyboard's return key (the check mark) does. Picking an existing group and tapping Save works. Save should create the group and put the todo in it.
 - [ ] More space above group headings: about double the current space above a group heading inside a section.
+- [ ] New todo opens the edit sheet: typing a new todo and tapping Done or Enter should open the edit sheet for it instead of putting it straight into Morning.
+- [ ] Plus button opens the edit sheet: the plus button focuses the add-todo field now. If that field goes away, the plus button should open the edit sheet for a new todo with the name field focused.
