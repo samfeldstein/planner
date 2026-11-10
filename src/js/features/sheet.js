@@ -1,8 +1,10 @@
-// The edit sheet: the whole form for one todo. New todos are added from the field under the list
-// (quick-add.js) and refined here afterwards. Nothing is focused on open; tap a field to type.
+// The edit sheet: the whole form for one todo, or for a new one (planner:new, from the add field or
+// the + button). A new todo is only created on Save or Done; Cancel or tapping outside discards it.
+// Nothing is focused on open unless the opener asks (the + button, so the keyboard comes up).
 
 import { addDays, weekday } from '../core/date.js';
 import { isPart, sortGroups } from '../core/model.js';
+import { partAt } from '../core/today.js';
 import { editPatch, presetRule, repeatChoice } from '../core/edit.js';
 import { WEEK_ORDER, shortDate, weekdayName } from '../ui/format.js';
 
@@ -31,8 +33,10 @@ export function init({ store, clock }) {
   const errorEl = $('formError');
   const submitBtn = $('submitBtn');
   const deleteBtn = $('deleteBtn');
+  const cancelBtn = $('cancelBtn');
+  const headingEl = $('sheetTitle');
 
-  let editing = null; // the todo being edited
+  let editing = null; // the todo being edited, or a draft with no id for a new one
 
   for (const n of WEEK_ORDER) {
     const label = document.createElement('label');
@@ -98,8 +102,12 @@ export function init({ store, clock }) {
     dateLabel.textContent = value ? shortDate(value) : 'Date…';
   }
 
-  function open(todo) {
+  function open(todo, { focus = false } = {}) {
     editing = todo;
+    const isNew = !todo.id;
+    headingEl.textContent = isNew ? 'New todo' : 'Edit todo';
+    deleteBtn.hidden = isNew;
+    cancelBtn.hidden = !isNew;
     const today = clock.today();
     form.reset();
     showError('');
@@ -120,6 +128,8 @@ export function init({ store, clock }) {
     refreshRepeat();
 
     sheet.showModal(); // focus lands on the dialog itself (autofocus), so no keyboard opens
+    // iOS opens the keyboard only for a focus() inside the tap's own handler, so this stays synchronous.
+    if (focus) titleEl.focus();
   }
 
   function close() {
@@ -148,6 +158,12 @@ export function init({ store, clock }) {
       const priority = priorityEl.checked ? 1 : 0;
       const part = radio('part');
 
+      if (!todo.id) {
+        await store.addTodo({ title, part, groupId, priority, due, recur });
+        close();
+        return;
+      }
+
       // Send only what changed, so editing a title never re-snaps a pushed-off due date.
       const patch = editPatch(todo, { title, part, groupId, priority, due, recur });
       if (!Object.keys(patch).length) { close(); return; }
@@ -166,7 +182,14 @@ export function init({ store, clock }) {
     if (todo) open(todo);
   });
 
+  // detail: { title, focus }. Due today, in the part of the day it is now, like the add field used to.
+  document.addEventListener('planner:new', (e) => {
+    const { title = '', focus = false } = e.detail ?? {};
+    open({ title, due: clock.today(), part: partAt(new Date()), groupId: null, priority: 0, recur: null }, { focus });
+  });
+
   form.addEventListener('submit', submit);
+  cancelBtn.addEventListener('click', close);
   $('sheetDone').addEventListener('click', () => form.requestSubmit());
   sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
   sheet.addEventListener('close', () => { editing = null; });

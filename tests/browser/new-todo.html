@@ -1,0 +1,101 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>New todo opens the edit sheet</title>
+<pre id="out">running…</pre>
+<iframe id="app" style="width:400px;height:700px"></iframe>
+<script type="module">
+// The add field (Return or leaving it) and the + button open the edit sheet for a new todo.
+// The todo is created only on Save or Done; Cancel discards it.
+import { createIdbAdapter } from '../../src/js/data/db.js';
+
+const failures = [];
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+async function until(fn, what, ms = 8000) {
+  for (let t = 0; t < ms; t += 50) {
+    const v = await fn();
+    if (v) return v;
+    await wait(50);
+  }
+  failures.push(`timed out waiting for ${what}`);
+  return null;
+}
+const check = (ok, what) => { if (!ok) failures.push(what); };
+
+async function run() {
+  await new Promise((res) => { const r = indexedDB.deleteDatabase('planner'); r.onsuccess = r.onerror = r.onblocked = res; });
+  localStorage.removeItem('planner:finished');
+  const adapter = createIdbAdapter();
+  const todos = async () => (await adapter.load()).todos;
+
+  const frame = document.getElementById('app');
+  frame.src = '../../src/index.html';
+  await new Promise((r) => { frame.onload = r; });
+  const win = frame.contentWindow;
+  win.addEventListener('error', (e) => failures.push(`page error: ${e.message}`));
+  win.addEventListener('unhandledrejection', (e) => failures.push(`unhandled rejection: ${e.reason}`));
+  const doc = frame.contentDocument;
+  const $ = (id) => doc.getElementById(id);
+  const field = await until(() => $('quickAdd')?.isContentEditable && $('quickAdd'), 'the add field');
+  if (!field) return;
+  const sheet = $('sheet');
+  await wait(300); // let the app finish loading the store
+
+  // 1. Return in the add field opens the sheet with the name; Done saves it with the chosen options.
+  field.focus();
+  field.textContent = 'Water plants';
+  field.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  if (!await until(() => sheet.open, 'the sheet after Return')) return;
+  check($('todoText').textContent === 'Water plants', `sheet title is "${$('todoText').textContent}"`);
+  check($('sheetTitle').textContent === 'New todo', 'heading is not "New todo"');
+  check($('deleteBtn').hidden && !$('cancelBtn').hidden, 'new todo shows Delete instead of Cancel');
+  check(field.textContent === '', 'add field was not cleared');
+  await wait(200);
+  check((await todos()).length === 0, 'todo was saved before Done');
+  doc.querySelector('input[name="part"][value="night"]').click();
+  $('priority').click();
+  $('sheetDone').click();
+  const first = await until(async () => (await todos()).find((t) => t.title === 'Water plants'), 'Done to save');
+  check(first?.part === 'night' && first?.priority === 1, `saved with part ${first?.part}, priority ${first?.priority}`);
+  await until(() => !sheet.open, 'the sheet to close after Done');
+
+  // 2. Leaving the field opens the sheet too; Cancel discards the new todo.
+  field.focus();
+  field.textContent = 'Call mom';
+  field.blur();
+  if (!await until(() => sheet.open, 'the sheet after leaving the field')) return;
+  check($('todoText').textContent === 'Call mom', 'blur sheet has the wrong title');
+  $('cancelBtn').click();
+  await until(() => !sheet.open, 'the sheet to close after Cancel');
+  await wait(200);
+  check(!(await todos()).some((t) => t.title === 'Call mom'), 'Cancel saved the todo');
+
+  // 3. The + button opens an empty sheet with the name field focused; Save creates the todo.
+  $('addBtn').click();
+  if (!await until(() => sheet.open, 'the sheet after +')) return;
+  check(doc.activeElement === $('todoText'), `focus is on ${doc.activeElement?.id || doc.activeElement?.tagName}, not the name field`);
+  check($('todoText').textContent === '', '+ sheet is not empty');
+  $('todoText').textContent = 'Stretch';
+  doc.querySelector('input[name="repeat"][value="daily"]').click();
+  $('submitBtn').click();
+  const third = await until(async () => (await todos()).find((t) => t.title === 'Stretch'), 'Save to create the todo');
+  check(third?.recur?.freq === 'daily', `saved with repeat ${JSON.stringify(third?.recur)}`);
+  await until(() => !sheet.open, 'the sheet to close after Save');
+  await until(() => doc.querySelector(`.row[data-id="${third?.id}"]`), 'the new row in the list');
+
+  // 4. Editing an existing todo still says Edit and offers Delete.
+  doc.dispatchEvent(new win.CustomEvent('planner:edit', { detail: { id: first?.id } }));
+  if (!await until(() => sheet.open, 'the edit sheet')) return;
+  check($('sheetTitle').textContent === 'Edit todo', 'edit heading is wrong');
+  check(!$('deleteBtn').hidden && $('cancelBtn').hidden, 'edit sheet shows Cancel instead of Delete');
+  check((await todos()).length === 2, `expected 2 todos, found ${(await todos()).length}`);
+}
+
+try {
+  await run();
+} catch (err) {
+  failures.push(`threw: ${err?.name} ${err?.message}`);
+}
+window.__result = failures.length ? `FAIL\n${failures.join('\n')}` : 'PASS';
+document.getElementById('out').textContent = window.__result;
+fetch('/__result', { method: 'POST', body: window.__result }).catch(() => {});
+</script>
