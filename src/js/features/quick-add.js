@@ -1,34 +1,29 @@
 // The "Add a task" field under the list. Return, or leaving the field (the form bar's checkmark),
-// adds a todo due today with no group, priority, or repeat, in the part of the day it is now (the
-// store picks it); open the row's arrow and tap Edit to change those. The round + button focuses the field.
+// opens the edit sheet for a new todo with that name, so its options can be set before it is saved
+// (sheet.js). The round + button opens the same sheet empty, with the name field focused.
 
-export function init({ store, clock }) {
+export function init() {
   const field = document.getElementById('quickAdd');
-  let adding = false;
+  const sheet = document.getElementById('sheet');
 
   const text = () => field.textContent.replace(/\s*\n\s*/g, ' ').trim();
+  const openNew = (detail) => document.dispatchEvent(new CustomEvent('planner:new', { detail }));
 
-  async function add() {
+  function handOff() {
     const title = text();
-    if (!title || adding) return;
-    adding = true;
-    try {
-      await store.addTodo({ title, due: clock.today(), groupId: null, priority: 0, recur: null });
-      if (text() === title) field.textContent = ''; // keep anything typed during the save
-    } catch (err) {
-      console.error(err);
-    } finally {
-      adding = false;
-    }
+    if (!title || sheet.open) return;
+    field.textContent = '';
+    openNew({ title });
   }
 
+  // Leaving the field with text in it (say, by tapping +) opens the sheet first; the tap then does nothing.
   document.getElementById('addBtn').addEventListener('click', () => {
-    field.focus();
-    field.scrollIntoView({ block: 'center' });
+    if (sheet.open) return;
+    openNew({ focus: true }); // synchronous, so the focus stays inside the tap and iOS opens the keyboard
   });
 
-  field.addEventListener('blur', add);
+  field.addEventListener('blur', handOff);
   field.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); add(); }
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); handOff(); }
   });
 }
