@@ -10,6 +10,7 @@ import { WEEK_ORDER, shortDate, weekdayName } from '../ui/format.js';
 
 const NEW_GROUP = '__new__';
 const $ = (id) => document.getElementById(id);
+const typing = () => Boolean(document.activeElement?.matches('input, select, textarea, [contenteditable]'));
 
 export function init({ store, clock }) {
   const sheet = $('sheet');
@@ -191,6 +192,26 @@ export function init({ store, clock }) {
   form.addEventListener('submit', submit);
   cancelBtn.addEventListener('click', close);
   $('sheetDone').addEventListener('click', () => form.requestSubmit());
+
+  // With the keyboard up, iOS can spend the first tap on Save or Done just closing the keyboard:
+  // the sheet grows back to full height as it closes, the button moves, and the click never lands.
+  // So a tap (not a drag) on either button while a field has focus submits on touchend instead.
+  for (const btn of [submitBtn, $('sheetDone')]) {
+    let start = null;
+    btn.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      start = typing() && e.touches.length === 1 ? { x: t.clientX, y: t.clientY } : null;
+    }, { passive: true });
+    btn.addEventListener('touchend', (e) => {
+      const t = e.changedTouches[0];
+      const tapped = start && Math.hypot(t.clientX - start.x, t.clientY - start.y) < 10;
+      start = null;
+      if (!tapped) return;
+      e.preventDefault(); // no click follows, so the field keeps focus until the save closes the sheet
+      form.requestSubmit();
+    });
+    btn.addEventListener('touchcancel', () => { start = null; });
+  }
   sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
   sheet.addEventListener('close', () => { editing = null; });
 
@@ -233,7 +254,19 @@ export function init({ store, clock }) {
   const FORM_BAR = 56; // the floating prev/next/done strip above the keyboard isn't in the viewport
   const vv = window.visualViewport;
   if (vv) {
-    const typing = () => Boolean(document.activeElement?.matches('input, select, textarea, [contenteditable]'));
+    // A field just focused is kept in view as the keyboard rises: the sheet shrinks in steps while
+    // it animates, so each fit in the next second scrolls the sheet until the field clears the
+    // keyboard and its form bar. After that the sheet scrolls freely.
+    let revealUntil = 0;
+    const reveal = () => {
+      const el = document.activeElement;
+      if (!sheet.open || !sheet.contains(el) || el === sheet) return;
+      const box = sheet.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const bottom = box.bottom - FORM_BAR - 12;
+      if (r.bottom > bottom) sheet.scrollTop += r.bottom - bottom;
+      else if (r.top < box.top + 12) sheet.scrollTop -= box.top + 12 - r.top;
+    };
     const fit = () => {
       const root = document.documentElement.style;
       const on = typing();
@@ -247,10 +280,11 @@ export function init({ store, clock }) {
       root.setProperty('--kb-open', open ? '1' : '0');
       root.setProperty('--kb-pad', open ? `${FORM_BAR}px` : '0px');
       document.documentElement.classList.toggle('kb-open', open);
+      if (open && Date.now() < revealUntil) reveal(); // reading the boxes lays out the new sizes first
     };
     vv.addEventListener('resize', fit);
     vv.addEventListener('scroll', fit);
-    document.addEventListener('focusin', fit);
+    document.addEventListener('focusin', () => { revealUntil = Date.now() + 1000; fit(); });
     document.addEventListener('focusout', () => setTimeout(fit, 150));
     fit();
   }
