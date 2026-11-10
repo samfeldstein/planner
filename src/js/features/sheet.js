@@ -257,7 +257,7 @@ export function init({ store, clock }) {
       root.setProperty('--kb-open', open ? '1' : '0');
       root.setProperty('--kb-pad', open ? `${FORM_BAR}px` : '0px');
       document.documentElement.classList.toggle('kb-open', open);
-      if (open && Date.now() < revealUntil) requestAnimationFrame(reveal);
+      if (open && Date.now() < revealUntil) reveal(); // reading the boxes lays out the new sizes first
     };
     vv.addEventListener('resize', fit);
     vv.addEventListener('scroll', fit);
