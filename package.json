@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "for tz in UTC America/New_York Europe/Berlin America/Santiago Australia/Lord_Howe; do echo \"TZ=$tz\"; TZ=$tz node --test tests/ || exit 1; done",
-    "test:browser": "node tools/browser-test.mjs",
+    "test:browser": "node tools/browser-test.mjs checkoff.html && node tools/browser-test.mjs new-group.html",
     "release": "bash tools/release.sh",
     "dev": "node tools/dev-server.mjs --port 8766"
   }
