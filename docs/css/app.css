@@ -161,7 +161,7 @@ button { cursor: pointer; }
 
 /* A group inside a part: a smaller label with a ruled underline, so it never reads as a part. */
 #list h3 {
-  margin: 10px var(--gutter) 0 var(--text-x);
+  margin: 20px var(--gutter) 0 var(--text-x);
   padding-bottom: 2px;
   font: 400 1.05rem/1.3 var(--hand);
   letter-spacing: 0.08em;
