@@ -1,5 +1,22 @@
 # Roadmap
 
+## Phone check (after the next release)
+
+Tick each on the phone; when one fails, add it under To do.
+
+- [ ] Top of the app: a solid strip, no blurred line, and nothing tucked under it.
+- [ ] A hairline sits between Morning, Afternoon, and Night.
+- [ ] Morning, Afternoon, and Night always show; a new todo lands in the part of the day it is now.
+- [ ] Repeat picker: Weekdays and Weekends work, and the row under the title says "Weekdays" or "Weekends".
+- [ ] A monthly todo pushed with Tomorrow, then saved in the edit sheet, keeps its monthly rule.
+- [ ] Upcoming: closed at first, lists later todos by day, a tap opens the edit sheet, and it stays open or closed as you left it.
+- [ ] Edit a repeating todo in Upcoming after checking it off, then undo the check-off: the edit stays.
+- [ ] Group headings have about twice the space above them.
+- [ ] Edit sheet, new group: the name field stays above the keyboard, and Save creates the group.
+- [ ] Typing a new todo and tapping Done opens the edit sheet.
+- [ ] The + button opens the new-todo sheet with the name field focused.
+- [ ] Check off a todo, switch apps (and separately lock the screen), and come back: it's in a closed Completed list above Upcoming; tapping it there undoes it.
+
 - [x] Remove the horizontal line and increase the space between sections (7151b49, 1347804; released b854644c82).
 - [x] Blurred line at the top of the app. Same fix as the notebook site: a solid, fixed, 12px strip at the top (`body::after`). Built in src; phone check pending.
 - [x] Monthly repeat check. Saving the edit sheet on a todo pushed with Tomorrow moved its whole monthly or yearly rule to the pushed day; it now keeps the rule (8f8edae). The rest of the report matched the spec: Tomorrow twice leaves it due today, not overdue. Built in src; phone check pending.
