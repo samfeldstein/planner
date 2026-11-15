@@ -82,6 +82,33 @@ async function run() {
   if (undone && (undone.title !== 'Pay the rent' || undone.part !== 'night')) {
     failures.push(`undo lost the edit: ${undone.title}, ${undone.part}`);
   }
+
+  // Leaving the app puts checked-off todos away in a closed Completed list; undo there brings
+  // the todo back unstruck in its section.
+  const again = await until(() => doc.querySelector(`.part .row:not(.done)[data-id="${id}"] .task`), 'the undone row');
+  if (!again) return;
+  again.click();
+  await until(async () => (await adapter.load()).todos.find((x) => x.id === id)?.due === next, 'the second check-off to save');
+  if (doc.querySelector('.completed')) failures.push('Completed shown before leaving the app');
+  frame.contentWindow.dispatchEvent(new frame.contentWindow.PageTransitionEvent('pagehide'));
+  const away = await until(() => doc.querySelector(`.completed .row.done[data-id="${id}"]`), 'the row in Completed');
+  if (!away) return;
+  if (doc.querySelector(`.part .row[data-id="${id}"]`)) failures.push('put-away todo still drawn in its section');
+  const details = doc.querySelector('.completed details');
+  if (details.open) failures.push('Completed is open after leaving');
+  const label = details.querySelector('summary').getAttribute('aria-label');
+  if (label !== 'Completed, 1 todo') failures.push(`Completed label: ${label}`);
+  if (doc.getElementById('count').textContent !== '1 of 1') failures.push(`header count: ${doc.getElementById('count').textContent}`);
+  if (doc.querySelector('.completed').nextElementSibling !== doc.querySelector('.upcoming')) failures.push('Completed is not just above Upcoming');
+  const saved2 = JSON.parse(localStorage.getItem('planner:finished'));
+  if (!saved2?.away?.includes(id)) failures.push('put-away set was not saved');
+  details.open = true;
+  away.querySelector('.task').click();
+  const back = await until(() => doc.querySelector(`.part .row:not(.done)[data-id="${id}"]`), 'the row back in its section');
+  if (back && back.closest('section')?.getAttribute('aria-labelledby') !== 'part-night') failures.push('undone row is not in Night');
+  if (doc.querySelector('.completed')) failures.push('Completed still shown with nothing in it');
+  const restored = (await adapter.load()).todos.find((x) => x.id === id);
+  if (restored?.due !== due) failures.push(`undo from Completed did not move due back: ${restored?.due}`);
 }
 
 try {
