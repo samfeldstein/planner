@@ -179,8 +179,8 @@ button { cursor: pointer; }
   border-top: 1px solid var(--hairline);
 }
 
-/* Upcoming: below Night, collapsed by default; the summary reads like a section heading. */
-#list .upcoming summary {
+/* Completed and Upcoming: below Night, collapsed by default; the summary reads like a section heading. */
+#list :is(.upcoming, .completed) summary {
   display: flex;
   align-items: baseline;
   gap: 10px;
@@ -195,12 +195,12 @@ button { cursor: pointer; }
   user-select: none;
 }
 
-#list .upcoming summary::-webkit-details-marker { display: none; }
-#list .upcoming summary:focus-visible { outline-offset: -2px; }
-#list .upcoming .count { font-size: 0.88rem; letter-spacing: 0; }
+#list :is(.upcoming, .completed) summary::-webkit-details-marker { display: none; }
+#list :is(.upcoming, .completed) summary:focus-visible { outline-offset: -2px; }
+#list :is(.upcoming, .completed) .count { font-size: 0.88rem; letter-spacing: 0; }
 
 /* The same small arrow as a row's, pointing down while closed and up while open. */
-#list .upcoming summary::after {
+#list :is(.upcoming, .completed) summary::after {
   content: "";
   align-self: center;
   width: 7px;
@@ -212,7 +212,7 @@ button { cursor: pointer; }
   transform: translateY(-2px) rotate(45deg);
 }
 
-#list .upcoming details[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+#list :is(.upcoming, .completed) details[open] summary::after { transform: translateY(2px) rotate(-135deg); }
 #list .upcoming .empty { padding-top: 8px; }
 
 .row {

@@ -1,11 +1,13 @@
 // The Today list: todos due today plus overdue, in Morning, Afternoon, and Night, grouped inside. Tap a task to complete it; it stays
 // struck through until the day ends, and tapping it again undoes it. Tap its arrow (or right-click) to open Tomorrow, Skip (recurring only), and Edit.
-// Below Night, a collapsed Upcoming list shows later todos by day; tapping one opens the edit sheet.
+// Leaving the app (hidden or pagehide) puts the todos checked off so far away: on return they're in a
+// collapsed Completed list below Night, struck through, and tapping one there undoes it the same way.
+// Below that, a collapsed Upcoming list shows later todos by day; tapping one opens the edit sheet.
 
 import { effectiveDue, isOverdue } from '../core/recur.js';
 import { PART_NAMES } from '../core/model.js';
 import { addDays } from '../core/date.js';
-import { FINISHED_KEY, reconcile } from '../core/finished.js';
+import { FINISHED_KEY, dropFinished, parseFinished, putAway, reconcile, reconcileAll, serializeFinished, splitFinished } from '../core/finished.js';
 import { buildToday, sectionTodos } from '../core/today.js';
 import { buildUpcoming } from '../core/upcoming.js';
 import { dateParts, longDate, recurSummary, shortDate } from '../ui/format.js';
@@ -25,36 +27,45 @@ export function init({ store, clock }) {
   const progressEl = document.getElementById('progress');
 
   // Completed todos leave the store's due list (or move on), so today's finished ones are kept
-  // here as pre-completion snapshots and drawn struck through, in place, until the day rolls over.
-  const finished = new Map();
+  // here as pre-completion snapshots until the day rolls over: struck through in place, or, once
+  // put away (see core/finished.js), in the Completed list.
+  let finished = new Map();
+  let away = new Set();
   let finishedDay = null;
   function loadFinished(today) {
     if (finishedDay === today) return;
+    const boot = finishedDay === null;
     finishedDay = today;
-    finished.clear();
-    try {
-      const saved = JSON.parse(localStorage.getItem(FINISHED_KEY));
-      if (saved?.date === today) for (const t of saved.todos) finished.set(t.id, t);
-    } catch { /* storage unavailable: finished rows restart */ }
+    let saved = null;
+    try { saved = localStorage.getItem(FINISHED_KEY); } catch { /* storage unavailable: finished rows restart */ }
+    ({ todos: finished, away } = parseFinished(saved, today));
+    // On launch everything saved is put away: iOS may have killed the app without a hide event.
+    if (boot && putAway(finished, away)) saveFinished();
   }
   function saveFinished() {
     try {
-      localStorage.setItem(FINISHED_KEY, JSON.stringify({ date: finishedDay, todos: [...finished.values()] }));
+      localStorage.setItem(FINISHED_KEY, serializeFinished(finishedDay, finished, away));
     } catch { /* storage unavailable */ }
   }
-  // Bring each snapshot up to date with the live todo (see core/finished.js); drop the ones that
-  // can no longer be undone.
+  // Bring each snapshot up to date with the live todo; drop the ones that can no longer be undone.
   function reconcileFinished() {
-    let changed = false;
-    for (const [id, snap] of finished) {
-      const next = reconcile(snap, store.todo(id), finishedDay);
-      if (next && JSON.stringify(next) === JSON.stringify(snap)) continue;
-      if (next) finished.set(id, next);
-      else finished.delete(id);
-      changed = true;
-    }
-    if (changed) saveFinished();
+    if (reconcileAll(finished, away, (id) => store.todo(id), finishedDay)) saveFinished();
   }
+
+  // Whether Completed is open. Closed at launch and again each time the app is left; kept across
+  // re-renders in between.
+  let completedOpen = false;
+  function leave() {
+    if (finishedDay !== null && putAway(finished, away)) saveFinished(); // now: the page may not get another chance
+    completedOpen = false;
+    render();
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') leave();
+    else render();
+  });
+  window.addEventListener('pagehide', leave);
+  window.addEventListener('pageshow', (e) => { if (e.persisted) render(); });
   const quickAdd = document.getElementById('quickAdd');
 
   // Whether Upcoming is open, remembered on this device only. Starts collapsed.
@@ -62,6 +73,7 @@ export function init({ store, clock }) {
   let upcomingOpen = false;
   try { upcomingOpen = localStorage.getItem(OPEN_KEY) === '1'; } catch { /* storage unavailable */ }
   list.addEventListener('toggle', (e) => {
+    if (e.target.matches('.completed details')) { completedOpen = e.target.open; return; }
     if (!e.target.matches('.upcoming details')) return;
     upcomingOpen = e.target.open;
     try { localStorage.setItem(OPEN_KEY, upcomingOpen ? '1' : '0'); } catch { /* storage unavailable */ }
@@ -108,6 +120,23 @@ export function init({ store, clock }) {
       details.append(sub);
     });
     details.open = upcomingOpen;
+    section.append(details);
+    return section;
+  }
+
+  // Completed: the put-away todos, in check-off order, drawn like finished rows. Only shown when
+  // there's at least one.
+  function completed(todos, today) {
+    const section = el('section', 'completed');
+    const details = el('details');
+    const summary = el('summary', '', 'Completed');
+    const n = todos.length;
+    summary.append(el('span', 'count', String(n)));
+    summary.setAttribute('aria-label', `Completed, ${n} ${n === 1 ? 'todo' : 'todos'}`);
+    const ul = el('ul');
+    for (const todo of todos) ul.append(row(todo, today));
+    details.append(summary, ul);
+    details.open = completedOpen;
     section.append(details);
     return section;
   }
@@ -173,8 +202,11 @@ export function init({ store, clock }) {
     loadFinished(today);
     reconcileFinished();
     const live = store.todos().filter((t) => !finished.has(t.id));
-    const sections = buildToday([...live, ...finished.values()], store.groups(), today);
-    const all = sections.flatMap(sectionTodos);
+    const split = splitFinished(finished, away);
+    // Counted with every finished todo (put away ones are still done today), drawn without the
+    // put away ones, which go in Completed.
+    const all = buildToday([...live, ...finished.values()], store.groups(), today).flatMap(sectionTodos);
+    const sections = buildToday([...live, ...split.inPlace], store.groups(), today);
     const total = all.length;
     const done = all.filter((t) => finished.has(t.id)).length;
     const count = total - done;
@@ -212,6 +244,7 @@ export function init({ store, clock }) {
       if (s.ungrouped.length) section.append(rows(s.ungrouped));
       list.append(section);
     }
+    if (split.away.length) list.append(completed(split.away, today));
     list.append(upcoming(today));
 
     if (openId) {
@@ -261,7 +294,7 @@ export function init({ store, clock }) {
         // then draw it unstruck. If it was deleted or rescheduled since, only the mark goes.
         const snap = finished.get(id) && reconcile(finished.get(id), store.todo(id), finishedDay);
         if (snap) await store.restoreTodo(snap);
-        finished.delete(id);
+        dropFinished(finished, away, id);
         saveFinished();
         render();
         return;
@@ -277,7 +310,7 @@ export function init({ store, clock }) {
         await store[kind](id);
       } catch (err) {
         if (before) {
-          finished.delete(id);
+          dropFinished(finished, away, id);
           saveFinished();
           render();
         }
