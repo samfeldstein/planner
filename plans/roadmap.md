@@ -1,5 +1,28 @@
 # Roadmap
 
+## Next (2026-11-15, side session; branch `claude/elated-snyder-fa1df8`, not pushed or merged)
+
+- Waiting on Sam: merge the branch, release (`npm run release`), then run the phone check below.
+- Claude next, one batch (both touch `today-view.js` and `tests/browser/checkoff.html`): the two review follow-ups at the end of To do.
+- Limits hit: Chrome browser tests can't start in the sandbox (run `npm run test:browser` outside it); the tracker isn't readable from a worktree session. `.claude/launch.json` is gitignored and its paths still point at the old `~/projects` folder in the main checkout (fixed only in this worktree).
+
+## Phone check (after the next release)
+
+Tick each on the phone; when one fails, add it under To do.
+
+- [ ] Top of the app: a solid strip, no blurred line, and nothing tucked under it.
+- [ ] A hairline sits between Morning, Afternoon, and Night.
+- [ ] Morning, Afternoon, and Night always show; a new todo lands in the part of the day it is now.
+- [ ] Repeat picker: Weekdays and Weekends work, and the row under the title says "Weekdays" or "Weekends".
+- [ ] A monthly todo pushed with Tomorrow, then saved in the edit sheet, keeps its monthly rule.
+- [ ] Upcoming: closed at first, lists later todos by day, a tap opens the edit sheet, and it stays open or closed as you left it.
+- [ ] Edit a repeating todo in Upcoming after checking it off, then undo the check-off: the edit stays.
+- [ ] Group headings have about twice the space above them.
+- [ ] Edit sheet, new group: the name field stays above the keyboard, and Save creates the group.
+- [ ] Typing a new todo and tapping Done opens the edit sheet.
+- [ ] The + button opens the new-todo sheet with the name field focused.
+- [ ] Check off a todo, switch apps (and separately lock the screen), and come back: it's in a closed Completed list above Upcoming; tapping it there undoes it.
+
 - [x] Remove the horizontal line and increase the space between sections (7151b49, 1347804; released b854644c82).
 - [x] Blurred line at the top of the app. Same fix as the notebook site: a solid, fixed, 12px strip at the top (`body::after`). Built in src; phone check pending.
 - [x] Monthly repeat check. Saving the edit sheet on a todo pushed with Tomorrow moved its whole monthly or yearly rule to the pushed day; it now keeps the rule (8f8edae). The rest of the report matched the spec: Tomorrow twice leaves it due today, not overdue. Built in src; phone check pending.
@@ -18,4 +41,6 @@
 - [x] More space above group headings: about double the current space above a group heading inside a section. Built in src; phone check pending.
 - [x] New todo opens the edit sheet: typing a new todo and tapping Done or Enter should open the edit sheet for it instead of putting it straight into Morning. Built in src; phone check pending.
 - [x] Plus button opens the edit sheet: the plus button focuses the add-todo field now. It should open a sheet for a new todo where you name it and set all its options at once, with the name field focused. Built in src; phone check pending.
-- [ ] Hide completed todos after leaving the app: whenever the app loses focus (switching apps, locking or turning off the screen, or quitting it), todos checked off so far are hidden when you come back to it. They move to a Completed list at the bottom, just above Upcoming, formatted the same way as Upcoming: a collapsed `<details>`, closed by default, with no separate toggle (Sam, 2026-11-13).
+- [x] Hide completed todos after leaving the app: whenever the app loses focus (switching apps, locking or turning off the screen, or quitting it), todos checked off so far are hidden when you come back to it. They move to a Completed list at the bottom, just above Upcoming, formatted the same way as Upcoming: a collapsed `<details>`, closed by default, with no separate toggle (Sam, 2026-11-13). Put away on `visibilitychange` (hidden), `pagehide`, and every launch; closed again each time the app is left; tapping a row undoes it; cleared with the day (0aebbdf). Built in src; phone check pending.
+- [ ] Focus after a put-away (low impact, from review): if focus is on a checked-off row when the app is left, or the last Completed row is undone, keyboard and VoiceOver focus falls to the page.
+- [ ] Browser test gaps (from review): cover the `visibilitychange` path and the launch put-away, not only `pagehide`.
