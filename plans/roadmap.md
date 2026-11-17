@@ -1,8 +1,8 @@
 # Roadmap
 
-## Next (2026-11-15, side session; branch `claude/elated-snyder-fa1df8`, not pushed or merged)
+## Next (2026-11-15; branch `claude/elated-snyder-fa1df8` merged, released as c4bde4b, and pushed, checked 2026-11-16)
 
-- Waiting on Sam: merge the branch, release (`npm run release`), then run the phone check below.
+- Waiting on Sam: the phone check below.
 - Claude next, one batch (both touch `today-view.js` and `tests/browser/checkoff.html`): the two review follow-ups at the end of To do.
 - Limits hit: Chrome browser tests can't start in the sandbox (run `npm run test:browser` outside it); the tracker isn't readable from a worktree session. `.claude/launch.json` is gitignored and its paths still point at the old `~/projects` folder in the main checkout (fixed only in this worktree).
 
