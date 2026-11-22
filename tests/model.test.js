@@ -79,14 +79,14 @@ test('format 1 -> 2: a todo gets Morning; a part it already has is kept', () => 
   assert.equal(validateTodo(normalizeTodo(upgradeTodo(old, 1))), null);
 });
 
-test('format 1 -> 2: groups named for a part fold into it; other todos go to Morning', () => {
+test('format 1 -> 2: todos in a group named for a part get that part and stay in the group; others go to Morning', () => {
   const { part, ...old } = good;
   const groups = [{ id: 'm', name: 'Morning' }, { id: 'a', name: ' afternoon ' }, { id: 'n', name: 'NIGHT' }, { id: 'w', name: 'Work' }];
   const todos = ['m', 'a', 'n', 'w', null].map((groupId, i) => ({ ...old, id: `t${i}`, groupId }));
   const out = upgradeAll({ todos, groups }, 1);
-  assert.deepEqual(out.groups.map((g) => g.id), ['w']);
+  assert.deepEqual(out.groups.map((g) => g.id), ['m', 'a', 'n', 'w']);
   assert.deepEqual(out.todos.map((t) => [t.part, t.groupId]),
-    [['morning', null], ['afternoon', null], ['night', null], ['morning', 'w'], ['morning', null]]);
+    [['morning', 'm'], ['afternoon', 'a'], ['night', 'n'], ['morning', 'w'], ['morning', null]]);
   assert.deepEqual(todos[0].groupId, 'm', 'inputs are not mutated');
 });
 

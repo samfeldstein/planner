@@ -93,7 +93,7 @@ async function run() {
   frame.contentWindow.dispatchEvent(new frame.contentWindow.PageTransitionEvent('pagehide'));
   const away = await until(() => doc.querySelector(`.completed .row.done[data-id="${id}"]`), 'the row in Completed');
   if (!away) return;
-  if (doc.querySelector(`.today .row[data-id="${id}"]`)) failures.push('put-away todo still drawn in its section');
+  if (doc.querySelector(`.today .row[data-id="${id}"]`)) failures.push('put-away todo still drawn in the list');
   const details = doc.querySelector('.completed details');
   if (details.open) failures.push('Completed is open after leaving');
   const label = details.querySelector('summary').getAttribute('aria-label');
@@ -104,7 +104,7 @@ async function run() {
   if (!saved2?.away?.includes(id)) failures.push('put-away set was not saved');
   details.open = true;
   away.querySelector('.task').click();
-  const back = await until(() => doc.querySelector(`.today .row:not(.done)[data-id="${id}"]`), 'the row back in its section');
+  const back = await until(() => doc.querySelector(`.today .row:not(.done)[data-id="${id}"]`), 'the row back in the list');
   if (back?.classList.contains('top')) failures.push('undone row lost the priority edit');
   if (doc.querySelector('.completed')) failures.push('Completed still shown with nothing in it');
   const restored = (await adapter.load()).todos.find((x) => x.id === id);

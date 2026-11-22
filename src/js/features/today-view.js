@@ -108,13 +108,13 @@ export function init({ store, clock }) {
     const tomorrow = addDays(today, 1);
     days.forEach((day, i) => {
       const sub = el('div', 'group');
-      const h3 = el('h3', '', day.date === tomorrow ? 'Tomorrow' : shortDate(day.date));
-      h3.id = `upcoming-d${i}`;
+      const h = el('h2', '', day.date === tomorrow ? 'Tomorrow' : shortDate(day.date));
+      h.id = `upcoming-d${i}`;
       sub.setAttribute('role', 'group');
-      sub.setAttribute('aria-labelledby', h3.id);
+      sub.setAttribute('aria-labelledby', h.id);
       const ul = el('ul');
       for (const todo of day.todos) ul.append(upcomingRow(todo));
-      sub.append(h3, ul);
+      sub.append(h, ul);
       details.append(sub);
     });
     details.open = upcomingOpen;
@@ -215,7 +215,6 @@ export function init({ store, clock }) {
     progressEl.setAttribute('aria-valuemax', total);
 
     list.replaceChildren();
-    if (!total) list.append(el('p', 'empty', 'Nothing due today.'));
 
     // One list: priority todos, then each group under its heading, then ungrouped todos.
     const rows = (todos) => {
@@ -223,8 +222,10 @@ export function init({ store, clock }) {
       for (const todo of todos) ul.append(row(todo, today));
       return ul;
     };
-    if (listTodos(shown).length) {
+    // An empty list still gets its section, so the ruled line above Completed and Upcoming stays.
+    if (!total || listTodos(shown).length) {
       const section = el('section', 'today');
+      if (!total) section.append(el('p', 'empty', 'Nothing due today.'));
       if (shown.priority.length) section.append(rows(shown.priority));
       shown.groups.forEach((g, i) => {
         const sub = el('div', 'group');

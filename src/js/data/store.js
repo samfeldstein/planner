@@ -63,7 +63,7 @@ export function createStore({
   }
 
   // Put a snapshot back. If its group was deleted meanwhile it comes back ungrouped; a snapshot
-  // from before parts existed comes back in Morning.
+  // from before parts existed is stored with part Morning (parts aren't shown).
   async function restore(before) {
     const rec = { ...before, part: isPart(before.part) ? before.part : 'morning', groupId: knownGroup(before.groupId) };
     await adapter.commit([put('todos', rec)]);

@@ -32,20 +32,21 @@ function run(steps, rec, fromFormat) {
 export const upgradeTodo = (rec, fromFormat) => run(todoSteps, rec, fromFormat);
 export const upgradeGroup = (rec, fromFormat) => run(groupSteps, rec, fromFormat);
 
-// Upgrades whole lists, for steps that need both stores. Format 1 -> 2: a group named Morning,
-// Afternoon, or Night (the old app's import made them) becomes that part: its todos move into
-// the part, ungrouped, and the group goes. Every other todo lands in Morning.
+// Upgrades whole lists, for steps that need both stores. Format 1 -> 2: a todo in a group named
+// Morning, Afternoon, or Night (the old app's import made them) gets that part. Every other todo
+// lands in Morning. The groups and their todos stay put: parts aren't shown since the flat list
+// (2026-11-21), so the group is what keeps them together. (Until then the group was folded into
+// the part and deleted; databases upgraded before that keep the folded result.)
 export function upgradeAll({ todos, groups }, fromFormat) {
   let t = todos.map((rec) => upgradeTodo(rec, fromFormat));
-  let g = groups.map((rec) => upgradeGroup(rec, fromFormat));
+  const g = groups.map((rec) => upgradeGroup(rec, fromFormat));
   if (fromFormat < 2) {
     const partOf = new Map();
     for (const grp of g) {
       const key = typeof grp.name === 'string' ? grp.name.trim().toLowerCase() : '';
       if (isPart(key)) partOf.set(grp.id, key);
     }
-    t = t.map((rec) => (partOf.has(rec.groupId) ? { ...rec, part: partOf.get(rec.groupId), groupId: null } : rec));
-    g = g.filter((grp) => !partOf.has(grp.id));
+    t = t.map((rec) => (partOf.has(rec.groupId) ? { ...rec, part: partOf.get(rec.groupId) } : rec));
   }
   return { todos: t, groups: g };
 }
@@ -96,7 +97,7 @@ export function validateTodo(t) {
   if (typeof t.id !== 'string' || !t.id) return 'todo has no id';
   if (typeof t.title !== 'string' || !t.title) return 'todo has an empty title';
   if (!isValid(t.due)) return `todo "${t.title}" has an invalid due date`;
-  if (!isPart(t.part)) return `todo "${t.title}" has no morning, afternoon, or night`;
+  if (!isPart(t.part)) return `todo "${t.title}" has no part of the day (morning, afternoon, or night)`;
   if (t.priority !== 0 && t.priority !== 1) return `todo "${t.title}" has an invalid priority`;
   if (!validRecur(t.recur)) return `todo "${t.title}" has an invalid repeat rule`;
   if (t.lastDone !== null && !isValid(t.lastDone)) return `todo "${t.title}" has an invalid last-done date`;
