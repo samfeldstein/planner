@@ -1,10 +1,14 @@
 # Roadmap
 
-## Next (2026-11-21, after the focus and "All done" batch)
+## Next (2026-11-21, badge and focus session; all released and pushed: last release 2c2237b3fa)
 
-**Waiting on Sam:** nothing. The focus fix, test gaps, and "All done for today." are released (2c2237b3fa).
+**Done this session:** app badge with a 7 a.m. push (`planner-push` Worker, `plans/app-badge.md`, `push/README.md`; phone test passed); notification line is the title; More, Upcoming, and Completed headings at 1.5rem with hairlines between More sections; focus after a put-away, browser test gaps, and "All done for today." (`plans/focus-and-done.md`); leftover worktrees and branches removed; phone check list dropped (Sam catches problems as he uses the app).
 
-**Claude next:** nothing queued; To do is empty.
+**Waiting on Sam:** nothing.
+
+**Claude next:** the queue is empty; To do has no open items. Pick up whatever Sam reports from using the app.
+
+**Running the push Worker:** logs in the Cloudflare dashboard (Workers Logs, 3 days). The test token is in the gitignored `push/.test-token`; a test push is the curl in `push/README.md`. If More shows "No morning notification came today", read the logs first.
 
 **Limits hit:**
 - Headless Chrome browser tests can't start in the sandbox. Sam runs `npm run test:browser` in his terminal (all four pass there, 2026-11-21). The Claude browser pane works as a fallback, but new-todo times out there at "the sheet after leaving the field" because the pane is hidden (it passes in real headless Chrome), and starting the temp test server may be refused by the auto-mode check.
