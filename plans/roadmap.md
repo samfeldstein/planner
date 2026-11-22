@@ -1,8 +1,10 @@
 # Roadmap
 
-## Next (2026-11-15; branch `claude/elated-snyder-fa1df8` merged, released as c4bde4b, and pushed, checked 2026-11-16)
+## Next (2026-11-21; flat list built on `claude/flat-list`, not merged or released)
 
-- Waiting on Sam: the phone check below.
+- Waiting on Sam: the OK to merge `claude/flat-list` and release; then the phone check below.
+- Idea from cold review 2, not built (new copy, Sam's call): when every todo due today is checked off and put away, the list shows nothing above Completed; a line like "All done for today" could go there.
+- `npm run test:browser`'s new-todo page times out at "the sheet after leaving the field" in the hidden Claude browser pane, on `main` too (probably no blur in a background page; unchecked). The other browser pages pass there.
 - Claude next, one batch (both touch `today-view.js` and `tests/browser/checkoff.html`): the two review follow-ups at the end of To do.
 - Limits hit: Chrome browser tests can't start in the sandbox (run `npm run test:browser` outside it); the tracker isn't readable from a worktree session. `.claude/launch.json` is gitignored and its paths still point at the old `~/projects` folder in the main checkout (fixed only in this worktree).
 
@@ -11,8 +13,8 @@
 Tick each on the phone; when one fails, add it under To do.
 
 - [ ] Top of the app: a solid strip, no blurred line, and nothing tucked under it.
-- [ ] A hairline sits between Morning, Afternoon, and Night.
-- [ ] Morning, Afternoon, and Night always show; a new todo lands in the part of the day it is now.
+- [ ] Today is one list with no Morning, Afternoon, or Night headings; the edit sheet has no part-of-day picker.
+- [ ] The Completed and Upcoming headings are smaller (a step above the group labels), and a hairline sits above each.
 - [ ] Repeat picker: Weekdays and Weekends work, and the row under the title says "Weekdays" or "Weekends".
 - [ ] A monthly todo pushed with Tomorrow, then saved in the edit sheet, keeps its monthly rule.
 - [ ] Upcoming: closed at first, lists later todos by day, a tap opens the edit sheet, and it stays open or closed as you left it.
@@ -35,6 +37,7 @@ Tick each on the phone; when one fails, add it under To do.
 
 ## To do
 
+- [x] Flat list (tracker `planner-flat-list`, 2026-11-21): the Morning, Afternoon, and Night sections are gone, so todos due today are one list (priority, groups, ungrouped); the edit sheet's part picker is gone; Upcoming and Completed headings went from 2rem to 1.25rem. Each todo still stores its part (no migration), so the sections could come back. Part names are allowed as group names again. On `claude/flat-list`; phone check pending.
 - [x] Weekday and weekend repeat labels: the row under the title says "Weekdays" and "Weekends" instead of "Every weekday" and "Every weekend".
 - [x] Keyboard covers the new group name field: on the phone, editing a todo, choosing a new group, and adding one opens the keyboard with the name field under it, so you can't see where you're typing. Keep the field in view above the keyboard. Built in src; phone check pending.
 - [x] Save ignores a typed new group name: in the edit sheet, typing a new group name and tapping Save doesn't create the group; only the keyboard's return key (the check mark) does. Picking an existing group and tapping Save works. Save should create the group and put the todo in it. Built in src; phone check pending.

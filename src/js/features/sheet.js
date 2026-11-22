@@ -3,8 +3,7 @@
 // Nothing is focused on open unless the opener asks (the + button, so the keyboard comes up).
 
 import { addDays, weekday } from '../core/date.js';
-import { isPart, sortGroups } from '../core/model.js';
-import { partAt } from '../core/today.js';
+import { sortGroups } from '../core/model.js';
 import { editPatch, presetRule, repeatChoice } from '../core/edit.js';
 import { WEEK_ORDER, shortDate, weekdayName } from '../ui/format.js';
 
@@ -118,7 +117,6 @@ export function init({ store, clock }) {
     for (const b of weekdayBoxes()) b.checked = false;
     titleEl.value = todo.title;
     priorityEl.checked = todo.priority === 1;
-    setRadio('part', isPart(todo.part) ? todo.part : 'morning');
     if (todo.due === today) setRadio('due', 'today');
     else if (todo.due === addDays(today, 1)) setRadio('due', 'tomorrow');
     else { setRadio('due', 'date'); setDate(todo.due); }
@@ -157,16 +155,15 @@ export function init({ store, clock }) {
       const due = dueValue();
       const recur = chosenRecur();
       const priority = priorityEl.checked ? 1 : 0;
-      const part = radio('part');
 
       if (!todo.id) {
-        await store.addTodo({ title, part, groupId, priority, due, recur });
+        await store.addTodo({ title, groupId, priority, due, recur });
         close();
         return;
       }
 
       // Send only what changed, so editing a title never re-snaps a pushed-off due date.
-      const patch = editPatch(todo, { title, part, groupId, priority, due, recur });
+      const patch = editPatch(todo, { title, groupId, priority, due, recur });
       if (!Object.keys(patch).length) { close(); return; }
       await store.updateTodo(todo.id, patch);
       close();
@@ -183,10 +180,10 @@ export function init({ store, clock }) {
     if (todo) open(todo);
   });
 
-  // detail: { title, focus }. Due today, in the part of the day it is now, like the add field used to.
+  // detail: { title, focus }. Due today, like the add field used to.
   document.addEventListener('planner:new', (e) => {
     const { title = '', focus = false } = e.detail ?? {};
-    open({ title, due: clock.today(), part: partAt(new Date()), groupId: null, priority: 0, recur: null }, { focus });
+    open({ title, due: clock.today(), groupId: null, priority: 0, recur: null }, { focus });
   });
 
   form.addEventListener('submit', submit);

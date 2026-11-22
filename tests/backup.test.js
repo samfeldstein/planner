@@ -78,7 +78,7 @@ test('rejected files (case 41)', () => {
 
   const night = base();
   night.groups[0].name = 'Night';
-  rejects(night, 'part name as a group in a current backup');
+  assert.equal(parseBackup(JSON.stringify(night)).groups[0].name, 'Night', 'a part name is a fine group name now');
 
   const noPart = base();
   delete noPart.todos[0].part;
@@ -129,7 +129,7 @@ test('an old backup imports with every todo in Morning', () => {
   assert.deepEqual(parsed.groups.map((g) => g.name), ['Work']);
 });
 
-test('an old backup with Morning, Afternoon, and Night groups folds them into the parts', () => {
+test('an old backup with Afternoon and Night groups sets those parts and keeps the groups', () => {
   const file = oldFile();
   file.groups.push({ id: 'g2', name: 'Afternoon', order: 2, createdAt: 'x' }, { id: 'g3', name: 'night', order: 3, createdAt: 'x' });
   file.todos.push(
@@ -137,9 +137,9 @@ test('an old backup with Morning, Afternoon, and Night groups folds them into th
     { ...file.todos[0], id: 't3', groupId: 'g3' },
   );
   const parsed = parseBackup(JSON.stringify(file));
-  assert.deepEqual(parsed.groups.map((g) => g.id), ['g1']);
+  assert.deepEqual(parsed.groups.map((g) => g.id), ['g1', 'g2', 'g3']);
   assert.deepEqual(parsed.todos.map((t) => [t.id, t.part, t.groupId]),
-    [['t1', 'morning', 'g1'], ['t2', 'afternoon', null], ['t3', 'night', null]]);
+    [['t1', 'morning', 'g1'], ['t2', 'afternoon', 'g2'], ['t3', 'night', 'g3']]);
 });
 
 test('export writes the current format and keeps each todo\'s part', async () => {

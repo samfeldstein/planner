@@ -3,8 +3,8 @@
 <title>IndexedDB migration to parts of the day</title>
 <pre id="out">running…</pre>
 <script type="module">
-// A version 1 database (before parts) opens at the current version with every todo in a part,
-// and the Morning, Afternoon, and Night groups the old import made folded into the parts.
+// A version 1 database (before parts) opens at the current version with every todo in a part.
+// Todos in the Morning, Afternoon, and Night groups the old import made get that part and keep the group.
 import { createIdbAdapter } from '../../src/js/data/db.js';
 
 const failures = [];
@@ -31,15 +31,15 @@ async function run() {
 
   const data = await createIdbAdapter().load();
   const by = Object.fromEntries(data.todos.map((t) => [t.id, [t.part, t.groupId]]));
-  const want = { floss: ['night', null], call: ['afternoon', null], report: ['morning', 'gw'], loose: ['morning', null] };
+  const want = { floss: ['night', 'gn'], call: ['afternoon', 'ga'], report: ['morning', 'gw'], loose: ['morning', null] };
   for (const [id, w] of Object.entries(want)) {
     if (JSON.stringify(by[id]) !== JSON.stringify(w)) failures.push(`${id}: got ${JSON.stringify(by[id])}, want ${JSON.stringify(w)}`);
   }
   const snap = JSON.parse(localStorage.getItem('planner:finished')).todos[0];
-  if (snap.part !== 'night' || snap.groupId !== null) failures.push(`finished snapshot: got ${snap.part}, ${snap.groupId}`);
+  if (snap.part !== 'night' || snap.groupId !== 'gn') failures.push(`finished snapshot: got ${snap.part}, ${snap.groupId}`);
   localStorage.removeItem('planner:finished');
   const names = data.groups.map((g) => g.name);
-  if (JSON.stringify(names) !== '["Work"]') failures.push(`groups left: ${JSON.stringify(names)}`);
+  if (JSON.stringify(names.sort()) !== '["Afternoon","Night","Work"]') failures.push(`groups left: ${JSON.stringify(names)}`);
 }
 
 try {

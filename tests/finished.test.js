@@ -47,7 +47,7 @@ test('a one-off todo is gone once checked off, and undo puts it back', () => {
   assert.deepEqual(reconcile(once, once, day), once);
 });
 
-test('migration 2 upgrades saved snapshots: a Night-group todo comes back in Night', () => {
+test('migration 2 upgrades saved snapshots: a Night-group todo gets part Night and keeps its group', () => {
   const store = new Map();
   globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
   try {
@@ -57,7 +57,7 @@ test('migration 2 upgrades saved snapshots: a Night-group todo comes back in Nig
     upgradeFinished([{ id: 'gn', name: 'Night' }, { id: 'gw', name: 'Work' }], 1);
     const saved = JSON.parse(store.get(FINISHED_KEY));
     assert.equal(saved.date, day);
-    assert.deepEqual(saved.todos.map((t) => [t.id, t.part, t.groupId]), [['f', 'night', null], ['p', 'morning', 'gw']]);
+    assert.deepEqual(saved.todos.map((t) => [t.id, t.part, t.groupId]), [['f', 'night', 'gn'], ['p', 'morning', 'gw']]);
   } finally {
     delete globalThis.localStorage;
   }
