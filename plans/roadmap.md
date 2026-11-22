@@ -1,16 +1,13 @@
 # Roadmap
 
-## Next (2026-11-21, after the app badge)
+## Next (2026-11-21, after the focus and "All done" batch)
 
-**Waiting on Sam:** nothing. The notification title fix and the bigger headings are released (c40bdb8517).
+**Waiting on Sam:** merge and release of `claude/focus-and-done`.
 
-**Claude next, one batch** (all touch `today-view.js` and `tests/browser/checkoff.html`; follow the `build-loop` skill):
-1. Focus after a put-away (end of To do).
-2. Browser test gaps (end of To do).
-3. "All done for today" line (end of To do).
+**Claude next:** nothing queued; To do is empty.
 
 **Limits hit:**
-- Headless Chrome browser tests can't start in the sandbox. Workaround this session: serve the repo root with a static server (a temp `launch.json` entry in the orchestrator, port 8775) and open `tests/browser/*.html` in the Claude browser pane. migrate, checkoff, and new-group pass there; new-todo times out at "the sheet after leaving the field", on `main` too (probably no blur while the pane is hidden; unchecked).
+- Headless Chrome browser tests can't start in the sandbox. Sam runs `npm run test:browser` in his terminal (all four pass there, 2026-11-21). The Claude browser pane works as a fallback, but new-todo times out there at "the sheet after leaving the field" because the pane is hidden (it passes in real headless Chrome), and starting the temp test server may be refused by the auto-mode check.
 - The tracker isn't readable from a worktree session. `.claude/launch.json` is gitignored; its `planner-built` entry points at an old scratchpad.
 
 ## Done earlier
@@ -35,7 +32,7 @@
 - [x] New todo opens the edit sheet: typing a new todo and tapping Done or Enter should open the edit sheet for it instead of putting it straight into Morning.
 - [x] Plus button opens the edit sheet: the plus button focuses the add-todo field now. It should open a sheet for a new todo where you name it and set all its options at once, with the name field focused.
 - [x] Hide completed todos after leaving the app: whenever the app loses focus (switching apps, locking or turning off the screen, or quitting it), todos checked off so far are hidden when you come back to it. They move to a Completed list at the bottom, just above Upcoming, formatted the same way as Upcoming: a collapsed `<details>`, closed by default, with no separate toggle (Sam, 2026-11-13). Put away on `visibilitychange` (hidden), `pagehide`, and every launch; closed again each time the app is left; tapping a row undoes it; cleared with the day (0aebbdf).
-- [ ] Focus after a put-away (low impact, from review): if focus is on a checked-off row when the app is left, or the last Completed row is undone, keyboard and VoiceOver focus falls to the page.
-- [ ] Browser test gaps (from review): cover the `visibilitychange` path and the launch put-away, not only `pagehide`.
-- [ ] "All done for today" line (Sam, 2026-11-21): when every todo due today is checked off and put away, the list shows nothing above Completed; show the line "All done for today" there.
+- [x] Focus after a put-away: focus now goes to the Completed summary when a focused row is put away (and stays there on return), to the row back in the list after an undo from Completed, and to a nearby row after a failed undo; leave and return never scroll; on iOS a tap within 2 s stands in for focus (Safari doesn't focus on tap). Plan: `plans/focus-and-done.md`. VoiceOver behavior unchecked on the phone.
+- [x] Browser test gaps: `checkoff.html` now covers the put-away on `visibilitychange` and at launch, plus every focus case above.
+- [x] "All done for today." (Sam, 2026-11-21): shown when todos were due today and every one is checked off and put away; "Nothing due today." when none were due.
 - [x] App badge (Sam, 2026-11-21): the Home Screen icon shows how many todos are due today, refreshed by a 7 a.m. push from the `planner-push` Worker (https://planner-push.samfeldstein.workers.dev, deployed 2026-11-21), plus a morning notification; turned on and off under More, Badge. Design and limits: `plans/app-badge.md`; deploy notes: `push/README.md`. Built on `claude/app-badge` (3 plan reviews, 5 cold reviews, tests and browser tests pass). Merged and released 8a44585362; phone test passed (badge and notification both showed, 2026-11-21). Follow-ups: the notification line is now the title (iOS already names the app); More headings and Completed and Upcoming are 1.5rem, with a hairline above each More section.
