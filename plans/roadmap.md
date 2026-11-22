@@ -1,12 +1,19 @@
 # Roadmap
 
-## Next (2026-11-21; flat list merged into main and built as release a05d627451, fa8d07a; push pending)
+## Next (2026-11-21, flat-list session; pushed: release a05d627451 is live on main, b2aa6c8)
 
-- Waiting on Sam: push main (that publishes the release), then the phone check below.
+**Waiting on Sam:**
+- The phone check below (includes the flat list).
 - Idea from cold review 2, not built (new copy, Sam's call): when every todo due today is checked off and put away, the list shows nothing above Completed; a line like "All done for today" could go there.
-- `npm run test:browser`'s new-todo page times out at "the sheet after leaving the field" in the hidden Claude browser pane, on `main` too (probably no blur in a background page; unchecked). The other browser pages pass there.
-- Claude next, one batch (both touch `today-view.js` and `tests/browser/checkoff.html`): the two review follow-ups at the end of To do.
-- Limits hit: Chrome browser tests can't start in the sandbox (run `npm run test:browser` outside it); the tracker isn't readable from a worktree session. `.claude/launch.json` is gitignored and its paths still point at the old `~/projects` folder in the main checkout (fixed only in this worktree).
+
+**Claude next, one batch** (both touch `today-view.js` and `tests/browser/checkoff.html`; follow the `build-loop` skill):
+1. Focus after a put-away (end of To do).
+2. Browser test gaps (end of To do).
+
+**Limits hit:**
+- Headless Chrome browser tests can't start in the sandbox. Workaround this session: serve the repo root with a static server (a temp `launch.json` entry in the orchestrator, port 8775) and open `tests/browser/*.html` in the Claude browser pane. migrate, checkoff, and new-group pass there; new-todo times out at "the sheet after leaving the field", on `main` too (probably no blur while the pane is hidden; unchecked).
+- The tracker isn't readable from a worktree session. `.claude/launch.json` is gitignored; its `planner-built` entry points at an old scratchpad.
+- Leftover worktrees: four under `.claude/worktrees/` (three marked prunable, at the old `~/projects` path), all on merged branches; the old branches are still there too. Safe to clean up with Sam's OK.
 
 ## Phone check (after the next release)
 
