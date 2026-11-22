@@ -99,14 +99,14 @@ test('removing the repeat rule clears lastDone', async () => {
   assert.equal(store.todo(id).lastDone, null);
 });
 
-test('group names: unique case-insensitively, "Other" and the parts reserved', async () => {
+test('group names: unique case-insensitively, "Other" reserved', async () => {
   const { store } = await makeEnv();
   await store.addGroup('Work');
   await assert.rejects(store.addGroup('work'));
   await assert.rejects(store.addGroup(' Other '));
-  for (const name of ['Morning', 'afternoon', ' NIGHT ']) await assert.rejects(store.addGroup(name), /cannot be named/);
   const w = store.groups()[0];
-  await assert.rejects(store.renameGroup(w.id, 'Night'));
+  await assert.rejects(store.renameGroup(w.id, 'other'));
+  assert.equal((await store.addGroup('Night')).name, 'Night'); // the parts of the day aren't reserved any more
   await assert.rejects(store.addGroup('  '));
   const g = await store.addGroup('Home');
   await assert.rejects(store.renameGroup(g.id, 'WORK'));

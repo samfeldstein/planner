@@ -78,7 +78,7 @@ test('rejected files (case 41)', () => {
 
   const night = base();
   night.groups[0].name = 'Night';
-  rejects(night, 'part name as a group in a current backup');
+  assert.equal(parseBackup(JSON.stringify(night)).groups[0].name, 'Night', 'a part name is a fine group name now');
 
   const noPart = base();
   delete noPart.todos[0].part;

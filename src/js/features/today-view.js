@@ -1,14 +1,13 @@
-// The Today list: todos due today plus overdue, in Morning, Afternoon, and Night, grouped inside. Tap a task to complete it; it stays
+// The Today list: todos due today plus overdue, as one list with groups inside. Tap a task to complete it; it stays
 // struck through until the day ends, and tapping it again undoes it. Tap its arrow (or right-click) to open Tomorrow, Skip (recurring only), and Edit.
 // Leaving the app (hidden or pagehide) puts the todos checked off so far away: on return they're in a
-// collapsed Completed list below Night, struck through, and tapping one there undoes it the same way.
+// collapsed Completed list below the list, struck through, and tapping one there undoes it the same way.
 // Below that, a collapsed Upcoming list shows later todos by day; tapping one opens the edit sheet.
 
 import { effectiveDue, isOverdue } from '../core/recur.js';
-import { PART_NAMES } from '../core/model.js';
 import { addDays } from '../core/date.js';
 import { FINISHED_KEY, dropFinished, parseFinished, putAway, reconcile, reconcileAll, serializeFinished, splitFinished } from '../core/finished.js';
-import { buildToday, sectionTodos } from '../core/today.js';
+import { buildToday, listTodos } from '../core/today.js';
 import { buildUpcoming } from '../core/upcoming.js';
 import { dateParts, longDate, recurSummary, shortDate } from '../ui/format.js';
 
@@ -89,8 +88,7 @@ export function init({ store, clock }) {
     task.setAttribute('aria-label', `Edit: ${todo.title}`);
     task.append(el('span', 'title', todo.title));
     if (todo.priority) task.append(el('span', 'vh', ', top priority'));
-    const meta = [PART_NAMES[todo.part], todo.recur && recurSummary(todo.recur)].filter(Boolean).join(', ');
-    if (meta) task.append(el('span', 'meta', meta));
+    if (todo.recur) task.append(el('span', 'meta', recurSummary(todo.recur)));
     li.append(task);
     return li;
   }
@@ -205,8 +203,8 @@ export function init({ store, clock }) {
     const split = splitFinished(finished, away);
     // Counted with every finished todo (put away ones are still done today), drawn without the
     // put away ones, which go in Completed.
-    const all = buildToday([...live, ...finished.values()], store.groups(), today).flatMap(sectionTodos);
-    const sections = buildToday([...live, ...split.inPlace], store.groups(), today);
+    const all = listTodos(buildToday([...live, ...finished.values()], store.groups(), today));
+    const shown = buildToday([...live, ...split.inPlace], store.groups(), today);
     const total = all.length;
     const done = all.filter((t) => finished.has(t.id)).length;
     const count = total - done;
@@ -219,29 +217,25 @@ export function init({ store, clock }) {
     list.replaceChildren();
     if (!total) list.append(el('p', 'empty', 'Nothing due today.'));
 
-    // Each part always shows its heading. Groups are smaller subheadings inside it.
+    // One list: priority todos, then each group under its heading, then ungrouped todos.
     const rows = (todos) => {
       const ul = el('ul');
       for (const todo of todos) ul.append(row(todo, today));
       return ul;
     };
-    for (const s of sections) {
-      const section = el('section', 'part');
-      const h = el('h2', '', PART_NAMES[s.part]);
-      h.id = `part-${s.part}`;
-      section.setAttribute('aria-labelledby', h.id);
-      section.append(h);
-      if (s.priority.length) section.append(rows(s.priority));
-      s.groups.forEach((g, i) => {
+    if (listTodos(shown).length) {
+      const section = el('section', 'today');
+      if (shown.priority.length) section.append(rows(shown.priority));
+      shown.groups.forEach((g, i) => {
         const sub = el('div', 'group');
-        const h3 = el('h3', '', g.group.name);
-        h3.id = `${h.id}-g${i}`;
+        const h = el('h2', '', g.group.name);
+        h.id = `group-${i}`;
         sub.setAttribute('role', 'group');
-        sub.setAttribute('aria-labelledby', h3.id);
-        sub.append(h3, rows(g.todos));
+        sub.setAttribute('aria-labelledby', h.id);
+        sub.append(h, rows(g.todos));
         section.append(sub);
       });
-      if (s.ungrouped.length) section.append(rows(s.ungrouped));
+      if (shown.ungrouped.length) section.append(rows(shown.ungrouped));
       list.append(section);
     }
     if (split.away.length) list.append(completed(split.away, today));

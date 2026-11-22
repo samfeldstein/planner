@@ -18,9 +18,9 @@ test('one entry per day, earliest day first', () => {
   assert.deepEqual(build(todos), [['2026-11-02', ['b']], ['2026-11-10', ['a', 'c']], ['2026-12-01', ['d']]]);
 });
 
-test('inside a day: Morning, Afternoon, Night, then creation order', () => {
+test('inside a day: creation order, whatever the stored part of the day', () => {
   const todos = [t('a', { part: 'night' }), t('bbb'), t('cc', { part: 'afternoon' }), t('d')];
-  assert.deepEqual(build(todos), [['2026-11-02', ['d', 'bbb', 'cc', 'a']]]);
+  assert.deepEqual(build(todos), [['2026-11-02', ['a', 'd', 'cc', 'bbb']]]);
 });
 
 test('a repeating todo shows once, on its stored due date', () => {

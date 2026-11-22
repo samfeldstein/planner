@@ -152,15 +152,8 @@ button { cursor: pointer; }
 
 /* Today list */
 
-#list h2 {
-  font: 400 2rem/1.3 var(--hand);
-  letter-spacing: 0.04em;
-  color: var(--ink-2);
-  padding: 12px var(--gutter) 2px var(--text-x);
-}
-
-/* A group inside a part: a smaller label with a ruled underline, so it never reads as a part. */
-#list h3 {
+/* A group label (today's groups, Upcoming's days): small, letter-spaced, with a ruled underline. */
+#list :is(h2, h3) {
   margin: 20px var(--gutter) 0 var(--text-x);
   padding-bottom: 2px;
   font: 400 1.05rem/1.3 var(--hand);
@@ -179,14 +172,14 @@ button { cursor: pointer; }
   border-top: 1px solid var(--hairline);
 }
 
-/* Completed and Upcoming: below Night, collapsed by default; the summary reads like a section heading. */
+/* Completed and Upcoming: below the list, collapsed by default; the summary is a heading a step above a group label. */
 #list :is(.upcoming, .completed) summary {
   display: flex;
   align-items: baseline;
   gap: 10px;
   list-style: none;
   cursor: pointer;
-  font: 400 2rem/1.3 var(--hand);
+  font: 400 1.25rem/1.3 var(--hand);
   letter-spacing: 0.04em;
   color: var(--ink-2);
   padding: 12px 0 2px var(--text-x); /* the arrow lines up with the rows' arrows */

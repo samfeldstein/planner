@@ -41,13 +41,13 @@ test('normalize strips unknown fields, trims, and fills defaults', () => {
   });
 });
 
-test('groups: "Other" and the part names are reserved, case-insensitively', () => {
+test('groups: "Other" is reserved, case-insensitively; the part names are not', () => {
   assert.equal(isReservedGroupName(' oTHER '), true);
+  assert.match(validateGroup({ id: 'g', name: ' Other' }), /cannot be named/);
   for (const name of ['Morning', ' afternoon', 'NIGHT ']) {
-    assert.equal(isReservedGroupName(name), true);
-    assert.match(validateGroup({ id: 'g', name }), /cannot be named/);
+    assert.equal(isReservedGroupName(name), false);
+    assert.equal(validateGroup({ id: 'g', name }), null);
   }
-  assert.equal(isReservedGroupName('Mornings'), false);
   assert.notEqual(validateGroup({ id: 'g', name: 'other' }), null);
   assert.notEqual(validateGroup({ id: 'g', name: '  ' }), null);
   assert.notEqual(validateGroup({ id: 'g', name: 'Home', order: 'x' }), null);

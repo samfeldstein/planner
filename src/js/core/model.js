@@ -5,9 +5,9 @@ import { isValid } from './date.js';
 
 export const CURRENT_FORMAT = 2;
 
-// The parts of the day. Every todo is in exactly one; they are sections, not groups.
+// The parts of the day. Every todo is stored with one (set when it's added); the app no longer
+// shows them or sorts by them (2026-11-21), but they're kept so nothing is lost.
 export const PARTS = ['morning', 'afternoon', 'night'];
-export const PART_NAMES = { morning: 'Morning', afternoon: 'Afternoon', night: 'Night' };
 export const isPart = (p) => PARTS.includes(p);
 
 const TODO_KEYS = ['id', 'title', 'due', 'part', 'groupId', 'priority', 'recur', 'lastDone', 'createdAt', 'updatedAt'];
@@ -67,8 +67,8 @@ export const sortGroups = (groups) =>
   [...groups].sort((a, b) =>
     (a.order ?? 1e9) - (b.order ?? 1e9) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
-// "Other" and the part names can't be group names.
-export const isReservedGroupName = (name) => ['other', ...PARTS].includes(name.trim().toLowerCase());
+// "Other" can't be a group name.
+export const isReservedGroupName = (name) => name.trim().toLowerCase() === 'other';
 
 function validRecur(r) {
   if (r === null) return true;

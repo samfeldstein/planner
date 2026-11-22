@@ -51,11 +51,11 @@ async function run() {
   check(field.textContent === '', 'add field was not cleared');
   await wait(200);
   check((await todos()).length === 0, 'todo was saved before Done');
-  doc.querySelector('input[name="part"][value="night"]').click();
   $('priority').click();
   $('sheetDone').click();
   const first = await until(async () => (await todos()).find((t) => t.title === 'Water plants'), 'Done to save');
-  check(first?.part === 'night' && first?.priority === 1, `saved with part ${first?.part}, priority ${first?.priority}`);
+  check(first?.priority === 1, `saved with priority ${first?.priority}`);
+  check(!doc.querySelector('input[name="part"]'), 'the sheet still has a part-of-day picker');
   await until(() => !sheet.open, 'the sheet to close after Done');
 
   // 2. Leaving the field opens the sheet too; Cancel discards the new todo.
