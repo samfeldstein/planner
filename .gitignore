@@ -8,3 +8,4 @@ planner-import.json
 push/.test-token
 push/*.log
 push/vapid-public.txt
+push/.wrangler/
