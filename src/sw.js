@@ -89,6 +89,11 @@ self.addEventListener('push', (event) => {
     });
     const { title, body } = notificationText(n);
     await quietly(() => self.registration.showNotification(title, { body, tag: 'daily', icon: abs('icons/180.png') }));
+    // The page's Badge block warns when no push has come for over 26 hours.
+    await quietly(async () => {
+      const cache = await caches.open('badge-counts');
+      await cache.put(abs('badge-last-push.json'), new Response(JSON.stringify(new Date().toISOString()), { headers: { 'content-type': 'application/json' } }));
+    });
   })());
 });
 

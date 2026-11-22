@@ -57,10 +57,11 @@ async function sendOne(env, sub, jwts, now, send, stats, gone) {
     const reason = await reasonOf(res);
     stats.failed++;
     stats.reasons.push(reason);
-    if (res.status === 403) console.error(JSON.stringify({ status: 403, reason }));
+    console.error(JSON.stringify({ status: res.status, reason }));
   } catch {
     stats.failed++;
     stats.reasons.push('request failed');
+    console.error(JSON.stringify({ error: 'request failed' }));
   }
 }
 

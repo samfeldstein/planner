@@ -95,8 +95,10 @@ async function run() {
       return sub;
     },
   } };
+  let skew = 0; // pretend time has passed, for the silent-push warning
   setupBlock({
     doc,
+    now: () => Date.now() + skew,
     getReg: async () => reg,
     url: 'https://worker.test',
     key: 'AAAA',
@@ -117,8 +119,26 @@ async function run() {
   check(body?.hour === 7 && body?.tz === Intl.DateTimeFormat().resolvedOptions().timeZone, `subscribe body ${JSON.stringify(body)}`);
   check(body?.subscription?.endpoint === 'https://web.push.apple.com/test', 'subscribe body lacks the subscription');
 
+  // A push that never came: 25 hours after turning on, no warning; 27 hours, the warning; Turn off then on resets it.
+  const line = $('badgeSilent');
+  skew = 25 * 36e5;
+  $('moreBtn').click();
+  await wait(300);
+  check(line.hidden, 'the silent-push line showed at 25 hours');
+  skew = 27 * 36e5;
+  $('moreBtn').click();
+  await until(() => !line.hidden, 'the silent-push line at 27 hours');
+  check(line.textContent === 'No morning notification came today. Turn the badge off and on again.', `silent line says "${line.textContent}"`);
+  check(line.getAttribute('role') === 'status', 'the silent-push line is not role=status');
+
   btn.click();
   if (!await until(() => status() === "Show today's todo count on the app icon.", 'the off state again')) return;
+  check(line.hidden, 'the silent-push line shows while off');
+  btn.click();
+  if (!await until(() => status() === 'On. A notification comes each morning at 7.', 'the on state after turning on again')) return;
+  check(line.hidden, 'turning on again did not reset the silent-push line');
+  btn.click();
+  if (!await until(() => status() === "Show today's todo count on the app icon.", 'the off state once more')) return;
   check(sent.at(-1)?.[1] === '/unsubscribe' && sent.at(-1)?.[2]?.endpoint === 'https://web.push.apple.com/test', 'turning off did not post /unsubscribe');
   check(sub === null, 'turning off left the subscription');
 

@@ -229,3 +229,18 @@ test('PUSH_URL and VAPID_PUBLIC in badge.js are both set or both empty', () => {
   const key = badge.match(/export const VAPID_PUBLIC = '([^']*)'/)[1];
   assert.equal(Boolean(url), Boolean(key), 'set PUSH_URL and VAPID_PUBLIC together');
 });
+
+test('every failed send is logged at error level, but a 410 is not', async () => {
+  const env = await makeEnv([{ ...entry(1), seen: 1 }, { ...entry(2), seen: 1 }, { ...entry(3), seen: 1 }, { ...entry(4), seen: 1 }]);
+  const statuses = { 1: 500, 2: 'throw', 3: 410, 4: 201 };
+  const send = async (url) => {
+    const s = statuses[url.split('/').pop()];
+    if (s === 'throw') throw new Error('network');
+    return new Response(null, { status: s });
+  };
+  const errors = [];
+  const error = console.error;
+  console.error = (line) => errors.push(line);
+  try { await sendAll(env, () => true, Date.now(), send); } finally { console.error = error; }
+  assert.equal(errors.length, 2);
+});

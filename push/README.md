@@ -27,7 +27,7 @@ Run these from the `push/` folder. Wrangler is fetched by `npx`; nothing is adde
 
 1. Open Planner from the Home Screen, More, Badge, Turn on, and allow notifications.
 2. From the Mac: `curl -X POST -H "x-test-token: <TEST_TOKEN>" https://<worker-url>/test`. The reply counts what was sent. The badge and a notification should appear on the phone.
-3. Logs: Cloudflare dashboard, Workers & Pages, `planner-push`, Logs (Workers Logs; kept 3 days). `npx wrangler tail` shows them live. One line per run that sent anything (counts, status codes, Apple's reason; a 403 also logs as an error); never the endpoint.
+3. Logs: Cloudflare dashboard, Workers & Pages, `planner-push`, Logs (Workers Logs; kept 3 days). `npx wrangler tail` shows them live. One line per run that sent anything (counts, status codes, Apple's reason; every failed send also logs as an error); never the endpoint.
 
 ## Notes
 

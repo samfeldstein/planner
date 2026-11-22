@@ -12,12 +12,16 @@ const HOUR = 7;
 const REPOST_AFTER = 12 * 36e5;
 const CACHE = 'badge-counts';
 const KEY = './badge-counts.json';
+const LAST_PUSH = './badge-last-push.json'; // written by sw.js on every push
+const TURNED_ON = './badge-turned-on.json';
+const SILENT_AFTER = 26 * 36e5;
 
 const TEXT = {
   off: "Show today's todo count on the app icon.",
   on: 'On. A notification comes each morning at 7.',
   denied: 'Notifications are off for Planner. Turn them on in Settings, then try again.',
   error: "Couldn't turn on the badge. Try again.",
+  silent: 'No morning notification came today. Turn the badge off and on again.',
 };
 
 const quietly = (fn) => { try { return Promise.resolve(fn()).catch(() => {}); } catch { return Promise.resolve(); } };
@@ -28,13 +32,35 @@ export function setBadge(n, nav = navigator) {
   return quietly(() => (n > 0 ? nav.setAppBadge(n) : nav.clearAppBadge()));
 }
 
+const keyUrl = (key) => new URL(key, globalThis.location?.href ?? 'https://planner.invalid/').href;
+
+async function putJson(cacheStorage, key, value) {
+  const cache = await cacheStorage.open(CACHE);
+  await cache.put(keyUrl(key), new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } }));
+}
+
 export function writeForecast(counts, cacheStorage = globalThis.caches) {
   if (!cacheStorage) return Promise.resolve();
-  return quietly(async () => {
-    const cache = await cacheStorage.open(CACHE);
-    const body = JSON.stringify(counts);
-    await cache.put(new URL(KEY, location.href).href, new Response(body, { headers: { 'content-type': 'application/json' } }));
-  });
+  return quietly(() => putJson(cacheStorage, KEY, counts));
+}
+
+// A saved ISO time as milliseconds, or null.
+async function readTime(cacheStorage, key) {
+  try {
+    const res = await (await cacheStorage.open(CACHE)).match(keyUrl(key));
+    const ms = res ? Date.parse(await res.json()) : NaN;
+    return Number.isNaN(ms) ? null : ms;
+  } catch {
+    return null;
+  }
+}
+
+// True when push is on but nothing has arrived for 26 hours: the later of the last push and the
+// time the badge was turned on. Unknown (neither saved) is not a warning.
+export async function pushSilent(cacheStorage, nowMs) {
+  if (!cacheStorage) return false;
+  const times = (await Promise.all([LAST_PUSH, TURNED_ON].map((k) => readTime(cacheStorage, k)))).filter((t) => t !== null);
+  return times.length > 0 && nowMs - Math.max(...times) > SILENT_AFTER;
 }
 
 // The forecast is written always. The icon badge is set only while a push subscription exists (isOn),
@@ -81,11 +107,14 @@ export function setupBlock({
   send = postJson,
   permission = () => globalThis.Notification?.permission ?? 'default',
   afterChange = () => {},
+  cacheStorage = globalThis.caches,
+  now = () => Date.now(),
 }) {
   const block = doc.getElementById('badgeBlock');
   const status = doc.getElementById('badgeStatus');
   const btn = doc.getElementById('badgeBtn');
   const errorEl = doc.getElementById('badgeError');
+  const silentEl = doc.getElementById('badgeSilent');
   let reg = null;
   let lastPost = 0;
   let lastZone = null;
@@ -100,6 +129,8 @@ export function setupBlock({
     btn.textContent = on ? 'Turn off' : 'Turn on';
     btn.dataset.state = on ? 'on' : 'off';
     btn.disabled = false;
+    silentEl.textContent = on && await pushSilent(cacheStorage, now()) ? TEXT.silent : '';
+    silentEl.hidden = !silentEl.textContent;
   }
 
   // lastPost moves only after the Worker accepted it, so a failed post is retried on the next return.
@@ -115,7 +146,8 @@ export function setupBlock({
     if (!reg || permission() !== 'granted') return;
     if (Date.now() - lastPost < REPOST_AFTER && zone() === lastZone) return;
     const sub = await subscription();
-    if (sub) await quietly(() => post(sub));
+    if (!sub) return;
+    try { await post(sub); } catch (err) { console.warn('Badge: could not reach the push Worker', err); }
   }
 
   async function turnOn() {
@@ -127,6 +159,7 @@ export function setupBlock({
       const sub = await pending;
       // A subscription the Worker doesn't know about would never get a push: drop it and start over.
       try { await post(sub); } catch (err) { await quietly(() => sub.unsubscribe()); throw err; }
+      if (cacheStorage) await quietly(() => putJson(cacheStorage, TURNED_ON, new Date(now()).toISOString()));
       afterChange();
     } catch {
       if (permission() !== 'denied') showError(TEXT.error);

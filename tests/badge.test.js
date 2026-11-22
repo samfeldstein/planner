@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { base64UrlToBytes, dueCount, forecast, notificationText } from '../src/js/core/badge.js';
 import { todayLocal } from '../src/js/core/date.js';
-import { setupBlock, startPageBadge } from '../src/js/features/badge.js';
+import { pushSilent, setupBlock, startPageBadge } from '../src/js/features/badge.js';
 
 const base = { part: 'morning', groupId: null, priority: 0, lastDone: null };
 const one = (id, due) => ({ ...base, id, title: id, due, recur: null });
@@ -156,9 +156,30 @@ test('tapping the notification focuses an open window, or opens the app', async 
 // repost(): the Badge block tells the Worker we're still here, at most every 12 hours.
 function fakeDoc() {
   const els = new Map();
-  const el = () => ({ hidden: true, textContent: '', dataset: {}, disabled: false, addEventListener() {} });
+  const el = () => {
+    const handlers = {};
+    return { hidden: true, textContent: '', dataset: {}, disabled: false, handlers, addEventListener(type, fn) { handlers[type] = fn; } };
+  };
   return { visibilityState: 'visible', addEventListener() {}, getElementById: (id) => { if (!els.has(id)) els.set(id, el()); return els.get(id); } };
 }
+
+// A Cache Storage stand-in: names to URL-to-text maps.
+function fakeCaches() {
+  const store = new Map();
+  return {
+    store,
+    open: async (name) => {
+      if (!store.has(name)) store.set(name, new Map());
+      const m = store.get(name);
+      return { match: async (url) => (m.has(url) ? new Response(m.get(url)) : undefined), put: async (url, res) => { m.set(String(url.url ?? url), await res.text()); } };
+    },
+  };
+}
+const NOW = Date.parse('2026-11-21T20:00:00Z');
+const ago = (hours) => JSON.stringify(new Date(NOW - hours * 36e5).toISOString());
+const URL_PUSH = 'https://planner.invalid/badge-last-push.json';
+const URL_ON = 'https://planner.invalid/badge-turned-on.json';
+const withCache = (entries) => { const c = fakeCaches(); c.store.set('badge-counts', new Map(entries)); return c; };
 
 test('repost is throttled to 12 hours, forced by a time-zone change, and retried after a failure', async (t) => {
   const zone = process.env.TZ;
@@ -198,4 +219,77 @@ test('repost is throttled to 12 hours, forced by a time-zone change, and retried
   await block.repost();
   await block.repost();
   assert.equal(sent.length, 6, 'a good post resets the 12 hours');
+});
+
+test('a push saves its time in the badge-counts cache', async () => {
+  const caches = fakeCaches();
+  const listeners = {};
+  const self = { location: new URL('https://x.test/planner/sw.js'), addEventListener: (t, fn) => { listeners[t] = fn; }, navigator: { setAppBadge: async () => {}, clearAppBadge: async () => {} },
+    registration: { getNotifications: async () => [], showNotification: async () => {} } };
+  const ctx = { self, caches, URL, Response, Date };
+  vm.createContext(ctx);
+  vm.runInContext(swSource, ctx);
+  let work;
+  const before = Date.now();
+  listeners.push({ waitUntil: (p) => { work = p; } });
+  await work;
+  const saved = JSON.parse(caches.store.get('badge-counts').get('https://x.test/planner/badge-last-push.json'));
+  assert.ok(Date.parse(saved) >= before - 1000 && Date.parse(saved) <= Date.now() + 1000);
+});
+
+test('a failing time save never stops the notification', async () => {
+  const shown = [];
+  const caches = { open: async () => ({ match: async () => undefined, put: async () => { throw new Error('full'); } }) };
+  const self = { navigator: {}, registration: { getNotifications: async () => [], showNotification: async (t) => { shown.push(t); } } };
+  const { listeners } = loadWorker({ self, caches });
+  let work;
+  listeners.push({ waitUntil: (p) => { work = p; } });
+  await work;
+  assert.deepEqual(shown, ['Planner']);
+});
+
+test('push is silent after 26 hours, using the later of the last push and turn-on', async () => {
+  assert.equal(await pushSilent(withCache([[URL_PUSH, ago(25)]]), NOW), false);
+  assert.equal(await pushSilent(withCache([[URL_PUSH, ago(27)]]), NOW), true);
+  assert.equal(await pushSilent(withCache([[URL_ON, ago(27)]]), NOW), true, 'no push yet: the turn-on time counts');
+  assert.equal(await pushSilent(withCache([[URL_ON, ago(25)]]), NOW), false);
+  assert.equal(await pushSilent(withCache([[URL_PUSH, ago(40)], [URL_ON, ago(2)]]), NOW), false, 'turned on again after the last push');
+  assert.equal(await pushSilent(withCache([]), NOW), false, 'nothing saved is not a warning');
+});
+
+test('the Badge block shows the silent-push line at 27 hours, not 25, and Turn on resets it', async () => {
+  const doc = fakeDoc();
+  const cacheStorage = withCache([[URL_PUSH, ago(27)]]);
+  let sub = { toJSON: () => ({}) };
+  const reg = { pushManager: { getSubscription: async () => sub, subscribe: async () => { sub = { toJSON: () => ({}), unsubscribe: async () => { sub = null; } }; return sub; } } };
+  const block = setupBlock({ doc, getReg: async () => reg, url: 'https://w.test', key: 'AAAA', permission: () => 'granted', send: async () => {}, cacheStorage, now: () => NOW });
+  await new Promise((r) => setImmediate(r));
+  const line = doc.getElementById('badgeSilent');
+  assert.equal(line.hidden, false);
+  assert.equal(line.textContent, 'No morning notification came today. Turn the badge off and on again.');
+  cacheStorage.store.get('badge-counts').set(URL_PUSH, ago(25));
+  await block.render();
+  assert.equal(line.hidden, true);
+  cacheStorage.store.get('badge-counts').set(URL_PUSH, ago(27));
+  await block.render();
+  assert.equal(line.hidden, false);
+  sub = null; // turned off, then on again
+  await block.render();
+  assert.equal(line.hidden, true, 'off shows no warning');
+  await doc.getElementById('badgeBtn').handlers.click();
+  await new Promise((r) => setTimeout(r, 10));
+  assert.ok(cacheStorage.store.get('badge-counts').has(URL_ON), 'turn-on time saved');
+  assert.equal(line.hidden, true, 'Turn on resets the warning');
+});
+
+test('a failed repost warns in the console', async () => {
+  const warns = [];
+  const warn = console.warn;
+  console.warn = (...a) => warns.push(a);
+  try {
+    const reg = { pushManager: { getSubscription: async () => ({ toJSON: () => ({}) }) } };
+    setupBlock({ doc: fakeDoc(), getReg: async () => reg, url: 'https://w.test', key: 'AAAA', permission: () => 'granted', send: async () => { throw new Error('down'); }, cacheStorage: null });
+    await new Promise((r) => setTimeout(r, 10));
+  } finally { console.warn = warn; }
+  assert.equal(warns.length, 1);
 });
