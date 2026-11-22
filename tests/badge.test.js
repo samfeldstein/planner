@@ -321,3 +321,23 @@ test("sw.js and badge.js agree on the last-push file and the cache name", () => 
   assert.ok(swSource.includes(`abs('${file}')`), `sw.js does not write ${file}`);
   assert.ok(swSource.includes(`caches.open('${cache}')`), `sw.js does not open the ${cache} cache`);
 });
+
+test('a resume does not unlock the button while Turn on is still running', async () => {
+  const doc = fakeDoc();
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  let sub = null;
+  const reg = { pushManager: { getSubscription: async () => sub, subscribe: async () => { await gate; sub = { toJSON: () => ({}) }; return sub; } } };
+  setupBlock({ doc, getReg: async () => reg, url: 'https://w.test', key: 'AAAA', permission: () => 'granted', send: async () => {}, cacheStorage: null });
+  await new Promise((r) => setImmediate(r));
+  const btn = doc.getElementById('badgeBtn');
+  btn.handlers.click();
+  assert.equal(btn.disabled, true);
+  doc.docHandlers.visibilitychange();
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(btn.disabled, true, 'the button stayed locked mid-tap');
+  release();
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(btn.disabled, false);
+  assert.equal(btn.textContent, 'Turn off');
+});

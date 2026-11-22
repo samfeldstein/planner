@@ -118,6 +118,7 @@ export function setupBlock({
   let reg = null;
   let lastPost = 0;
   let lastZone = null;
+  let busy = false; // a Turn on or Turn off tap is running: a resume must not unlock its button
 
   const showError = (text) => { errorEl.textContent = text; errorEl.hidden = !text; };
 
@@ -152,6 +153,7 @@ export function setupBlock({
 
   async function turnOn() {
     showError('');
+    busy = true;
     btn.disabled = true;
     // subscribe() must be the first await in the tap, or iOS refuses the permission prompt.
     const pending = reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(key) });
@@ -164,11 +166,13 @@ export function setupBlock({
     } catch {
       if (permission() !== 'denied') showError(TEXT.error);
     }
+    busy = false;
     await render();
   }
 
   async function turnOff() {
     showError('');
+    busy = true;
     btn.disabled = true;
     try {
       const sub = await subscription();
@@ -181,6 +185,7 @@ export function setupBlock({
     } catch {
       showError("Couldn't turn off the badge. Try again.");
     }
+    busy = false;
     await render();
   }
 
@@ -190,7 +195,7 @@ export function setupBlock({
     else turnOn();
   });
   doc.getElementById('moreBtn').addEventListener('click', () => { showError(''); render(); });
-  doc.addEventListener('visibilitychange', () => { if (doc.visibilityState === 'visible') { render(); repost(); } });
+  doc.addEventListener('visibilitychange', () => { if (doc.visibilityState === 'visible') { if (!busy) render(); repost(); } });
 
   block.hidden = false;
   render();
