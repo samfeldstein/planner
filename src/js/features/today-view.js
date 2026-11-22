@@ -276,15 +276,15 @@ export function init({ store, clock }) {
   const TAP_MS = 2000;
 
   // The key to restore after this render. A tap's key (focused without scrolling) stands in when
-  // nothing has focus; coming back to the app uses the key saved on leaving. Leaving ignores taps.
+  // nothing has focus; coming back to the app prefers the key saved on leaving. Leaving ignores taps.
   function focusKeyForRender(renderMode) {
     const key = captureKey();
     const resuming = renderMode === 'resume';
     const saved = pendingKey;
     if (resuming) pendingKey = null;
     if (key || document.activeElement !== document.body) return { key, quiet: false };
-    if (renderMode !== 'leave' && lastTap && performance.now() - lastTap.at < TAP_MS) return { key: lastTap.key, quiet: true };
     if (resuming && saved) return { key: saved, quiet: false };
+    if (renderMode !== 'leave' && lastTap && performance.now() - lastTap.at < TAP_MS) return { key: lastTap.key, quiet: true };
     return { key: null, quiet: false };
   }
 
