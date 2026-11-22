@@ -222,10 +222,11 @@ export function init({ store, clock }) {
       for (const todo of todos) ul.append(row(todo, today));
       return ul;
     };
-    // An empty list still gets its section, so the ruled line above Completed and Upcoming stays.
-    if (!total || listTodos(shown).length) {
+    // The section is always drawn, so the ruled line above Completed and Upcoming stays. With nothing
+    // in it: no todos due today, or all of them checked off and put away (or moved to Tomorrow).
+    {
       const section = el('section', 'today');
-      if (!total) section.append(el('p', 'empty', 'Nothing due today.'));
+      if (!listTodos(shown).length) section.append(el('p', 'empty', total ? 'All done for today.' : 'Nothing due today.'));
       if (shown.priority.length) section.append(rows(shown.priority));
       shown.groups.forEach((g, i) => {
         const sub = el('div', 'group');
