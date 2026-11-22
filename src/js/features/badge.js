@@ -5,8 +5,8 @@
 
 import { base64UrlToBytes, dueCount, forecast } from '../core/badge.js';
 
-export const PUSH_URL = '';
-export const VAPID_PUBLIC = '';
+export const PUSH_URL = 'https://planner-push.samfeldstein.workers.dev';
+export const VAPID_PUBLIC = 'BOsBIC0ZdInIfH-DPkm9Akx-ZI4J044roPI6yukcZi6BPbLnb7sih3K4pc15Q9wFRAQOm6GWEYnjZ8DOeXv3xWw';
 
 const HOUR = 7;
 const REPOST_AFTER = 12 * 36e5;

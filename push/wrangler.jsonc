@@ -5,6 +5,8 @@
 	"main": "index.js",
 	"compatibility_date": "2026-11-01",
 	"workers_dev": true,
+	// No per-version preview addresses; only the one workers.dev URL.
+	"preview_urls": false,
 	// Keep console output in Workers Logs; leave request details (invocation logs) off.
 	"observability": {
 		"enabled": true,

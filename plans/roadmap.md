@@ -2,7 +2,7 @@
 
 ## Next (2026-11-21, after the flat-list release)
 
-**Waiting on Sam:** how the app badge gets updated (end of To do).
+**Waiting on Sam:** the app badge's merge, release, and one-time phone test (end of To do).
 
 **Claude next, one batch** (all touch `today-view.js` and `tests/browser/checkoff.html`; follow the `build-loop` skill):
 1. Focus after a put-away (end of To do).
@@ -38,4 +38,4 @@
 - [ ] Focus after a put-away (low impact, from review): if focus is on a checked-off row when the app is left, or the last Completed row is undone, keyboard and VoiceOver focus falls to the page.
 - [ ] Browser test gaps (from review): cover the `visibilitychange` path and the launch put-away, not only `pagehide`.
 - [ ] "All done for today" line (Sam, 2026-11-21): when every todo due today is checked off and put away, the list shows nothing above Completed; show the line "All done for today" there.
-- [ ] App badge (Sam, 2026-11-21): the Home Screen icon shows how many todos are due, so he doesn't have to open the app to know. On iOS the badge shows only after notification permission is granted, and it can change only while the app is open or when a push arrives (WebKit, "Badging for Home Screen Web Apps"). Waits on Sam: update it only when the app runs, or add a daily push.
+- [ ] App badge (Sam, 2026-11-21): the Home Screen icon shows how many todos are due today, refreshed by a 7 a.m. push from the `planner-push` Worker (https://planner-push.samfeldstein.workers.dev, deployed 2026-11-21), plus a morning notification; turned on and off under More, Badge. Design and limits: `plans/app-badge.md`; deploy notes: `push/README.md`. Built on `claude/app-badge` (3 plan reviews, 5 cold reviews, tests and browser tests pass). Left: Sam's OK to merge, a release, then the phone test (Turn on, then the `/test` curl in `push/README.md`). Only that test proves Apple delivers the empty push.
