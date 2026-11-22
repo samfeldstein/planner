@@ -1,16 +1,13 @@
 # Roadmap
 
-## Next (2026-11-21, after the app badge)
+## Next (2026-11-21, after the focus and "All done" batch)
 
-**Waiting on Sam:** nothing. The notification title fix and the bigger headings are released (c40bdb8517).
+**Waiting on Sam:** merge and release of `claude/focus-and-done`.
 
-**Claude next, one batch** (all touch `today-view.js` and `tests/browser/checkoff.html`; follow the `build-loop` skill):
-1. Focus after a put-away (end of To do).
-2. Browser test gaps (end of To do).
-3. "All done for today" line (end of To do).
+**Claude next:** nothing queued; To do is empty.
 
 **Limits hit:**
-- Headless Chrome browser tests can't start in the sandbox. Workaround this session: serve the repo root with a static server (a temp `launch.json` entry in the orchestrator, port 8775) and open `tests/browser/*.html` in the Claude browser pane. migrate, checkoff, and new-group pass there; new-todo times out at "the sheet after leaving the field", on `main` too (probably no blur while the pane is hidden; unchecked).
+- Headless Chrome browser tests can't start in the sandbox. Sam runs `npm run test:browser` in his terminal (all four pass there, 2026-11-21). The Claude browser pane works as a fallback, but new-todo times out there at "the sheet after leaving the field" because the pane is hidden (it passes in real headless Chrome), and starting the temp test server may be refused by the auto-mode check.
 - The tracker isn't readable from a worktree session. `.claude/launch.json` is gitignored; its `planner-built` entry points at an old scratchpad.
 
 ## Done earlier
