@@ -285,8 +285,9 @@ export function init({ store, clock }) {
     const quietly = renderMode !== null; // a hidden page or a return must not scroll the list
     const active = document.activeElement;
     const free = active === document.body || list.contains(active);
+    // (Only a plain render: leaving ignores taps, and a return uses the key saved on leaving.)
     // A tap on a row other than the focused one wins: a click (or VoiceOver) may not move focus.
-    const tap = renderMode !== 'leave' && free && lastTap && performance.now() - lastTap.at < TAP_MS ? lastTap.key : null;
+    const tap = renderMode === null && free && lastTap && performance.now() - lastTap.at < TAP_MS ? lastTap.key : null;
     if (!key && active === document.body && resuming && saved) return { key: saved, quiet: true };
     if (tap && key?.id !== tap.id) return { key: tap, quiet: true };
     return { key, quiet: quietly };
@@ -303,7 +304,11 @@ export function init({ store, clock }) {
   function restoreFocus(key, quiet) {
     const opts = quiet ? { preventScroll: true } : undefined;
     const q = (sel) => list.querySelector(sel);
-    if (key.summary) { tryFocus(q(`.${key.summary} summary`), opts); return; }
+    if (key.summary) {
+      // The list is gone (a day change, a failed save): the first check button, else quick add.
+      if (!tryFocus(q(`.${key.summary} summary`), opts)) refocus(0);
+      return;
+    }
     const row = `[data-id="${CSS.escape(key.id)}"]`;
     if (tryFocus(q(`.${key.section} ${row} [data-act="${key.act}"]`), opts)) return;
     if (key.section === 'upcoming') return; // never chase an Upcoming row into the other sections
