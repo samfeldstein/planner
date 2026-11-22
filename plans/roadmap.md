@@ -28,6 +28,7 @@
 
 ## To do
 
+- [ ] Morning notification layout (Sam, Apple Note, 2026-11-22): "Planner" on top as the title, and "x items due today" below it as the body. Today the count line is the title.
 - [x] Flat list (tracker `planner-flat-list`, 2026-11-21): the Morning, Afternoon, and Night sections are gone, so todos due today are one list (priority, groups, ungrouped); the edit sheet's part picker is gone; Upcoming and Completed headings went from 2rem to 1.25rem. Each todo still stores its part (no migration), so the sections could come back. Part names are allowed as group names again; old Morning, Afternoon, and Night groups stay groups on upgrade. Released a05d627451 (fa8d07a).
 - [x] Weekday and weekend repeat labels: the row under the title says "Weekdays" and "Weekends" instead of "Every weekday" and "Every weekend".
 - [x] Keyboard covers the new group name field: on the phone, editing a todo, choosing a new group, and adding one opens the keyboard with the name field under it, so you can't see where you're typing. Keep the field in view above the keyboard.
