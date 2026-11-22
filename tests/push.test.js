@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { audienceOf, classify, corsHeaders, isDue, localHour, makeJwt, parseSubscribe, remove, toBase64Url, upsert, validEndpoint, validHour, validZone, vapidHeader } from '../push/lib.js';
+import { readFileSync } from 'node:fs';
 import worker, { sendAll } from '../push/index.js';
+import { configProblem } from '../push/lib.js';
 
 const APPLE = 'https://web.push.apple.com/abc123';
 const keys = { p256dh: 'k1', auth: 'k2' };
@@ -75,7 +77,7 @@ test('CORS headers only for the allowed origins', () => {
 });
 
 test('classify', () => {
-  assert.deepEqual([201, 404, 410, 403, 500].map(classify), ['sent', 'gone', 'gone', 'failed', 'failed']);
+  assert.deepEqual([201, 404, 410, 403, 500].map(classify), ['sent', 'failed', 'gone', 'failed', 'failed']);
 });
 
 const P256 = { name: 'ECDSA', namedCurve: 'P-256' };
@@ -166,4 +168,56 @@ test('a 403 keeps the subscription and records Apple\'s reason', async () => {
   const stats = await sendAll(env, () => true, Date.now(), send);
   assert.deepEqual([stats.failed, stats.reasons], [1, ['BadJwtToken']]);
   assert.equal(JSON.parse(env.store.get('subs')).length, 1);
+});
+
+test('one send that throws does not stop the others, and removals are still saved and logged', async () => {
+  const env = await makeEnv([{ ...entry(1), seen: 1 }, { ...entry(2), seen: 1 }, { ...entry(3), seen: 1 }]);
+  const send = async (url) => {
+    if (url.endsWith('/1')) throw new Error('network');
+    return new Response(null, { status: url.endsWith('/2') ? 410 : 201 });
+  };
+  const logged = [];
+  const log = console.log;
+  console.log = (line) => logged.push(line);
+  let stats;
+  try { stats = await sendAll(env, () => true, Date.now(), send); } finally { console.log = log; }
+  assert.deepEqual([stats.sent, stats.removed, stats.failed], [1, 1, 1]);
+  assert.deepEqual(JSON.parse(env.store.get('subs')).map((s) => s.endpoint), [entry(1).endpoint, entry(3).endpoint]);
+  assert.equal(logged.length, 1);
+});
+
+test('a 403 is logged with its reason at error level', async () => {
+  const env = await makeEnv([{ ...entry(1), seen: 1 }]);
+  const errors = [];
+  const error = console.error;
+  console.error = (line) => errors.push(line);
+  try { await sendAll(env, () => true, Date.now(), async () => new Response('{"reason":"BadJwtToken"}', { status: 403 })); } finally { console.error = error; }
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /BadJwtToken/);
+});
+
+test('a placeholder or empty config sends nothing and logs an error', async () => {
+  const good = await makeEnv([{ ...entry(1), seen: 1 }]);
+  assert.equal(configProblem(good), null);
+  for (const over of [{ VAPID_SUBJECT: 'mailto:CHANGE-ME' }, { VAPID_PUBLIC: '' }]) {
+    const env = { ...good, ...over };
+    let called = 0;
+    const errors = [];
+    const error = console.error;
+    console.error = (line) => errors.push(line);
+    let stats;
+    try { stats = await sendAll(env, () => true, Date.now(), async () => { called++; return new Response(null, { status: 201 }); }); } finally { console.error = error; }
+    assert.equal(called, 0);
+    assert.ok(stats.error);
+    assert.equal(errors.length, 1);
+    assert.equal((await worker.fetch(post('/test', {}, { 'x-test-token': 'secret' }), env)).status, 500);
+  }
+});
+
+test("badge.js's VAPID_PUBLIC equals the Worker's var once it is set", () => {
+  const badge = readFileSync(new URL('../src/js/features/badge.js', import.meta.url), 'utf8');
+  const wrangler = readFileSync(new URL('../push/wrangler.jsonc', import.meta.url), 'utf8');
+  const page = badge.match(/export const VAPID_PUBLIC = '([^']*)'/)[1];
+  const worker_ = wrangler.match(/"VAPID_PUBLIC":\s*"([^"]*)"/)[1];
+  if (page) assert.equal(worker_, page, 'VAPID_PUBLIC differs between badge.js and push/wrangler.jsonc');
 });

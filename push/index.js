@@ -2,7 +2,7 @@
 // each phone whose local hour is its chosen hour. The phone's service worker builds the notification.
 // No todo data ever reaches this Worker. Deploy notes: push/README.md.
 
-import { MAX_SUBS, audienceOf, classify, corsHeaders, isDue, makeJwt, parseSubscribe, remove, upsert, vapidHeader } from './lib.js';
+import { MAX_SUBS, audienceOf, classify, configProblem, corsHeaders, isDue, makeJwt, parseSubscribe, remove, upsert, vapidHeader } from './lib.js';
 
 const ORIGINS = ['https://samfeldstein.github.io', 'http://localhost:8766'];
 const MAX_BODY = 4096;
@@ -41,28 +41,44 @@ async function reasonOf(res) {
   try { return (await res.json()).reason ?? null; } catch { return null; }
 }
 
-// Send to each subscription for which `due` is true. Returns the counts and writes removals back.
-export async function sendAll(env, due, now = Date.now(), send = fetch) {
-  const subs = await readSubs(env);
-  const jwk = JSON.parse(env.VAPID_PRIVATE);
-  const jwts = new Map();
-  const stats = { sent: 0, removed: 0, failed: 0, statuses: [], reasons: [] };
-  const gone = [];
-  for (const sub of subs.filter((s) => due(s, new Date(now)))) {
+// Send to one subscription. Never throws: a network error counts as a failure.
+async function sendOne(env, sub, jwts, now, send, stats, gone) {
+  try {
     const aud = audienceOf(sub.endpoint);
-    if (!jwts.has(aud)) jwts.set(aud, await makeJwt({ aud, sub: env.VAPID_SUBJECT, exp: Math.floor(now / 1000) + 12 * 3600 }, jwk));
+    if (!jwts.has(aud)) jwts.set(aud, await makeJwt({ aud, sub: env.VAPID_SUBJECT, exp: Math.floor(now / 1000) + 12 * 3600 }, JSON.parse(env.VAPID_PRIVATE)));
     const res = await send(sub.endpoint, {
       method: 'POST',
       headers: { TTL: String(TTL), Urgency: 'normal', Authorization: vapidHeader(jwts.get(aud), env.VAPID_PUBLIC) },
     });
     stats.statuses.push(res.status);
     const kind = classify(res.status);
-    if (kind === 'gone') { gone.push(sub.endpoint); stats.removed++; }
-    else if (kind === 'sent') stats.sent++;
-    else { stats.failed++; stats.reasons.push(await reasonOf(res)); }
+    if (kind === 'gone') { gone.push(sub.endpoint); stats.removed++; return; }
+    if (kind === 'sent') { stats.sent++; return; }
+    const reason = await reasonOf(res);
+    stats.failed++;
+    stats.reasons.push(reason);
+    if (res.status === 403) console.error(JSON.stringify({ status: 403, reason }));
+  } catch {
+    stats.failed++;
+    stats.reasons.push('request failed');
   }
+}
+
+// Send to each subscription for which `due` is true. Returns the counts and writes removals back.
+export async function sendAll(env, due, now = Date.now(), send = fetch) {
+  const problem = configProblem(env);
+  if (problem) {
+    console.error(JSON.stringify({ error: problem }));
+    return { error: problem, sent: 0, removed: 0, failed: 0, statuses: [], reasons: [] };
+  }
+  const subs = await readSubs(env);
+  const jwts = new Map();
+  const stats = { sent: 0, removed: 0, failed: 0, statuses: [], reasons: [] };
+  const gone = [];
+  const targets = subs.filter((s) => due(s, new Date(now)));
+  for (const sub of targets) await sendOne(env, sub, jwts, now, send, stats, gone);
   if (gone.length) await writeSubs(env, (await readSubs(env)).filter((s) => !gone.includes(s.endpoint)));
-  if (stats.statuses.length) console.log(JSON.stringify(stats));
+  if (targets.length) console.log(JSON.stringify(stats));
   return stats;
 }
 
@@ -70,7 +86,7 @@ async function test(req, env) {
   const token = req.headers.get('x-test-token');
   if (!env.TEST_TOKEN || token !== env.TEST_TOKEN) return reply(403);
   const stats = await sendAll(env, () => true);
-  return reply(200, { 'content-type': 'application/json' }, JSON.stringify(stats));
+  return reply(stats.error ? 500 : 200, { 'content-type': 'application/json' }, JSON.stringify(stats));
 }
 
 const ROUTES = { '/subscribe': subscribe, '/unsubscribe': unsubscribe };

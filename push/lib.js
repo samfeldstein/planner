@@ -90,4 +90,13 @@ export async function makeJwt({ aud, sub, exp }, privateJwk) {
 export const vapidHeader = (jwt, publicKey) => `vapid t=${jwt}, k=${publicKey}`;
 
 // How to treat the push service's answer: drop the subscription, count it sent, or keep it and log.
-export const classify = (status) => (status === 404 || status === 410 ? 'gone' : status >= 200 && status < 300 ? 'sent' : 'failed');
+// Only 410 means expired; Apple's 404 means a bad path, so it is a failure, not a reason to forget the phone.
+export const classify = (status) => (status === 410 ? 'gone' : status >= 200 && status < 300 ? 'sent' : 'failed');
+
+// A deploy mistake that would make every push fail: say so in the logs and send nothing.
+export function configProblem(env) {
+  if (!env.VAPID_PUBLIC) return 'VAPID_PUBLIC is empty in wrangler.jsonc';
+  if (!env.VAPID_SUBJECT || env.VAPID_SUBJECT === 'mailto:CHANGE-ME') return 'VAPID_SUBJECT is still the placeholder in wrangler.jsonc';
+  if (!env.VAPID_PRIVATE) return 'the VAPID_PRIVATE secret is not set';
+  return null;
+}

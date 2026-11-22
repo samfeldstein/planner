@@ -14,6 +14,7 @@ Run these from the `push/` folder. Wrangler is fetched by `npx`; nothing is adde
    `node make-keys.mjs | npx wrangler secret put VAPID_PRIVATE`
    The public key prints to your terminal (stderr). Copy it. (Wrangler reads a piped secret from stdin; this wasn't confirmed against Cloudflare's docs page for secrets. If it prompts instead, paste the JWK from `node make-keys.mjs > key.json`, then delete `key.json`.)
 4. Pick the contact address and set it as `VAPID_SUBJECT` in `wrangler.jsonc` (a `mailto:` address; it's `mailto:CHANGE-ME` until then). Set `VAPID_PUBLIC` there to the public key.
+   Two checks catch a missed step. The Worker logs an error and sends nothing while `VAPID_SUBJECT` is still `mailto:CHANGE-ME` or `VAPID_PUBLIC` is empty (`npx wrangler tail` shows it). And `npm test` fails if `VAPID_PUBLIC` in `badge.js` is set and differs from the one in `wrangler.jsonc`.
 5. Set a token for the test route: `npx wrangler secret put TEST_TOKEN` (any long random string; you'll type it again in the curl below).
 6. Deploy: `npx wrangler deploy`. It prints the URL, like `https://planner-push.<your-subdomain>.workers.dev`, and registers the hourly cron.
 7. Wire the app to it:
@@ -25,7 +26,7 @@ Run these from the `push/` folder. Wrangler is fetched by `npx`; nothing is adde
 
 1. Open Planner from the Home Screen, More, Badge, Turn on, and allow notifications.
 2. From the Mac: `curl -X POST -H "x-test-token: <TEST_TOKEN>" https://<worker-url>/test`. The reply counts what was sent. The badge and a notification should appear on the phone.
-3. Logs: `npx wrangler tail`. One line per run that sent anything (counts, status codes, Apple's reason); never the endpoint.
+3. Logs: `npx wrangler tail`. One line per run that sent anything (counts, status codes, Apple's reason; a 403 also logs as an error); never the endpoint.
 
 ## Notes
 
