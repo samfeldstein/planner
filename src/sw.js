@@ -82,7 +82,8 @@ async function quietly(fn) {
 self.addEventListener('push', (event) => {
   event.waitUntil((async () => {
     const n = await todaysCount();
-    if (n !== null) await quietly(() => (n === 0 ? self.navigator.clearAppBadge() : self.navigator.setAppBadge(n)));
+    // An unknown count clears the badge rather than leaving an old number up.
+    await quietly(() => (n ? self.navigator.setAppBadge(n) : self.navigator.clearAppBadge()));
     await quietly(async () => {
       for (const old of await self.registration.getNotifications({ tag: 'daily' })) old.close();
     });

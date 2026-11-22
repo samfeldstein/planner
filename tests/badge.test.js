@@ -1,10 +1,10 @@
-import test from 'node:test';
+import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { base64UrlToBytes, dueCount, forecast, notificationText } from '../src/js/core/badge.js';
 import { todayLocal } from '../src/js/core/date.js';
-import { startPageBadge } from '../src/js/features/badge.js';
+import { setupBlock, startPageBadge } from '../src/js/features/badge.js';
 
 const base = { part: 'morning', groupId: null, priority: 0, lastDone: null };
 const one = (id, due) => ({ ...base, id, title: id, due, recur: null });
@@ -128,4 +128,74 @@ test('the page badge is set only while push is on, and cleared when it is off', 
   handlers[0]({ type: 'backup' }); // a backup changes nothing
   await new Promise((r) => setTimeout(r, 10));
   assert.deepEqual(calls, [2, 0]);
+});
+
+test('an unknown count clears the badge instead of leaving the old number', async () => {
+  const calls = [];
+  const navigator = { setAppBadge: async (n) => { calls.push(n); }, clearAppBadge: async () => { calls.push('clear'); } };
+  await pushWith(null, navigator);
+  await pushWith({ [todayLocal()]: 0 }, navigator);
+  await pushWith({ [todayLocal()]: 2 }, navigator);
+  assert.deepEqual(calls, ['clear', 'clear', 2]);
+});
+
+test('tapping the notification focuses an open window, or opens the app', async () => {
+  const run = async (windows) => {
+    const log = [];
+    const clients = { matchAll: async () => windows, openWindow: async (u) => { log.push(['open', String(u)]); } };
+    const { listeners } = loadWorker({ self: { clients } });
+    let work;
+    listeners.notificationclick({ notification: { close: () => log.push('closed') }, waitUntil: (p) => { work = p; } });
+    await work;
+    return log;
+  };
+  assert.deepEqual(await run([{ focus: async () => {} }]), ['closed']);
+  assert.deepEqual(await run([]), ['closed', ['open', 'https://x.test/planner/']]);
+});
+
+// repost(): the Badge block tells the Worker we're still here, at most every 12 hours.
+function fakeDoc() {
+  const els = new Map();
+  const el = () => ({ hidden: true, textContent: '', dataset: {}, disabled: false, addEventListener() {} });
+  return { visibilityState: 'visible', addEventListener() {}, getElementById: (id) => { if (!els.has(id)) els.set(id, el()); return els.get(id); } };
+}
+
+test('repost is throttled to 12 hours, forced by a time-zone change, and retried after a failure', async (t) => {
+  const zone = process.env.TZ;
+  t.after(() => { mock.timers.reset(); if (zone === undefined) delete process.env.TZ; else process.env.TZ = zone; });
+  process.env.TZ = 'America/New_York';
+  mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-11-21T12:00:00Z') });
+  const sub = { toJSON: () => ({ endpoint: 'e' }) };
+  const reg = { pushManager: { getSubscription: async () => sub } };
+  const sent = [];
+  let fail = false;
+  const block = setupBlock({
+    doc: fakeDoc(), getReg: async () => reg, url: 'https://w.test', key: 'AAAA',
+    permission: () => 'granted',
+    send: async (u, path, body) => { sent.push(body.tz); if (fail) throw new Error('down'); },
+  });
+  const settle = () => new Promise((r) => setImmediate(r));
+  await settle();
+  assert.equal(sent.length, 1, 'posts on launch');
+  await block.repost();
+  assert.equal(sent.length, 1, 'no repeat inside 12 hours');
+  mock.timers.tick(12 * 36e5 - 1);
+  await block.repost();
+  assert.equal(sent.length, 1, 'still inside 12 hours');
+  mock.timers.tick(1);
+  await block.repost();
+  assert.equal(sent.length, 2, 'posts after 12 hours');
+  process.env.TZ = 'Europe/Berlin';
+  await block.repost();
+  assert.deepEqual(sent.slice(2), ['Europe/Berlin'], 'a new time zone posts at once');
+  mock.timers.tick(12 * 36e5);
+  fail = true;
+  await block.repost();
+  assert.equal(sent.length, 4, 'tries after 12 hours');
+  await block.repost();
+  assert.equal(sent.length, 5, 'a failed post is retried on the next return');
+  fail = false;
+  await block.repost();
+  await block.repost();
+  assert.equal(sent.length, 6, 'a good post resets the 12 hours');
 });

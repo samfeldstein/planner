@@ -5,6 +5,8 @@
   "main": "index.js",
   "compatibility_date": "2026-11-01",
   "workers_dev": true,
+  // Keep console output in Workers Logs; leave request details (invocation logs) off.
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } },
   // Hourly, UTC. The Worker sends only to phones whose local hour is their chosen hour.
   "triggers": { "crons": ["0 * * * *"] },
   "kv_namespaces": [

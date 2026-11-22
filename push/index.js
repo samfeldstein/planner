@@ -66,7 +66,7 @@ async function sendOne(env, sub, jwts, now, send, stats, gone) {
 
 // Send to each subscription for which `due` is true. Returns the counts and writes removals back.
 export async function sendAll(env, due, now = Date.now(), send = fetch) {
-  const problem = configProblem(env);
+  const problem = await configProblem(env);
   if (problem) {
     console.error(JSON.stringify({ error: problem }));
     return { error: problem, sent: 0, removed: 0, failed: 0, statuses: [], reasons: [] };

@@ -94,9 +94,14 @@ export const vapidHeader = (jwt, publicKey) => `vapid t=${jwt}, k=${publicKey}`;
 export const classify = (status) => (status === 410 ? 'gone' : status >= 200 && status < 300 ? 'sent' : 'failed');
 
 // A deploy mistake that would make every push fail: say so in the logs and send nothing.
-export function configProblem(env) {
+export async function configProblem(env) {
   if (!env.VAPID_PUBLIC) return 'VAPID_PUBLIC is empty in wrangler.jsonc';
   if (!env.VAPID_SUBJECT || env.VAPID_SUBJECT === 'mailto:CHANGE-ME') return 'VAPID_SUBJECT is still the placeholder in wrangler.jsonc';
   if (!env.VAPID_PRIVATE) return 'the VAPID_PRIVATE secret is not set';
+  try {
+    await crypto.subtle.importKey('jwk', JSON.parse(env.VAPID_PRIVATE), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  } catch {
+    return 'the VAPID_PRIVATE secret is not a valid P-256 key (JWK JSON)';
+  }
   return null;
 }

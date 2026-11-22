@@ -198,8 +198,9 @@ test('a 403 is logged with its reason at error level', async () => {
 
 test('a placeholder or empty config sends nothing and logs an error', async () => {
   const good = await makeEnv([{ ...entry(1), seen: 1 }]);
-  assert.equal(configProblem(good), null);
-  for (const over of [{ VAPID_SUBJECT: 'mailto:CHANGE-ME' }, { VAPID_PUBLIC: '' }]) {
+  assert.equal(await configProblem(good), null);
+  for (const bad of ['not json', '{}', '{"kty":"EC"}']) assert.match(await configProblem({ ...good, VAPID_PRIVATE: bad }), /VAPID_PRIVATE/);
+  for (const over of [{ VAPID_SUBJECT: 'mailto:CHANGE-ME' }, { VAPID_PUBLIC: '' }, { VAPID_PRIVATE: 'garbage' }]) {
     const env = { ...good, ...over };
     let called = 0;
     const errors = [];
@@ -220,4 +221,11 @@ test("badge.js's VAPID_PUBLIC equals the Worker's var once it is set", () => {
   const page = badge.match(/export const VAPID_PUBLIC = '([^']*)'/)[1];
   const worker_ = wrangler.match(/"VAPID_PUBLIC":\s*"([^"]*)"/)[1];
   if (page) assert.equal(worker_, page, 'VAPID_PUBLIC differs between badge.js and push/wrangler.jsonc');
+});
+
+test('PUSH_URL and VAPID_PUBLIC in badge.js are both set or both empty', () => {
+  const badge = readFileSync(new URL('../src/js/features/badge.js', import.meta.url), 'utf8');
+  const url = badge.match(/export const PUSH_URL = '([^']*)'/)[1];
+  const key = badge.match(/export const VAPID_PUBLIC = '([^']*)'/)[1];
+  assert.equal(Boolean(url), Boolean(key), 'set PUSH_URL and VAPID_PUBLIC together');
 });
