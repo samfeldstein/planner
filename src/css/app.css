@@ -173,14 +173,14 @@ button { cursor: pointer; }
   border-top: 1px solid var(--hairline);
 }
 
-/* Completed and Upcoming: below the list, collapsed by default; the summary is set a step above a group label. */
+/* Completed and Upcoming: below the list, collapsed by default. Same size as the More screen's headings. */
 #list :is(.upcoming, .completed) summary {
   display: flex;
   align-items: baseline;
   gap: 10px;
   list-style: none;
   cursor: pointer;
-  font: 400 1.25rem/1.3 var(--hand);
+  font: 400 1.5rem/1.3 var(--hand);
   letter-spacing: 0.04em;
   color: var(--ink-2);
   padding: 12px 0 2px var(--text-x); /* the arrow lines up with the rows' arrows */
@@ -388,7 +388,10 @@ dialog.screen { height: calc(var(--vvh) - 16px); }
 
 .block { display: grid; gap: 8px; padding-top: 8px; }
 .block[hidden] { display: none; }
-.block h3 { margin: 0; font: 400 1rem/1.3 var(--hand); letter-spacing: 0.04em; color: var(--ink-2); }
+/* Section headings match Completed and Upcoming on the main list: same size, a hairline above each section. */
+.block h3 { margin: 0; font: 400 1.5rem/1.3 var(--hand); letter-spacing: 0.04em; color: var(--ink-2); }
+/* On the heading, not the section: the sheet's sections are display: contents (.sheet-body > section). */
+.block + .block > h3 { margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--hairline); }
 
 .groups { display: grid; gap: 8px; }
 .groups li { display: grid; grid-template-columns: 1fr auto auto auto; gap: 4px; align-items: center; }
