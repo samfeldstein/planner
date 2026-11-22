@@ -4,6 +4,7 @@
 import { createClock } from './core/clock.js';
 import { createIdbAdapter } from './data/db.js';
 import { createStore } from './data/store.js';
+import * as badge from './features/badge.js';
 import * as groups from './features/groups.js';
 import * as more from './features/more.js';
 import * as quickAdd from './features/quick-add.js';
@@ -15,7 +16,7 @@ import * as updates from './features/updates.js';
 import { needsInstall } from './ui/install.js';
 import * as scrollLock from './ui/scroll-lock.js';
 
-const features = [todayView, sheet, quickAdd, groups, more, staleBanner, storage, updates, scrollLock];
+const features = [todayView, sheet, quickAdd, groups, more, staleBanner, storage, updates, badge, scrollLock];
 
 // Not installed: show the install guide and write nothing, so two datasets can't drift apart.
 function showGate() {

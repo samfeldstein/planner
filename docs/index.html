@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Planner">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://planner-push.samfeldstein.workers.dev; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Planner</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/180.png">
@@ -158,6 +158,16 @@
       <p id="importNote" class="secondary" role="status"></p>
       <p id="importError" class="error" role="alert" hidden></p>
       <p id="storageStatus" class="secondary"></p>
+    </section>
+
+    <section id="badgeBlock" aria-labelledby="badgeHead" class="block" hidden>
+      <h3 id="badgeHead">Badge</h3>
+      <p id="badgeStatus" class="secondary" role="status"></p>
+      <div class="btn-row">
+        <button type="button" id="badgeBtn" class="action">Turn on</button>
+      </div>
+      <p id="badgeError" class="error" role="alert" hidden></p>
+      <p id="badgeSilent" class="error" role="status" hidden></p>
     </section>
 
     <section aria-labelledby="appHead" class="block">
