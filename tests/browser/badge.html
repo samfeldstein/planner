@@ -9,7 +9,7 @@
 // 2. The Badge block's states (off, on, denied, error, off again) with a stubbed pushManager and Worker.
 import { createIdbAdapter } from '../../src/js/data/db.js';
 import { todayLocal } from '../../src/js/core/date.js';
-import { setupBlock } from '../../src/js/features/badge.js';
+import { PUSH_URL, setupBlock } from '../../src/js/features/badge.js';
 
 const failures = [];
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -70,9 +70,13 @@ async function run() {
   // No push subscription in this page, so the icon badge is cleared, never set (it is tied to Turn on).
   await until(() => calls.includes(0), 'the page badge to be cleared');
   check(!calls.some((n) => n > 0), `the badge was set with no push subscription: ${calls}`);
-  check($('badgeBlock').hidden, 'the Badge block shows before the Worker is set up');
+  // Hidden only until the Worker's URL and key are filled in (they are since 2026-11-21).
+  if (!PUSH_URL) check($('badgeBlock').hidden, 'the Badge block shows before the Worker is set up');
 
-  // 2. The Badge block with a stubbed push manager.
+  // 2. The Badge block with a stubbed push manager. Swap in a copy of the block first, so the
+  // app's own Badge handlers (live once the Worker is set up) don't answer the same taps.
+  const fresh = $('badgeBlock').cloneNode(true);
+  $('badgeBlock').replaceWith(fresh);
   let perm = 'default';
   let sub = null;
   let subscribeImpl = async () => makeSub();
