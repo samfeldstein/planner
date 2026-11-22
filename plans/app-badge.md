@@ -52,7 +52,7 @@ Dependency-free Worker, `push/index.js` (+ pure `push/lib.js`) and `push/wrangle
 ### 5. Turning it on (More screen)
 
 New "Badge" block in the More dialog:
-- Off: "Show how many todos are due on the app icon, with a notification each morning." Button "Turn on".
+- Off: "Show today's todo count on the app icon." Button "Turn on".
 - Tap: `reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey })` is the handler's first await (the registration is kept from init, so nothing is awaited before it; it asks for permission itself), then `POST /subscribe` with `tz = Intl.DateTimeFormat().resolvedOptions().timeZone`, `hour = 7`, then update the badge.
 - On: "On. A notification comes each morning at 7." Button "Turn off": read the endpoint, unsubscribe, `POST /unsubscribe`, clear the badge.
 - Denied: "Notifications are off for Planner. Turn them on in Settings, then try again."
@@ -61,7 +61,7 @@ New "Badge" block in the More dialog:
 - With a subscription, `POST /subscribe` again at launch and on each return to the app (`visibilitychange` to visible) when 12 hours have passed since the last post or the time zone changed (in-memory timestamp; the app is usually resumed, not relaunched). The Worker skips the write if nothing changed.
 - The Worker URL is a constant in `badge.js`, set after the first deploy. The page's CSP (`src/index.html`, `default-src 'self'`) gains `connect-src 'self' <Worker origin>`; a build test checks the CSP names the URL in `badge.js`.
 
-Copy above, the notification text ("Planner" / "4 due today", "1 due today", "Nothing due today", "Open Planner to see today"), and the 7 am hour are drafts for Sam.
+Copy above, the notification text ("Planner" / "4 due today", "1 due today", "Nothing due today", "Open Planner to see today"), and the 7 am hour: approved by Sam, 2026-11-21.
 
 ### 6. Docs
 

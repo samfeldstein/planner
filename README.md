@@ -1,6 +1,6 @@
 # Planner
 
-An iPhone PWA for todos: installable, offline, no accounts, no backend, no dependencies. Data lives in the browser (IndexedDB); export and import are plain JSON.
+An iPhone PWA for todos: installable, offline, no accounts, no dependencies. The one optional server piece is a small push Worker (`push/`) for the daily badge and notification. Data lives in the browser (IndexedDB); export and import are plain JSON.
 
 Live: https://samfeldstein.github.io/planner/
 
@@ -9,6 +9,7 @@ Live: https://samfeldstein.github.io/planner/
 | Path | Purpose |
 |---|---|
 | `src/` | The app: plain HTML, CSS, and ES modules |
+| `push/` | The optional push Worker for the daily badge (Cloudflare; see `push/README.md`) |
 | `tests/` | Node's built-in test runner |
 | `build.mjs` | Copies an allowlist from `src/` to `docs/`, stamps a content-hash version |
 | `docs/` | Built site served by GitHub Pages (generated) |

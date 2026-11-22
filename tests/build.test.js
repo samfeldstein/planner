@@ -56,3 +56,21 @@ test('a rebuild clears stale files but keeps .git', () => {
   assert.equal(existsSync(join(out, 'old.html')), false);
   assert.equal(existsSync(join(out, '.git')), true);
 });
+
+test('the push Worker is not part of the release, and sw.js still stamps', () => {
+  const { src, out } = fixture();
+  const { assets } = build({ src, out });
+  assert.ok(!assets.some((f) => f.startsWith('push/')));
+  assert.ok(!existsSync(join(out, 'push')));
+  assert.ok(!readFileSync(join(out, 'sw.js'), 'utf8').includes('__VERSION__'));
+});
+
+test("the CSP's connect-src names the push Worker's origin once PUSH_URL is set", () => {
+  const badge = readFileSync(join(realSrc, 'js/features/badge.js'), 'utf8');
+  const url = badge.match(/export const PUSH_URL = '([^']*)'/)[1];
+  if (!url) return;
+  const csp = readFileSync(join(realSrc, 'index.html'), 'utf8').match(/Content-Security-Policy" content="([^"]*)"/)[1];
+  const connect = csp.split(';').map((d) => d.trim()).find((d) => d.startsWith('connect-src '));
+  assert.ok(connect, 'the CSP has no connect-src');
+  assert.ok(connect.split(' ').includes(new URL(url).origin), `connect-src does not name ${new URL(url).origin}`);
+});

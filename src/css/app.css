@@ -387,6 +387,7 @@ button { cursor: pointer; }
 dialog.screen { height: calc(var(--vvh) - 16px); }
 
 .block { display: grid; gap: 8px; padding-top: 8px; }
+.block[hidden] { display: none; }
 .block h3 { margin: 0; font: 400 1rem/1.3 var(--hand); letter-spacing: 0.04em; color: var(--ink-2); }
 
 .groups { display: grid; gap: 8px; }

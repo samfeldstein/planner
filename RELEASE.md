@@ -10,6 +10,10 @@ One repo. `src/` is the source; `docs/` is the built site that GitHub Pages serv
 
 The installed app picks up the new version when it is next opened or resumed (see `src/js/features/updates.js`).
 
+## The push Worker
+
+`push/` is deployed separately with wrangler (steps in `push/README.md`), never by `npm run release`, and the Pages build never includes it. Redeploy it only when `push/` changes: `cd push && npx wrangler deploy`. After the first deploy, `PUSH_URL` and `VAPID_PUBLIC` in `src/js/features/badge.js` and the CSP's `connect-src` in `src/index.html` must be filled in before the app shows the Badge block.
+
 ## First-time Pages setup
 
 The repo must be public and named `planner` (the manifest id is `/planner/`; never rename it). Serve from `main`, folder `/docs`:
