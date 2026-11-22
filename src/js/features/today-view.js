@@ -282,10 +282,14 @@ export function init({ store, clock }) {
     const resuming = renderMode === 'resume';
     const saved = pendingKey;
     if (resuming) pendingKey = null;
-    if (key || document.activeElement !== document.body) return { key, quiet: false };
-    if (resuming && saved) return { key: saved, quiet: false };
-    if (renderMode !== 'leave' && lastTap && performance.now() - lastTap.at < TAP_MS) return { key: lastTap.key, quiet: true };
-    return { key: null, quiet: false };
+    const quietly = renderMode !== null; // a hidden page or a return must not scroll the list
+    const active = document.activeElement;
+    const free = active === document.body || list.contains(active);
+    // A tap on a row other than the focused one wins: a click (or VoiceOver) may not move focus.
+    const tap = renderMode !== 'leave' && free && lastTap && performance.now() - lastTap.at < TAP_MS ? lastTap.key : null;
+    if (!key && active === document.body && resuming && saved) return { key: saved, quiet: true };
+    if (tap && key?.id !== tap.id) return { key: tap, quiet: true };
+    return { key, quiet: quietly };
   }
 
   // Focus the node and say whether it took: a button in a closed details, a hidden .actions, or a
