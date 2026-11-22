@@ -1,0 +1,149 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Badge forecast and the Badge block</title>
+<pre id="out">running…</pre>
+<iframe id="app" style="width:400px;height:700px"></iframe>
+<script type="module">
+// 1. After a store change the badge feature rewrites the 31-day forecast in the "badge-counts" cache and
+//    sets the Home Screen badge. With no PUSH_URL yet, the Badge block on More stays hidden.
+// 2. The Badge block's states (off, on, denied, error, off again) with a stubbed pushManager and Worker.
+import { createIdbAdapter } from '../../src/js/data/db.js';
+import { todayLocal } from '../../src/js/core/date.js';
+import { setupBlock } from '../../src/js/features/badge.js';
+
+const failures = [];
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+async function until(fn, what, ms = 8000) {
+  for (let t = 0; t < ms; t += 50) {
+    const v = await fn();
+    if (v) return v;
+    await wait(50);
+  }
+  failures.push(`timed out waiting for ${what}`);
+  return null;
+}
+const check = (ok, what) => { if (!ok) failures.push(what); };
+
+async function run() {
+  await new Promise((res) => { const r = indexedDB.deleteDatabase('planner'); r.onsuccess = r.onerror = r.onblocked = res; });
+  await caches.delete('badge-counts');
+  localStorage.removeItem('planner:finished');
+
+  const due = todayLocal();
+  const stamp = new Date().toISOString();
+  const adapter = createIdbAdapter();
+  const todo = (id, title) => ({ store: 'todos', type: 'put', value: {
+    id, title, due, part: 'morning', groupId: null, priority: 0,
+    recur: null, lastDone: null, createdAt: stamp, updatedAt: stamp,
+  } });
+  await adapter.commit([todo('a', 'Buy milk'), todo('b', 'Call mom')]);
+
+  const frame = document.getElementById('app');
+  frame.src = '../../src/index.html';
+  await new Promise((r) => { frame.onload = r; });
+  const win = frame.contentWindow;
+  win.addEventListener('error', (e) => failures.push(`page error: ${e.message}`));
+  win.addEventListener('unhandledrejection', (e) => failures.push(`unhandled rejection: ${e.reason}`));
+  const doc = frame.contentDocument;
+  const $ = (id) => doc.getElementById(id);
+
+  // 1. The forecast follows the store.
+  // The cache key is resolved against the page, which is src/index.html here, so ask for the same URL.
+  const cache = await caches.open('badge-counts');
+  const key = new URL('../../src/badge-counts.json', location.href).href;
+  const read = async () => { const r = await cache.match(key); return r ? r.json() : null; };
+  const first = await until(read, 'the first forecast');
+  if (!first) return;
+  check(Object.keys(first).length === 31, `forecast has ${Object.keys(first).length} days`);
+  check(first[due] === 2, `today's count is ${first[due]}, not 2`);
+
+  const calls = [];
+  Object.defineProperty(win.navigator, 'setAppBadge', { configurable: true, value: async (n) => { calls.push(n); } });
+  Object.defineProperty(win.navigator, 'clearAppBadge', { configurable: true, value: async () => { calls.push(0); } });
+  await wait(200); // let the app finish loading
+  $('addBtn').click();
+  if (!await until(() => $('sheet').open, 'the sheet after +')) return;
+  $('todoText').textContent = 'Stretch';
+  $('submitBtn').click();
+  const second = await until(async () => { const f = await read(); return f?.[due] === 3 ? f : null; }, 'the forecast to count 3');
+  check(second !== null, 'the forecast did not follow the new todo');
+  await until(() => calls.includes(3), 'the page badge to be set to 3');
+  check($('badgeBlock').hidden, 'the Badge block shows before the Worker is set up');
+
+  // 2. The Badge block with a stubbed push manager.
+  let perm = 'default';
+  let sub = null;
+  let subscribeImpl = async () => makeSub();
+  const sent = [];
+  let sendImpl = async () => {};
+  const makeSub = () => {
+    const s = {
+      endpoint: 'https://web.push.apple.com/test',
+      toJSON: () => ({ endpoint: s.endpoint, keys: { p256dh: 'a', auth: 'b' } }),
+      unsubscribe: async () => { sub = null; return true; },
+    };
+    return s;
+  };
+  const reg = { pushManager: {
+    getSubscription: async () => sub,
+    subscribe: async (opts) => {
+      check(opts.userVisibleOnly === true && opts.applicationServerKey instanceof Uint8Array, 'subscribe got the wrong options');
+      sub = await subscribeImpl();
+      perm = 'granted';
+      return sub;
+    },
+  } };
+  setupBlock({
+    doc,
+    getReg: async () => reg,
+    url: 'https://worker.test',
+    key: 'AAAA',
+    permission: () => perm,
+    send: async (url, path, body) => { sent.push([url, path, body]); return sendImpl(); },
+  });
+  const status = () => $('badgeStatus').textContent;
+  const btn = $('badgeBtn');
+
+  if (!await until(() => !$('badgeBlock').hidden && status() === "Show today's todo count on the app icon.", 'the off state')) return;
+  check(btn.textContent === 'Turn on', `off button says "${btn.textContent}"`);
+
+  btn.click();
+  if (!await until(() => status() === 'On. A notification comes each morning at 7.', 'the on state')) return;
+  check(btn.textContent === 'Turn off', `on button says "${btn.textContent}"`);
+  const [url, path, body] = sent[0] ?? [];
+  check(url === 'https://worker.test' && path === '/subscribe', `first call was ${path}`);
+  check(body?.hour === 7 && body?.tz === Intl.DateTimeFormat().resolvedOptions().timeZone, `subscribe body ${JSON.stringify(body)}`);
+  check(body?.subscription?.endpoint === 'https://web.push.apple.com/test', 'subscribe body lacks the subscription');
+
+  btn.click();
+  if (!await until(() => status() === "Show today's todo count on the app icon.", 'the off state again')) return;
+  check(sent.at(-1)?.[1] === '/unsubscribe' && sent.at(-1)?.[2]?.endpoint === 'https://web.push.apple.com/test', 'turning off did not post /unsubscribe');
+  check(sub === null, 'turning off left the subscription');
+
+  // Denied: the permission prompt was refused.
+  perm = 'default';
+  subscribeImpl = async () => { perm = 'denied'; throw new DOMException('no', 'NotAllowedError'); };
+  btn.click();
+  if (!await until(() => status().startsWith('Notifications are off for Planner.'), 'the denied state')) return;
+  check($('badgeError').hidden, 'denied also showed the error line');
+  check(btn.textContent === 'Turn on' && !btn.disabled, 'denied button is not ready to retry');
+
+  // Error: subscribed, but the Worker call failed. The local subscription stays.
+  perm = 'default';
+  subscribeImpl = async () => makeSub();
+  sendImpl = async () => { throw new Error('offline'); };
+  btn.click();
+  await until(() => !$('badgeError').hidden, 'the error line');
+  check($('badgeError').textContent === "Couldn't turn on the badge. Try again.", `error says "${$('badgeError').textContent}"`);
+  check(sub !== null, 'the subscription was dropped after a Worker failure');
+}
+
+try {
+  await run();
+} catch (err) {
+  failures.push(`threw: ${err?.name} ${err?.message}`);
+}
+window.__result = failures.length ? `FAIL\n${failures.join('\n')}` : 'PASS';
+document.getElementById('out').textContent = window.__result;
+fetch('/__result', { method: 'POST', body: window.__result }).catch(() => {});
+</script>
