@@ -14,8 +14,8 @@
     { "binding": "SUBS", "id": "REPLACE-WITH-NAMESPACE-ID" }
   ],
   "vars": {
-    // The owner picks a real contact address (Apple may use it to reach you about a problem).
-    "VAPID_SUBJECT": "mailto:CHANGE-ME",
+    // Contact for the push service: a URL or mailto: (Apple accepts either). The app's own address keeps email out of it.
+    "VAPID_SUBJECT": "https://samfeldstein.github.io/planner/",
     // The public key `make-keys.mjs` prints; the same value goes in src/js/features/badge.js.
     "VAPID_PUBLIC": ""
   }

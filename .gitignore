@@ -3,3 +3,8 @@ node_modules/
 assistant-export.json
 planner-import.json
 .claude/
+
+# Push Worker: test token and deploy output, never committed
+push/.test-token
+push/*.log
+push/vapid-public.txt
