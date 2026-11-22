@@ -160,7 +160,8 @@ function fakeDoc() {
     const handlers = {};
     return { hidden: true, textContent: '', dataset: {}, disabled: false, handlers, addEventListener(type, fn) { handlers[type] = fn; } };
   };
-  return { visibilityState: 'visible', addEventListener() {}, getElementById: (id) => { if (!els.has(id)) els.set(id, el()); return els.get(id); } };
+  const docHandlers = {};
+  return { visibilityState: 'visible', docHandlers, addEventListener(type, fn) { docHandlers[type] = fn; }, getElementById: (id) => { if (!els.has(id)) els.set(id, el()); return els.get(id); } };
 }
 
 // A Cache Storage stand-in: names to URL-to-text maps.
@@ -292,4 +293,31 @@ test('a failed repost warns in the console', async () => {
     await new Promise((r) => setTimeout(r, 10));
   } finally { console.warn = warn; }
   assert.equal(warns.length, 1);
+});
+
+test('coming back to the app re-checks the silent-push warning', async () => {
+  const doc = fakeDoc();
+  const cacheStorage = withCache([[URL_ON, ago(1)]]);
+  let nowMs = NOW;
+  const reg = { pushManager: { getSubscription: async () => ({ toJSON: () => ({}) }) } };
+  setupBlock({ doc, getReg: async () => reg, url: 'https://w.test', key: 'AAAA', permission: () => 'granted', send: async () => {}, cacheStorage, now: () => nowMs });
+  await new Promise((r) => setImmediate(r));
+  const line = doc.getElementById('badgeSilent');
+  assert.equal(line.hidden, true);
+  nowMs = NOW + 30 * 36e5; // the app sat in the background
+  doc.docHandlers.visibilitychange();
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(line.hidden, false, 'the warning shows on resume');
+  cacheStorage.store.get('badge-counts').set(URL_PUSH, JSON.stringify(new Date(nowMs - 3600e3).toISOString()));
+  doc.docHandlers.visibilitychange();
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(line.hidden, true, 'a saved push time clears it on the next resume');
+});
+
+test("sw.js and badge.js agree on the last-push file and the cache name", () => {
+  const badge = readFileSync(new URL('../src/js/features/badge.js', import.meta.url), 'utf8');
+  const file = badge.match(/const LAST_PUSH = '\.\/([^']+)'/)[1];
+  const cache = badge.match(/const CACHE = '([^']+)'/)[1];
+  assert.ok(swSource.includes(`abs('${file}')`), `sw.js does not write ${file}`);
+  assert.ok(swSource.includes(`caches.open('${cache}')`), `sw.js does not open the ${cache} cache`);
 });

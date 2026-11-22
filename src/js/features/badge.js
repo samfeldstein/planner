@@ -190,7 +190,7 @@ export function setupBlock({
     else turnOn();
   });
   doc.getElementById('moreBtn').addEventListener('click', () => { showError(''); render(); });
-  doc.addEventListener('visibilitychange', () => { if (doc.visibilityState === 'visible') repost(); });
+  doc.addEventListener('visibilitychange', () => { if (doc.visibilityState === 'visible') { render(); repost(); } });
 
   block.hidden = false;
   render();
