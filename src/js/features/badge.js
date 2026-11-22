@@ -37,14 +37,17 @@ export function writeForecast(counts, cacheStorage = globalThis.caches) {
   });
 }
 
-function startPageBadge({ store, clock }) {
+// The forecast is written always. The icon badge is set only while a push subscription exists (isOn),
+// and cleared otherwise, so turning the badge off really turns it off.
+export function startPageBadge({ store, clock, isOn, nav = navigator, cacheStorage = globalThis.caches }) {
   let queued = false;
-  const run = () => {
+  const run = async () => {
     queued = false;
     const todos = store.todos();
     const today = clock.today();
-    setBadge(dueCount(todos, today));
-    writeForecast(forecast(todos, today));
+    writeForecast(forecast(todos, today), cacheStorage);
+    const on = await Promise.resolve().then(isOn).catch(() => false);
+    await setBadge(on ? dueCount(todos, today) : 0, nav);
   };
   // Coalesced: one write per task turn, however many changes arrive.
   const update = () => {
@@ -99,10 +102,12 @@ export function setupBlock({
     btn.disabled = false;
   }
 
+  // lastPost moves only after the Worker accepted it, so a failed post is retried on the next return.
   async function post(sub) {
+    const tz = zone();
+    await send(url, '/subscribe', { subscription: sub.toJSON(), tz, hour: HOUR });
     lastPost = Date.now();
-    lastZone = zone();
-    await send(url, '/subscribe', { subscription: sub.toJSON(), tz: lastZone, hour: HOUR });
+    lastZone = tz;
   }
 
   // On launch and on each return to the app: tell the Worker we're still here (it skips a no-change write).
@@ -120,7 +125,8 @@ export function setupBlock({
     const pending = reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(key) });
     try {
       const sub = await pending;
-      await post(sub);
+      // A subscription the Worker doesn't know about would never get a push: drop it and start over.
+      try { await post(sub); } catch (err) { await quietly(() => sub.unsubscribe()); throw err; }
       afterChange();
     } catch {
       if (permission() !== 'denied') showError(TEXT.error);
@@ -138,7 +144,7 @@ export function setupBlock({
         await sub.unsubscribe();
         await quietly(() => send(url, '/unsubscribe', { endpoint }));
       }
-      await setBadge(0);
+      afterChange();
     } catch {
       showError("Couldn't turn off the badge. Try again.");
     }
@@ -160,11 +166,14 @@ export function setupBlock({
 }
 
 export function init({ store, clock }) {
-  const update = startPageBadge({ store, clock });
   const ready = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-  if (!PUSH_URL || !VAPID_PUBLIC || !ready) return;
+  const configured = Boolean(PUSH_URL && VAPID_PUBLIC && ready);
+  const registration = configured ? navigator.serviceWorker.ready : null;
+  const isOn = async () => Boolean(registration && await (await registration).pushManager.getSubscription());
+  const update = startPageBadge({ store, clock, isOn });
+  if (!configured) return;
   setupBlock({
-    getReg: () => navigator.serviceWorker.ready,
+    getReg: () => registration,
     afterChange: update,
   });
 }

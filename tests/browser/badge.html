@@ -67,7 +67,9 @@ async function run() {
   $('submitBtn').click();
   const second = await until(async () => { const f = await read(); return f?.[due] === 3 ? f : null; }, 'the forecast to count 3');
   check(second !== null, 'the forecast did not follow the new todo');
-  await until(() => calls.includes(3), 'the page badge to be set to 3');
+  // No push subscription in this page, so the icon badge is cleared, never set (it is tied to Turn on).
+  await until(() => calls.includes(0), 'the page badge to be cleared');
+  check(!calls.some((n) => n > 0), `the badge was set with no push subscription: ${calls}`);
   check($('badgeBlock').hidden, 'the Badge block shows before the Worker is set up');
 
   // 2. The Badge block with a stubbed push manager.
@@ -128,14 +130,17 @@ async function run() {
   check($('badgeError').hidden, 'denied also showed the error line');
   check(btn.textContent === 'Turn on' && !btn.disabled, 'denied button is not ready to retry');
 
-  // Error: subscribed, but the Worker call failed. The local subscription stays.
-  perm = 'default';
+  // Error: permission granted and subscribed, but the Worker call failed. The local subscription is
+  // dropped so the screen shows Turn on again, with the error.
+  perm = 'granted';
   subscribeImpl = async () => makeSub();
   sendImpl = async () => { throw new Error('offline'); };
   btn.click();
   await until(() => !$('badgeError').hidden, 'the error line');
   check($('badgeError').textContent === "Couldn't turn on the badge. Try again.", `error says "${$('badgeError').textContent}"`);
-  check(sub !== null, 'the subscription was dropped after a Worker failure');
+  await until(() => btn.textContent === 'Turn on' && !btn.disabled, 'Turn on to come back after the Worker failure');
+  check(sub === null, 'the subscription was kept after a Worker failure');
+  check(status() === "Show today's todo count on the app icon.", `status says "${status()}" after a Worker failure`);
 }
 
 try {

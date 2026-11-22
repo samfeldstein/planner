@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { base64UrlToBytes, dueCount, forecast, notificationText } from '../src/js/core/badge.js';
 import { todayLocal } from '../src/js/core/date.js';
+import { startPageBadge } from '../src/js/features/badge.js';
 
 const base = { part: 'morning', groupId: null, priority: 0, lastDone: null };
 const one = (id, due) => ({ ...base, id, title: id, due, recur: null });
@@ -106,4 +107,25 @@ test('a push shows one notification with the forecast count, even when the badge
 test('a push with no forecast for today shows the unknown text', async () => {
   assert.deepEqual(await pushWith(null), [['Planner', 'Open Planner to see today', 'daily']]);
   assert.deepEqual(await pushWith({ '1999-01-01': 2 }), [['Planner', 'Open Planner to see today', 'daily']]);
+});
+
+test('the page badge is set only while push is on, and cleared when it is off', async () => {
+  const day = todayLocal();
+  const todos = [one('a', day), one('b', day)];
+  const handlers = [];
+  const store = { todos: () => todos, on: (fn) => handlers.push(fn) };
+  const clock = { today: () => day, on: () => {} };
+  const calls = [];
+  const nav = { setAppBadge: async (n) => { calls.push(n); }, clearAppBadge: async () => { calls.push(0); } };
+  let on = true;
+  startPageBadge({ store, clock, isOn: async () => on, nav, cacheStorage: null });
+  await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(calls, [2]);
+  on = false; // Turn off
+  handlers[0]({ type: 'add' });
+  await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(calls, [2, 0]);
+  handlers[0]({ type: 'backup' }); // a backup changes nothing
+  await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(calls, [2, 0]);
 });
