@@ -118,7 +118,7 @@ async function run() {
   const fire = (kind) => {
     if (kind === 'pagehide') win.dispatchEvent(new win.PageTransitionEvent('pagehide'));
     else if (kind === 'hidden') hide('hidden');
-    else if (kind === 'visible') { delete doc.visibilityState; doc.dispatchEvent(new win.Event('visibilitychange')); }
+    else if (kind === 'visible') { hide('visible'); delete doc.visibilityState; } // stubbed, so a hidden pane still works
   };
   function hide(state) {
     Object.defineProperty(doc, 'visibilityState', { configurable: true, get: () => state });
@@ -204,6 +204,51 @@ async function run() {
   const undone2 = await undoFromCompleted('focus (b) with another row left');
   check(q('.completed'), 'the other Completed row went too');
   check(undone2 && doc.activeElement === undone2.querySelector('.task'), 'focus (b), not the last row: not on the task back in the list');
+  // Leaving with focus on a row inside an open Completed list: focus goes to its summary.
+  await openCompleted();
+  const otherDone = q(`.completed .row[data-id="${other}"] .task`);
+  otherDone.focus();
+  check(doc.activeElement === otherDone, 'could not focus the Completed row');
+  fire('hidden');
+  check(doc.activeElement === q('.completed summary'), 'leaving with focus in an open Completed list: not on the summary');
+  fire('visible');
+
+  // Undo with nothing focused: the tap stands in for focus.
+  await openCompleted();
+  doc.activeElement.blur();
+  q(`.completed .row[data-id="${other}"] .task`).click();
+  const back2 = await until(() => q(`.today .row:not(.done)[data-id="${other}"]`), 'the second todo back (nothing focused)');
+  check(back2 && doc.activeElement === back2.querySelector('.task'), 'undo with nothing focused: focus is not on the task back in the list');
+
+  // A tap on another row wins over the focused one (a click may not move focus).
+  q(`${rowSel('.today', ':not(.done)')} .task`).focus();
+  q(`.today .row:not(.done)[data-id="${other}"] .task`).click();
+  check(doc.activeElement === q(`.today .row.done[data-id="${other}"] .task`), 'tap on another row: focus stayed on the focused row');
+  await until(async () => !(await adapter.load()).todos.some((x) => x.id === other), 'the second todo to check off');
+
+  // Leaving or coming back must not scroll the list: focus moves without scrolling.
+  const scrollerOf = (node) => {
+    for (let n = node; n && n !== doc.documentElement; n = n.parentElement) {
+      const o = win.getComputedStyle(n).overflowY;
+      if ((o === 'auto' || o === 'scroll') && n.scrollHeight > n.clientHeight) return n;
+    }
+    return doc.scrollingElement;
+  };
+  frame.style.height = '100px';
+  await wait(100);
+  const scroller = scrollerOf(doc.getElementById('list'));
+  scroller.scrollTop = Math.floor((scroller.scrollHeight - scroller.clientHeight) / 2);
+  const top = scroller.scrollTop;
+  check(top > 0, 'could not scroll the list');
+  q(`.today .row.done[data-id="${other}"] .task`).focus({ preventScroll: true });
+  fire('hidden');
+  check(q(`.completed .row[data-id="${other}"]`), 'scroll case: the row was not put away');
+  check(scroller.scrollTop === top, `leaving scrolled the list: ${top} to ${scroller.scrollTop}`);
+  fire('visible');
+  check(scroller.scrollTop === top, `coming back scrolled the list: ${top} to ${scroller.scrollTop}`);
+  frame.style.height = '700px';
+  await wait(100);
+
   // Undo the other one too, to start the next case with only the first todo.
   await openCompleted();
   q(`.completed .row[data-id="${other}"] .task`).click();
