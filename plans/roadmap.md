@@ -1,8 +1,10 @@
 # Roadmap
 
-## Next (2026-11-15; branch `claude/elated-snyder-fa1df8` merged, released as c4bde4b, and pushed, checked 2026-11-16)
+## Next (2026-11-21; flat list built on `claude/flat-list`, not merged or released)
 
-- Waiting on Sam: the phone check below.
+- Waiting on Sam: the OK to merge `claude/flat-list` and release; then the phone check below.
+- Idea from cold review 2, not built (new copy, Sam's call): when every todo due today is checked off and put away, the list shows nothing above Completed; a line like "All done for today" could go there.
+- `npm run test:browser`'s new-todo page times out at "the sheet after leaving the field" in the hidden Claude browser pane, on `main` too (probably no blur in a background page; unchecked). The other browser pages pass there.
 - Claude next, one batch (both touch `today-view.js` and `tests/browser/checkoff.html`): the two review follow-ups at the end of To do.
 - Limits hit: Chrome browser tests can't start in the sandbox (run `npm run test:browser` outside it); the tracker isn't readable from a worktree session. `.claude/launch.json` is gitignored and its paths still point at the old `~/projects` folder in the main checkout (fixed only in this worktree).
 
