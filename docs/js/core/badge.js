@@ -17,12 +17,13 @@ export function forecast(todos, today, days = 31) {
   return counts;
 }
 
-// n may be null for "unknown" (no forecast for today).
+// n may be null for "unknown" (no forecast for today). The line is the title, with no body:
+// iOS already names the app above it, so a "Planner" title read as "Planner, from Planner".
 export function notificationText(n) {
-  const body = n === null || n === undefined ? 'Open Planner to see today'
+  const title = n === null || n === undefined ? 'Open Planner to see today'
     : n === 0 ? 'Nothing due today'
     : `${n} due today`;
-  return { title: 'Planner', body };
+  return { title };
 }
 
 // A VAPID public key arrives as base64url; subscribe() wants bytes.
