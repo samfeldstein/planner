@@ -2,7 +2,7 @@
 
 ## Next (2026-11-21, after the app badge)
 
-**Waiting on Sam:** releasing the notification title fix and the bigger headings (committed, not released).
+**Waiting on Sam:** nothing. The notification title fix and the bigger headings are released (c40bdb8517).
 
 **Claude next, one batch** (all touch `today-view.js` and `tests/browser/checkoff.html`; follow the `build-loop` skill):
 1. Focus after a put-away (end of To do).
