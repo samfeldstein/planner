@@ -52,7 +52,7 @@ Dependency-free Worker, `push/index.js` (+ pure `push/lib.js`) and `push/wrangle
 ### 5. Turning it on (More screen)
 
 New "Badge" block in the More dialog:
-- Off: "Show how many todos are due on the app icon, with a notification each morning." Button "Turn on".
+- Off: "Show today's todo count on the app icon." Button "Turn on".
 - Tap: `reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey })` is the handler's first await (the registration is kept from init, so nothing is awaited before it; it asks for permission itself), then `POST /subscribe` with `tz = Intl.DateTimeFormat().resolvedOptions().timeZone`, `hour = 7`, then update the badge.
 - On: "On. A notification comes each morning at 7." Button "Turn off": read the endpoint, unsubscribe, `POST /unsubscribe`, clear the badge.
 - Denied: "Notifications are off for Planner. Turn them on in Settings, then try again."
