@@ -1,8 +1,8 @@
 # Roadmap
 
-## Next (2026-11-21, after the flat-list release)
+## Next (2026-11-21, after the app badge)
 
-**Waiting on Sam:** the app badge's merge, release, and one-time phone test (end of To do).
+**Waiting on Sam:** releasing the notification title fix and the bigger headings (committed, not released).
 
 **Claude next, one batch** (all touch `today-view.js` and `tests/browser/checkoff.html`; follow the `build-loop` skill):
 1. Focus after a put-away (end of To do).
@@ -38,4 +38,4 @@
 - [ ] Focus after a put-away (low impact, from review): if focus is on a checked-off row when the app is left, or the last Completed row is undone, keyboard and VoiceOver focus falls to the page.
 - [ ] Browser test gaps (from review): cover the `visibilitychange` path and the launch put-away, not only `pagehide`.
 - [ ] "All done for today" line (Sam, 2026-11-21): when every todo due today is checked off and put away, the list shows nothing above Completed; show the line "All done for today" there.
-- [ ] App badge (Sam, 2026-11-21): the Home Screen icon shows how many todos are due today, refreshed by a 7 a.m. push from the `planner-push` Worker (https://planner-push.samfeldstein.workers.dev, deployed 2026-11-21), plus a morning notification; turned on and off under More, Badge. Design and limits: `plans/app-badge.md`; deploy notes: `push/README.md`. Built on `claude/app-badge` (3 plan reviews, 5 cold reviews, tests and browser tests pass). Left: Sam's OK to merge, a release, then the phone test (Turn on, then the `/test` curl in `push/README.md`). Only that test proves Apple delivers the empty push.
+- [x] App badge (Sam, 2026-11-21): the Home Screen icon shows how many todos are due today, refreshed by a 7 a.m. push from the `planner-push` Worker (https://planner-push.samfeldstein.workers.dev, deployed 2026-11-21), plus a morning notification; turned on and off under More, Badge. Design and limits: `plans/app-badge.md`; deploy notes: `push/README.md`. Built on `claude/app-badge` (3 plan reviews, 5 cold reviews, tests and browser tests pass). Merged and released 8a44585362; phone test passed (badge and notification both showed, 2026-11-21). Follow-ups: the notification line is now the title (iOS already names the app); More headings and Completed and Upcoming are 1.5rem, with a hairline above each More section.
