@@ -1,0 +1,20 @@
+// The planner push Worker. Not part of the Pages build (the build only reads src/).
+// Secrets, set with `wrangler secret put` (see README.md): VAPID_PRIVATE, TEST_TOKEN.
+{
+  "name": "planner-push",
+  "main": "index.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  // Hourly, UTC. The Worker sends only to phones whose local hour is their chosen hour.
+  "triggers": { "crons": ["0 * * * *"] },
+  "kv_namespaces": [
+    // Fill `id` with the value `wrangler kv namespace create SUBS` prints.
+    { "binding": "SUBS", "id": "REPLACE-WITH-NAMESPACE-ID" }
+  ],
+  "vars": {
+    // The owner picks a real contact address (Apple may use it to reach you about a problem).
+    "VAPID_SUBJECT": "mailto:CHANGE-ME",
+    // The public key `make-keys.mjs` prints; the same value goes in src/js/features/badge.js.
+    "VAPID_PUBLIC": ""
+  }
+}
