@@ -24,6 +24,7 @@ async function until(fn, what, ms = 8000) {
 async function run() {
   await new Promise((res) => { const r = indexedDB.deleteDatabase('planner'); r.onsuccess = r.onerror = r.onblocked = res; });
   localStorage.removeItem('planner:finished');
+  localStorage.removeItem('planner:upcomingOpen');
 
   const [y, m] = todayLocal().split('-').map(Number);
   const pad = (n) => String(n).padStart(2, '0');
@@ -109,6 +110,132 @@ async function run() {
   if (doc.querySelector('.completed')) failures.push('Completed still shown with nothing in it');
   const restored = (await adapter.load()).todos.find((x) => x.id === id);
   if (restored?.due !== due) failures.push(`undo from Completed did not move due back: ${restored?.due}`);
+
+  // Hiding the page (visibilitychange), focus after a put-away, the tap fallback, "All done for
+  // today.", and the launch put-away. The todo is in the list again, unstruck.
+  const win = frame.contentWindow;
+  const check = (ok, what) => { if (!ok) failures.push(what); };
+  const fire = (kind) => {
+    if (kind === 'pagehide') win.dispatchEvent(new win.PageTransitionEvent('pagehide'));
+    else if (kind === 'hidden') hide('hidden');
+    else if (kind === 'visible') { delete doc.visibilityState; doc.dispatchEvent(new win.Event('visibilitychange')); }
+  };
+  function hide(state) {
+    Object.defineProperty(doc, 'visibilityState', { configurable: true, get: () => state });
+    doc.dispatchEvent(new win.Event('visibilitychange'));
+  }
+  const q = (sel) => doc.querySelector(sel);
+  const rowSel = (scope, extra = '') => `${scope} .row${extra}[data-id="${id}"]`;
+  const emptyLine = () => q('.today .empty')?.textContent ?? null;
+  const dueIs = (value) => async () => (await adapter.load()).todos.find((x) => x.id === id)?.due === value;
+  // Checks the todo off by tapping its row in the list; waits for the save and the struck row.
+  async function checkOff(what) {
+    q(`${rowSel('.today', ':not(.done)')} .task`).click();
+    await until(dueIs(next), `${what}: the check-off to save`);
+    return until(() => q(rowSel('.today', '.done')), `${what}: the struck row`);
+  }
+  async function openCompleted() {
+    q('.completed details').open = true;
+    await wait(100); // the toggle event is async
+  }
+  async function undoFromCompleted(what) {
+    await openCompleted();
+    const btn = q(`${rowSel('.completed')} .task`);
+    btn.focus();
+    btn.click();
+    await until(dueIs(due), `${what}: the undo to save`);
+    return until(() => q(rowSel('.today', ':not(.done)')), `${what}: the row back in the list`);
+  }
+
+  q('.upcoming details').open = false; // each case below opens it when it needs it
+  await wait(100);
+
+  // visibilitychange puts the row away like pagehide, and coming back keeps focus on Completed.
+  let struckRow = await checkOff('visibilitychange');
+  if (!struckRow) return;
+  check(emptyLine() === null, 'an empty line shows while a struck row is in the list');
+  struckRow.querySelector('.task').focus();
+  check(doc.activeElement === struckRow.querySelector('.task'), 'could not focus the struck row');
+  fire('hidden');
+  check(q(rowSel('.completed', '.done')), 'visibilitychange (hidden) did not put the row away');
+  check(doc.activeElement === q('.completed summary'), 'focus (a): not on the Completed summary after leaving');
+  check(emptyLine() === 'All done for today.', `all done line: ${emptyLine()}`);
+  fire('pagehide');
+  fire('visible');
+  check(doc.activeElement === q('.completed summary'), 'focus (a2): lost after pagehide and coming back');
+  // iOS may clear focus while backgrounded: the key saved on leaving brings it back.
+  fire('hidden');
+  doc.activeElement.blur();
+  check(doc.activeElement === doc.body, 'blur did not clear focus');
+  fire('visible');
+  check(doc.activeElement === q('.completed summary'), 'focus lost across a hide with focus cleared');
+
+  // (b) Undo the last Completed row: focus lands on its task back in the list.
+  const undone1 = await undoFromCompleted('focus (b)');
+  check(undone1 && doc.activeElement === undone1.querySelector('.task'), 'focus (b): not on the task back in the list');
+  check(!q('.completed'), 'Completed still shown after undoing its last row');
+  check(emptyLine() === null, 'All done line still shown after the undo');
+
+  // Upcoming open, with the todo's next instance in it: focus must not land there.
+  await checkOff('upcoming open');
+  q('.upcoming details').open = true;
+  await wait(100);
+  q(rowSel('.today', '.done') + ' .task').focus();
+  fire('hidden');
+  check(q(rowSel('.completed', '.done')), 'upcoming open: the row was not put away');
+  check(doc.activeElement === q('.completed summary'), 'upcoming open: focus is not on the Completed summary');
+  check(!doc.activeElement.closest('.upcoming'), 'upcoming open: focus landed in Upcoming');
+  fire('visible');
+  q('.upcoming details').open = false;
+  await wait(100);
+
+  // (b) again, with a second Completed row left behind: the undone row's task has focus.
+  // The second todo is added through the app's own sheet, so the open page knows about it.
+  doc.dispatchEvent(new win.CustomEvent('planner:new', { detail: { title: 'Water plants' } }));
+  await until(() => doc.getElementById('sheet').open, 'the new todo sheet');
+  doc.getElementById('sheetDone').click();
+  const other = await until(async () => (await adapter.load()).todos.find((x) => x.title === 'Water plants')?.id, 'the second todo to save');
+  if (!other) return;
+  await until(() => q(`.today .row[data-id="${other}"]`), 'the second todo');
+  q(`.today .row[data-id="${other}"] .task`).click();
+  await until(() => q(`.today .row.done[data-id="${other}"]`), 'the second todo struck');
+  fire('hidden');
+  fire('visible');
+  const undone2 = await undoFromCompleted('focus (b) with another row left');
+  check(q('.completed'), 'the other Completed row went too');
+  check(undone2 && doc.activeElement === undone2.querySelector('.task'), 'focus (b), not the last row: not on the task back in the list');
+  // Undo the other one too, to start the next case with only the first todo.
+  await openCompleted();
+  q(`.completed .row[data-id="${other}"] .task`).click();
+  await until(() => q(`.today .row:not(.done)[data-id="${other}"]`), 'the second todo back');
+  await adapter.commit([{ store: 'todos', type: 'delete', key: other }]); // the open page doesn't need to know
+
+  // Tap fallback: no focus before the tap (as on iOS Safari); focus ends on the struck row.
+  doc.activeElement.blur();
+  check(doc.activeElement === doc.body, 'tap fallback: blur did not clear focus');
+  q(`${rowSel('.today', ':not(.done)')} .task`).click();
+  check(doc.activeElement === q(`${rowSel('.today', '.done')} .task`), 'tap fallback: focus is not on the struck row');
+  await until(dueIs(next), 'tap fallback: the check-off to save');
+
+  // Launch put-away: the record from before the check-off, with nothing put away, and the todo
+  // already checked off in the database. The old page goes to about:blank first so its pagehide
+  // can't overwrite the record.
+  const record = JSON.parse(localStorage.getItem('planner:finished'));
+  frame.src = 'about:blank';
+  await new Promise((r) => { frame.onload = r; });
+  localStorage.setItem('planner:finished', JSON.stringify({ ...record, away: [] }));
+  frame.src = '../../src/index.html';
+  await new Promise((r) => { frame.onload = r; });
+  const win2 = frame.contentWindow;
+  win2.addEventListener('error', (e) => failures.push(`page error: ${e.message}`));
+  win2.addEventListener('unhandledrejection', (e) => failures.push(`unhandled rejection: ${e.reason}`));
+  const logError2 = win2.console.error.bind(win2.console);
+  win2.console.error = (...args) => { failures.push(`console.error: ${args.join(' ')}`); logError2(...args); };
+  const doc2 = frame.contentDocument;
+  const launched = await until(() => doc2.querySelector(`.completed .row.done[data-id="${id}"]`), 'the row in Completed after launch');
+  check(launched, 'launch did not put the row away');
+  check(doc2.querySelector('.today .empty')?.textContent === 'All done for today.', 'all done line missing after launch');
+  localStorage.removeItem('planner:upcomingOpen');
 }
 
 try {
