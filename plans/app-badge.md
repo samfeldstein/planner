@@ -61,7 +61,7 @@ New "Badge" block in the More dialog:
 - With a subscription, `POST /subscribe` again at launch and on each return to the app (`visibilitychange` to visible) when 12 hours have passed since the last post or the time zone changed (in-memory timestamp; the app is usually resumed, not relaunched). The Worker skips the write if nothing changed.
 - The Worker URL is a constant in `badge.js`, set after the first deploy. The page's CSP (`src/index.html`, `default-src 'self'`) gains `connect-src 'self' <Worker origin>`; a build test checks the CSP names the URL in `badge.js`.
 
-Copy above, the notification text ("Planner" / "4 due today", "1 due today", "Nothing due today", "Open Planner to see today"), and the 7 am hour are drafts for Sam.
+Copy above, the notification text ("Planner" / "4 due today", "1 due today", "Nothing due today", "Open Planner to see today"), and the 7 am hour: approved by Sam, 2026-11-21.
 
 ### 6. Docs
 
