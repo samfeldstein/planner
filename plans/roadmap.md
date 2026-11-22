@@ -1,8 +1,8 @@
 # Roadmap
 
-## Next (2026-11-21; flat list built on `claude/flat-list`, not merged or released)
+## Next (2026-11-21; flat list merged into main and built as release a05d627451, fa8d07a; push pending)
 
-- Waiting on Sam: the OK to merge `claude/flat-list` and release; then the phone check below.
+- Waiting on Sam: push main (that publishes the release), then the phone check below.
 - Idea from cold review 2, not built (new copy, Sam's call): when every todo due today is checked off and put away, the list shows nothing above Completed; a line like "All done for today" could go there.
 - `npm run test:browser`'s new-todo page times out at "the sheet after leaving the field" in the hidden Claude browser pane, on `main` too (probably no blur in a background page; unchecked). The other browser pages pass there.
 - Claude next, one batch (both touch `today-view.js` and `tests/browser/checkoff.html`): the two review follow-ups at the end of To do.
@@ -37,7 +37,7 @@ Tick each on the phone; when one fails, add it under To do.
 
 ## To do
 
-- [x] Flat list (tracker `planner-flat-list`, 2026-11-21): the Morning, Afternoon, and Night sections are gone, so todos due today are one list (priority, groups, ungrouped); the edit sheet's part picker is gone; Upcoming and Completed headings went from 2rem to 1.25rem. Each todo still stores its part (no migration), so the sections could come back. Part names are allowed as group names again. On `claude/flat-list`; phone check pending.
+- [x] Flat list (tracker `planner-flat-list`, 2026-11-21): the Morning, Afternoon, and Night sections are gone, so todos due today are one list (priority, groups, ungrouped); the edit sheet's part picker is gone; Upcoming and Completed headings went from 2rem to 1.25rem. Each todo still stores its part (no migration), so the sections could come back. Part names are allowed as group names again; old Morning, Afternoon, and Night groups stay groups on upgrade. Released a05d627451 (fa8d07a); phone check pending.
 - [x] Weekday and weekend repeat labels: the row under the title says "Weekdays" and "Weekends" instead of "Every weekday" and "Every weekend".
 - [x] Keyboard covers the new group name field: on the phone, editing a todo, choosing a new group, and adding one opens the keyboard with the name field under it, so you can't see where you're typing. Keep the field in view above the keyboard. Built in src; phone check pending.
 - [x] Save ignores a typed new group name: in the edit sheet, typing a new group name and tapping Save doesn't create the group; only the keyboard's return key (the check mark) does. Picking an existing group and tapping Save works. Save should create the group and put the todo in it. Built in src; phone check pending.
