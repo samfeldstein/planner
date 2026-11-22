@@ -184,7 +184,6 @@ async function run() {
   fire('hidden');
   check(q(rowSel('.completed', '.done')), 'upcoming open: the row was not put away');
   check(doc.activeElement === q('.completed summary'), 'upcoming open: focus is not on the Completed summary');
-  check(!doc.activeElement.closest('.upcoming'), 'upcoming open: focus landed in Upcoming');
   fire('visible');
   q('.upcoming details').open = false;
   await wait(100);
@@ -218,6 +217,7 @@ async function run() {
   await until(async () => !(await hasThird()), 'the third todo to check off');
   await until(() => q(`.today .row.done[data-id="${third}"]`), 'the third todo struck');
   q(`.today .row.done[data-id="${third}"] .task`).click();
+  const tappedAt = win.performance.now();
   await until(hasThird, 'the third todo undone');
   await until(() => q(`.today .row:not(.done)[data-id="${third}"]`), 'the third todo back');
 
@@ -229,6 +229,7 @@ async function run() {
   check(doc.activeElement === otherDone, 'could not focus the Completed row');
   fire('hidden');
   check(doc.activeElement === q('.completed summary'), 'leaving with focus in an open Completed list: not on the summary');
+  check(win.performance.now() - tappedAt < 1800, 'test arrangement: the last tap is too old to matter');
   fire('visible');
   check(doc.activeElement === q('.completed summary'), 'coming back used the last tap instead of the saved focus');
 

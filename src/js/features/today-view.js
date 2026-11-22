@@ -231,7 +231,7 @@ export function init({ store, clock }) {
       return ul;
     };
     // The section is always drawn, so the ruled line above Completed and Upcoming stays. With nothing
-    // in it: no todos due today, or all of them checked off and put away (or moved to Tomorrow).
+    // in it: no todos due today, or all of them checked off and put away. (A todo moved to Tomorrow isn't counted.)
     {
       const section = el('section', 'today');
       if (!listTodos(shown).length) section.append(el('p', 'empty', total ? 'All done for today.' : 'Nothing due today.'));
@@ -306,7 +306,7 @@ export function init({ store, clock }) {
     const q = (sel) => list.querySelector(sel);
     if (key.summary) {
       // The list is gone (a day change, a failed save): the first check button, else quick add.
-      if (!tryFocus(q(`.${key.summary} summary`), opts)) refocus(0);
+      if (!tryFocus(q(`.${key.summary} summary`), opts)) refocus(0, opts);
       return;
     }
     const row = `[data-id="${CSS.escape(key.id)}"]`;
@@ -322,12 +322,12 @@ export function init({ store, clock }) {
   const checks = () => [...list.querySelectorAll('[data-act="complete"], [data-act="uncomplete"]')];
 
   // After an action removes a row, keep the keyboard and VoiceOver position useful.
-  function refocus(index) {
+  function refocus(index, opts) {
     const all = checks();
     const at = Math.min(index, all.length - 1);
     // Nearest first; rows that refuse focus (Completed, closed) are skipped.
     const order = [...all.slice(at), ...all.slice(0, Math.max(at, 0)).reverse()];
-    if (!order.some((node) => tryFocus(node))) quickAdd.focus();
+    if (!order.some((node) => tryFocus(node, opts))) quickAdd.focus(opts);
   }
 
   function setOpen(li, open) {
@@ -358,7 +358,15 @@ export function init({ store, clock }) {
         // Put the todo back as it was before it was completed, keeping any edit made since,
         // then draw it unstruck. If it was deleted or rescheduled since, only the mark goes.
         const snap = finished.get(id) && reconcile(finished.get(id), store.todo(id), finishedDay);
-        if (snap) await store.restoreTodo(snap);
+        if (snap) {
+          try {
+            await store.restoreTodo(snap);
+          } catch (err) {
+            render(); // the row stays struck; keep focus in the list
+            if (!list.contains(document.activeElement)) refocus(index);
+            throw err;
+          }
+        }
         dropFinished(finished, away, id);
         saveFinished();
         render();
