@@ -54,17 +54,26 @@ export function init({ store, clock }) {
   // Whether Completed is open. Closed at launch and again each time the app is left; kept across
   // re-renders in between.
   let completedOpen = false;
+  // Where focus was when the app was left; iOS may clear focus while it's in the background.
+  let pendingKey = null;
+  let mode = null; // 'leave' or 'resume' for the next render
   function leave() {
     if (finishedDay !== null && putAway(finished, away)) saveFinished(); // now: the page may not get another chance
     completedOpen = false;
+    mode = 'leave';
+    render();
+    pendingKey = captureKey() ?? pendingKey;
+  }
+  function resume() {
+    mode = 'resume';
     render();
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') leave();
-    else render();
+    else resume();
   });
   window.addEventListener('pagehide', leave);
-  window.addEventListener('pageshow', (e) => { if (e.persisted) render(); });
+  window.addEventListener('pageshow', (e) => { if (e.persisted) resume(); });
   const quickAdd = document.getElementById('quickAdd');
 
   // Whether Upcoming is open, remembered on this device only. Starts collapsed.
@@ -186,11 +195,10 @@ export function init({ store, clock }) {
 
   function render() {
     const today = clock.today();
-    const active = document.activeElement;
+    const renderMode = mode;
+    mode = null;
     const openId = list.querySelector('.actions:not([hidden])')?.closest('[data-id]')?.dataset.id;
-    const focusKey = list.contains(active)
-      ? { id: active.closest('[data-id]')?.dataset.id, act: active.dataset.act }
-      : null;
+    const { key: focusKey, quiet } = focusKeyForRender(renderMode);
 
     const parts = dateParts(today);
     dateEl.setAttribute('aria-label', longDate(today));
@@ -248,9 +256,58 @@ export function init({ store, clock }) {
       if (open) setOpen(open, true);
     }
 
-    if (focusKey?.id) {
-      list.querySelector(`[data-id="${CSS.escape(focusKey.id)}"] [data-act="${focusKey.act}"]`)?.focus();
-    }
+    if (focusKey) restoreFocus(focusKey, quiet);
+  }
+
+  // Focus survives a redraw. A key says what had focus: a Completed or Upcoming summary, or a row
+  // button (its todo, action, and section).
+  const sectionOf = (node) => node.closest('section')?.className;
+  const rowKey = (btn) => ({ id: btn.closest('[data-id]').dataset.id, act: btn.dataset.act, section: sectionOf(btn) });
+  function captureKey() {
+    const node = document.activeElement;
+    if (!node || !list.contains(node)) return null;
+    if (node.tagName === 'SUMMARY') return { summary: sectionOf(node) };
+    return node.dataset.act && node.closest('[data-id]') ? rowKey(node) : null;
+  }
+
+  // The last tapped check-off button: Safari doesn't focus buttons on tap, and VoiceOver's cursor may
+  // not move activeElement. Recorded before act() runs, since a check-off renders synchronously.
+  let lastTap = null;
+  const TAP_MS = 2000;
+
+  // The key to restore after this render. A tap's key (focused without scrolling) stands in when
+  // nothing has focus; coming back to the app uses the key saved on leaving. Leaving ignores taps.
+  function focusKeyForRender(renderMode) {
+    const key = captureKey();
+    const resuming = renderMode === 'resume';
+    const saved = pendingKey;
+    if (resuming) pendingKey = null;
+    if (key || document.activeElement !== document.body) return { key, quiet: false };
+    if (renderMode !== 'leave' && lastTap && performance.now() - lastTap.at < TAP_MS) return { key: lastTap.key, quiet: true };
+    if (resuming && saved) return { key: saved, quiet: false };
+    return { key: null, quiet: false };
+  }
+
+  // Focus the node and say whether it took: a button in a closed details, a hidden .actions, or a
+  // detached node refuses.
+  function tryFocus(node, opts) {
+    if (!node) return false;
+    node.focus(opts);
+    return document.activeElement === node;
+  }
+
+  function restoreFocus(key, quiet) {
+    const opts = quiet ? { preventScroll: true } : undefined;
+    const q = (sel) => list.querySelector(sel);
+    if (key.summary) { tryFocus(q(`.${key.summary} summary`), opts); return; }
+    const row = `[data-id="${CSS.escape(key.id)}"]`;
+    if (tryFocus(q(`.${key.section} ${row} [data-act="${key.act}"]`), opts)) return;
+    if (key.section === 'upcoming') return; // never chase an Upcoming row into the other sections
+    // The todo's row in the list (an undone row is back there; a just checked-off one is struck), or
+    // else the Completed summary, where a put-away row went. Not Upcoming: a repeating todo's next
+    // instance shares the id.
+    if (tryFocus(q(`.today ${row} .task`), opts)) return;
+    if (q(`.completed ${row}`)) tryFocus(q('.completed summary'), opts);
   }
 
   const checks = () => [...list.querySelectorAll('[data-act="complete"], [data-act="uncomplete"]')];
@@ -258,7 +315,10 @@ export function init({ store, clock }) {
   // After an action removes a row, keep the keyboard and VoiceOver position useful.
   function refocus(index) {
     const all = checks();
-    (all[Math.min(index, all.length - 1)] ?? quickAdd).focus();
+    const at = Math.min(index, all.length - 1);
+    // Nearest first; rows that refuse focus (Completed, closed) are skipped.
+    const order = [...all.slice(at), ...all.slice(0, Math.max(at, 0)).reverse()];
+    if (!order.some((node) => tryFocus(node))) quickAdd.focus();
   }
 
   function setOpen(li, open) {
@@ -293,6 +353,7 @@ export function init({ store, clock }) {
         dropFinished(finished, away, id);
         saveFinished();
         render();
+        if (!list.contains(document.activeElement)) refocus(index);
         return;
       }
       const before = kind === 'complete' ? store.todo(id) : null;
@@ -333,6 +394,7 @@ export function init({ store, clock }) {
     if (!btn) return;
     const li = btn.closest('.row');
     const kind = btn.dataset.act;
+    if (kind === 'complete' || kind === 'uncomplete') lastTap = { key: rowKey(btn), at: performance.now() };
     if (kind === 'more') toggle(li);
     else if (kind === 'edit') document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
     else act(kind, li);
