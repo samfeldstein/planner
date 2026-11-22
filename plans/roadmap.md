@@ -2,7 +2,7 @@
 
 ## Next (2026-11-21, after the focus and "All done" batch)
 
-**Waiting on Sam:** merge and release of `claude/focus-and-done`.
+**Waiting on Sam:** nothing. The focus fix, test gaps, and "All done for today." are released (2c2237b3fa).
 
 **Claude next:** nothing queued; To do is empty.
 
