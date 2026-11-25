@@ -1,5 +1,7 @@
 # Swipe right for Options
 
+**Replaced 2026-11-25:** Sam dropped the Options button; the swipe now shows Tomorrow, Skip, and Edit inside the row (design.md, Row options). This plan is history.
+
 Sam's Apple Note, 2026-11-23; design B picked 2026-11-24: swiping right on a todo shows one Options button; tapping it opens the row's existing menu (Tomorrow, Skip for repeating todos, Edit). The visible arrow goes. Supersedes `plans/mobile-ux.md` decision 1 (no swipe) for the row's options.
 
 ## What changes
