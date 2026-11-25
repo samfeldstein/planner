@@ -416,10 +416,8 @@ export function init({ store, clock }) {
     const li = btn.closest('.row');
     const kind = btn.dataset.act;
     if (kind === 'complete' || kind === 'uncomplete') lastTap = { key: rowKey(btn), at: performance.now() };
-    if (kind === 'more') {
-      toggle(li);
-      li.classList.remove('swiped');
-    }
+    li.classList.remove('swiped'); // any row action closes the swipe (Edit's sheet must not see an open row)
+    if (kind === 'more') toggle(li);
     else if (kind === 'edit') document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
     else act(kind, li);
   });

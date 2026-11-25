@@ -1,7 +1,8 @@
 // Swipe right on a todo in today's list to show its Options button (the row's .row-more), which opens
-// Tomorrow, Skip, and Edit. Touch and pen only; a mouse uses right-click. One row is open at most, and
-// any tap while one is open (outside its Options button and menu) only closes it (its click is swallowed, so it can't complete a todo). Tapping
-// the Options button itself goes through, and today-view closes the swipe.
+// Tomorrow, Skip, and Edit. Touch and pen only; a mouse uses right-click. A row is open when swiped, or
+// slid open by keyboard focus on its Options button. Any tap while a row is open only closes it (its click
+// is swallowed, so it can't complete a todo), except a tap on that row's Options button or menu, which
+// goes through; today-view then closes the swipe.
 // The open state is the row's .swiped class; render() redraws rows closed.
 
 import { classify, offset, settle } from '../core/swipe.js';
@@ -39,11 +40,13 @@ export function init({ list }) {
     if (!e.isPrimary || e.button !== 0) return;
     const open = openRows();
     if (open.length) {
-      if (open.some((li) => inOwnControls(li, e.target))) return;
+      const own = open.find((li) => inOwnControls(li, e.target));
       for (const li of open) {
+        if (li === own) continue; // closed by today-view on its click (Options must not slide away under the finger)
         li.classList.remove('swiped');
         if (li.contains(document.activeElement)) document.activeElement.blur();
       }
+      if (own) return;
       suppress = true; // the timer starts when the finger lifts
       return;
     }

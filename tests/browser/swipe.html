@@ -259,6 +259,47 @@ async function run() {
     if (!row('b').querySelector('.actions').hidden) more('b').click();
   }
 
+  // Edit from an open row's menu: the row closes, and the first tap in the sheet works.
+  more('b').click();
+  drag(task('b'), 70, 0);
+  await wait(600);
+  tap(row('b').querySelector('[data-act="edit"]'));
+  const sheet = await until(() => doc.getElementById('sheet').open && doc.getElementById('sheet'), 'the edit sheet');
+  if (sheet) {
+    check(!row('b').classList.contains('swiped'), 'the row stayed swiped behind the edit sheet');
+    let reached = false;
+    const probe = (e) => { reached = true; e.stopPropagation(); e.preventDefault(); };
+    sheet.addEventListener('click', probe, true);
+    tap(doc.getElementById('sheetDone'));
+    sheet.removeEventListener('click', probe, true);
+    check(reached, 'the first tap in the edit sheet was swallowed');
+    sheet.close();
+    await wait(100);
+  }
+  if (!row('b').querySelector('.actions').hidden) more('b').click();
+
+  // Keyboard-opened row: its menu takes taps, and a dismiss closes a swiped row and it together.
+  if (!doc.hasFocus()) skipped.push('keyboard-opened rows (the page has no focus)');
+  else {
+    more('a').focus({ focusVisible: true });
+    more('a').click();
+    const item = row('a').querySelector('[data-act="tomorrow"]');
+    let reached = false;
+    const probe = (e) => { reached = true; e.stopPropagation(); };
+    item.addEventListener('click', probe);
+    tap(item);
+    item.removeEventListener('click', probe);
+    check(reached, 'a tap on a keyboard-opened row\'s menu was swallowed');
+    if (!row('a').querySelector('.actions').hidden) more('a').click();
+    drag(task('b'), 70, 0);
+    await wait(600);
+    more('a').focus({ focusVisible: true });
+    tap(task('c'));
+    await wait(150);
+    check(!row('b').classList.contains('swiped') && shiftX(task('a')) === 0, 'a dismiss did not close both open rows');
+    check(!row('c').classList.contains('done') && !await done('c'), 'the dismiss of two open rows completed a todo');
+  }
+
   // The grace clears: after a short drag, the next tap completes.
   drag(task('c'), 30, 0);
   tap(task('c'));
