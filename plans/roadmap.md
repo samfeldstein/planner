@@ -8,10 +8,10 @@
 
 **Claude next:** the queue is empty; To do has no open items. Pick up whatever Sam reports from using the app.
 
-**Running the push Worker:** logs in the Cloudflare dashboard (Workers Logs, 3 days). The test token is in the gitignored `push/.test-token`; a test push is the curl in `push/README.md`. If More shows "No morning notification came today", read the logs first.
+**Running the push Worker:** logs in the Cloudflare dashboard (Workers Logs, 3 days). The test token is in the gitignored `push/.test-token`; a test push is the curl in `push/README.md`. If Options shows "No morning notification came today", read the logs first.
 
 **Limits hit:**
-- Headless Chrome browser tests can't start in the sandbox. Sam runs `npm run test:browser` in his terminal (all four pass there, 2026-11-21). The Claude browser pane works as a fallback, but new-todo times out there at "the sheet after leaving the field" because the pane is hidden (it passes in real headless Chrome), and starting the temp test server may be refused by the auto-mode check.
+- Headless Chrome browser tests can't start in the sandbox. Sam runs `npm run test:browser` in his terminal (all four pass there, 2026-11-21). The Claude browser pane works as a fallback: all four passed there on 2026-11-24, served by a temporary `planner-tests-temp` entry (python `http.server` on 8767 from the repo root) in the orchestrator `launch.json`.
 - The tracker isn't readable from a worktree session. `.claude/launch.json` is gitignored; its `planner-built` entry points at an old scratchpad.
 
 ## Done earlier
@@ -28,11 +28,11 @@
 
 ## To do
 
-- [ ] Remove the add-a-task field (Sam, Apple Note, 2026-11-23); the + button is enough.
-- [ ] Upcoming at the bottom of the screen by default (Sam, Apple Note, 2026-11-23), with its drop-down arrow clear of the + button.
-- [ ] Rename the More heading to Options (Sam, Apple Note, 2026-11-23), and make it bigger; it looks small next to the rest of its container.
+- [x] Remove the add-a-task field (Sam, Apple Note, 2026-11-23); the + button is enough. Done 2026-11-24 (6572649): the + handler lives in `sheet.js`; with no rows left, focus goes to the Upcoming summary, then +.
+- [x] Upcoming at the bottom of the screen by default (Sam, Apple Note, 2026-11-23), with its drop-down arrow clear of the + button. Done 2026-11-24 (6572649): a short list leaves Completed and Upcoming at the bottom, the summary 16px above +; a long list keeps the 16px gap. Opening Upcoming moves it up as its days fill the space.
+- [x] Rename the More heading to Options (Sam, Apple Note, 2026-11-23), and make it bigger; it looks small next to the rest of its container. Done 2026-11-24 (6572649): title 2rem (its sections are 1.5rem); the three-dot button's label is Options.
 - [ ] Swipe right on a todo to show an options button, instead of the drop-down arrow (Sam, Apple Note, 2026-11-23).
-- [ ] Morning notification layout (Sam, Apple Note, 2026-11-22): "Planner" on top as the title, and "x items due today" below it as the body. Today the count line is the title.
+- [x] Morning notification layout (Sam, Apple Note, 2026-11-22): "Planner" on top as the title, and "x items due today" below it as the body. Done 2026-11-24 (6572649): "1 item due today" for one. Shows on the phone after the next release. The 2026-11-21 note said a "Planner" title read as "Planner, from Planner" on iOS (unchecked now).
 - [x] Flat list (tracker `planner-flat-list`, 2026-11-21): the Morning, Afternoon, and Night sections are gone, so todos due today are one list (priority, groups, ungrouped); the edit sheet's part picker is gone; Upcoming and Completed headings went from 2rem to 1.25rem. Each todo still stores its part (no migration), so the sections could come back. Part names are allowed as group names again; old Morning, Afternoon, and Night groups stay groups on upgrade. Released a05d627451 (fa8d07a).
 - [x] Weekday and weekend repeat labels: the row under the title says "Weekdays" and "Weekends" instead of "Every weekday" and "Every weekend".
 - [x] Keyboard covers the new group name field: on the phone, editing a todo, choosing a new group, and adding one opens the keyboard with the name field under it, so you can't see where you're typing. Keep the field in view above the keyboard.

@@ -1,6 +1,6 @@
 // One-time converter: the old assistant app's JSON export -> a Planner backup file.
 // Run: node tools/convert-assistant-export.mjs <export.json> [out.json]
-// Import the result from More > Import. Importing replaces everything in the app.
+// Import the result from Options > Import backup. Importing replaces everything in the app.
 //
 // Kept: routines and open one-off items, their groups, repeat rules, due dates, last-done dates,
 // and their order within a group. Dropped on purpose: notes, subtasks, batches, events, skip counts,

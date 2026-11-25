@@ -49,9 +49,9 @@ Dependency-free Worker, `push/index.js` (+ pure `push/lib.js`) and `push/wrangle
 - **Keys:** `push/make-keys.mjs` makes the pair; the private JWK goes straight into `wrangler secret put VAPID_PRIVATE` by pipe (never in chat or a file); the public key is printed and hard-coded in `src/js/features/badge.js` and the Worker's vars. `VAPID_SUBJECT` var: a `mailto:` contact Sam picks.
 - **Logs:** one line per cron run that sent anything: sent, removed, failed, with status codes and Apple's reason (e.g. `BadJwtToken`); never the endpoint.
 
-### 5. Turning it on (More screen)
+### 5. Turning it on (Options screen, then called More)
 
-New "Badge" block in the More dialog:
+New "Badge" block in the More dialog (now Options):
 - Off: "Show today's todo count on the app icon." Button "Turn on".
 - Tap: `reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey })` is the handler's first await (the registration is kept from init, so nothing is awaited before it; it asks for permission itself), then `POST /subscribe` with `tz = Intl.DateTimeFormat().resolvedOptions().timeZone`, `hour = 7`, then update the badge.
 - On: "On. A notification comes each morning at 7." Button "Turn off": read the endpoint, unsubscribe, `POST /unsubscribe`, clear the badge.
@@ -61,7 +61,7 @@ New "Badge" block in the More dialog:
 - With a subscription, `POST /subscribe` again at launch and on each return to the app (`visibilitychange` to visible) when 12 hours have passed since the last post or the time zone changed (in-memory timestamp; the app is usually resumed, not relaunched). The Worker skips the write if nothing changed.
 - The Worker URL is a constant in `badge.js`, set after the first deploy. The page's CSP (`src/index.html`, `default-src 'self'`) gains `connect-src 'self' <Worker origin>`; a build test checks the CSP names the URL in `badge.js`.
 
-Copy above, the notification text (2026-11-24: title "Planner", body "4 items due today", "1 item due today", "Nothing due today", or "Open Planner to see today"; first approved 2026-11-21 as the line alone), and the 7 am hour: approved by Sam, 2026-11-21.
+Copy above, the notification text (2026-11-24: title "Planner", body "4 items due today", "1 item due today", "Nothing due today", or "Open Planner to see today"; asked for by Sam 2026-11-22), and the 7 am hour: approved by Sam, 2026-11-21.
 
 ### 6. Docs
 
