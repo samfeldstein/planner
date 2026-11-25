@@ -1,11 +1,10 @@
 # Roadmap
 
-## Next (2026-11-24, Apple Notes session; committed, not released or pushed)
+## Next (2026-11-24, Apple Notes session; released 0631844d52 and pushed)
 
 **Done this session:** the four Apple Notes changes (6572649, e80f350): the add-a-task field is gone (+ opens the sheet); a short list leaves Completed and Upcoming at the bottom of the screen, 16px above +; More is now Options (title 2rem); the morning notification's title is "Planner" with "N items due today" as the body. Plan reviews 2, cold review 1 clean; npm test 185/185; all four browser tests pass in the Claude browser pane.
 
 **Waiting on Sam:**
-- Release: `npm --prefix /Users/Samfeld/claude/dev/apps/planner run release` (tests, builds `docs/`, commits, pushes).
 - After the release, open the app once so the phone takes the new version; then check the Upcoming position and the notification (a test push is the curl in `push/README.md`). Unchecked: whether iOS shows "Planner, from Planner" with a "Planner" title, and whether VoiceOver mixes up the header's "Options" with each row's "Options: <title>".
 
 **Claude next:** Swipe right on a todo to show an options button, instead of the drop-down arrow (To do below). It needs a design pitch first: what the button opens, and whether the arrow goes.
