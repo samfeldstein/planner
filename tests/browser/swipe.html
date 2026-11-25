@@ -274,6 +274,7 @@ async function run() {
   }
 
   // Edit, then save a change: the redrawn row is closed.
+  doc.activeElement?.blur();
   await open('b');
   tap(action('b', 'edit'));
   if (await until(() => sheetEl.open, 'the edit sheet (save)')) {
@@ -281,6 +282,10 @@ async function run() {
     doc.getElementById('sheetForm').requestSubmit();
     await until(() => !sheetEl.open && row('b')?.querySelector('.title')?.textContent.includes('today'), 'the redrawn row');
     check(!row('b').classList.contains('swiped') && shiftX(task('b')) === 0, 'the row was open after saving an edit');
+    // A tapped Edit (nothing focused, as on a phone) leaves focus off the list: a focused row far down would
+    // scroll the page on the next render.
+    await wait(100); // the close event
+    check(!doc.getElementById('list').contains(doc.activeElement), `a tapped Edit left focus on ${doc.activeElement?.className} in the list`);
   }
 
   // Keyboard: Edit moves focus to the todo; closing the sheet, or saving a change, puts it back there.

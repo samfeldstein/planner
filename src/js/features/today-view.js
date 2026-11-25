@@ -389,10 +389,11 @@ export function init({ store, clock }) {
     li.classList.add('swiped');
   });
 
-  // Where focus goes after the edit sheet closes, if a save or delete redrew the list under it. Only one unstruck
-  // row has a given id (a struck row is a finished snapshot; Upcoming rows are never struck), so that row is the
-  // todo wherever a save moved it. Gone (deleted) or hidden (in a collapsed Upcoming): as after Tomorrow or Skip.
-  // Recorded for every Edit, not only a focused one: Safari doesn't focus a tapped button, nor may VoiceOver.
+  // Where keyboard focus goes after the edit sheet closes, if a save or delete redrew the list under it. Only one
+  // unstruck row has a given id (a struck row is a finished snapshot; Upcoming rows are never struck), so that row
+  // is the todo wherever a save moved it. Gone (deleted) or hidden (in a collapsed Upcoming): the Upcoming summary
+  // if the Edit came from there, else the nearest check-off, as after Tomorrow or Skip. Only an Edit from a focused
+  // row is recorded: on touch nothing had focus, and focus left on a far row would scroll the page on the next render.
   let edited = null; // { id, index }: the index among check-off buttons, -1 from Upcoming
   const sheetEl = document.getElementById('sheet');
   sheetEl?.addEventListener('close', () => {
@@ -421,7 +422,7 @@ export function init({ store, clock }) {
     if (own && btn !== own && focused) own.focus({ preventScroll: true });
     li.classList.remove('swiped'); // any row action closes the row (Edit's sheet must not see an open row)
     if (kind === 'edit') {
-      edited = { id: li.dataset.id, index: own ? checks().indexOf(own) : -1 };
+      edited = focused ? { id: li.dataset.id, index: own ? checks().indexOf(own) : -1 } : null;
       document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
     } else act(kind, li);
   });
