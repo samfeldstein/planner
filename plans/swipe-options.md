@@ -60,3 +60,14 @@ State is one object, `gesture` (null when idle): `{ pointerId, li, x, y, wasOpen
   - a mouse drag does nothing; right-click still opens the menu;
   - keyboard focus on Options (`focus({ focusVisible: true })`) slides the row open (checked via computed transform).
 - Existing `checkoff.html` and `new-todo.html` keep passing.
+
+## Changes after plan review 2 (these override the sections above)
+
+- **Grid row:** `.row` is a grid; `.task` and `.row-more` share row 1 (so the button is exactly the task's height and never covers `.actions`), `.actions` is row 2. No `top`/`bottom` on the button.
+- **Gestures always start closed.** Any pointerdown while a row is open only dismisses it. So no `wasOpen`, no drag-left-to-close, `offset(dx, max)` has no start, and only one row can ever be open.
+- **Transform only when needed:** `.task` and `.row-more` get a transform only under `.row:is(.dragging, .swiped)` and the `:focus-visible` rule, so a plain press paints as now (margin rule and priority square above the press highlight).
+- **`max` is measured** from the button (`getBoundingClientRect().width`) at the start of each drag.
+- **Click suppression:** the flag is set at pointerdown (dismiss) or pointerup (swipe); the 500ms fallback timer starts at pointerup; pointercancel clears it. Pointerdown clears an old flag before setting a new one. The pointer listeners live on `document`, so a dismiss tap on + or the header is eaten too.
+- **Horizontal threshold 16px** (vertical stays 10px).
+- **More tests:** pointercancel mid-drag resets; a re-render mid-drag leaves no `dragging`; the flag doesn't eat the next real tap; the row closes when keyboard focus leaves Options; the button doesn't overlap `.actions`; the keyboard test asserts `:focus-visible` matched first. `swipe.html` is added to `test:browser` by hand.
+- **Phone checks for Sam:** a diagonal swipe, starting a scroll on a row, a slow dismiss tap, VoiceOver reaching Options, landscape, a pinch on a row.
