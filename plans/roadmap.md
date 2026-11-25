@@ -1,12 +1,20 @@
 # Roadmap
 
-## Next (2026-11-21, badge and focus session; all released and pushed: last release 2c2237b3fa)
+## Next (2026-11-24, Apple Notes session; committed, not released or pushed)
 
-**Done this session:** app badge with a 7 a.m. push (`planner-push` Worker, `plans/app-badge.md`, `push/README.md`; phone test passed); notification line is the title; More, Upcoming, and Completed headings at 1.5rem with hairlines between More sections; focus after a put-away, browser test gaps, and "All done for today." (`plans/focus-and-done.md`); leftover worktrees and branches removed; phone check list dropped (Sam catches problems as he uses the app).
+**Done this session:** the four Apple Notes changes (6572649, e80f350): the add-a-task field is gone (+ opens the sheet); a short list leaves Completed and Upcoming at the bottom of the screen, 16px above +; More is now Options (title 2rem); the morning notification's title is "Planner" with "N items due today" as the body. Plan reviews 2, cold review 1 clean; npm test 185/185; all four browser tests pass in the Claude browser pane.
 
-**Waiting on Sam:** nothing.
+**Waiting on Sam:**
+- Release: `npm --prefix /Users/Samfeld/claude/dev/apps/planner run release` (tests, builds `docs/`, commits, pushes).
+- After the release, open the app once so the phone takes the new version; then check the Upcoming position and the notification (a test push is the curl in `push/README.md`). Unchecked: whether iOS shows "Planner, from Planner" with a "Planner" title, and whether VoiceOver mixes up the header's "Options" with each row's "Options: <title>".
 
-**Claude next:** the queue is empty; To do has no open items. Pick up whatever Sam reports from using the app.
+**Claude next:** Swipe right on a todo to show an options button, instead of the drop-down arrow (To do below). It needs a design pitch first: what the button opens, and whether the arrow goes.
+
+## Running sessions
+
+- `rss-word-cursor` ("RSS reader: word cursor (ROADMAP item 1)"), `local_f8729df1-f758-4bba-8480-2d2c98a68d64`, started 2026-11-24 from this planner session at Sam's request, which manages it. It works directly in `dev/apps/rss-digest/app` (no worktree of its own) on the word cursor in `public/app.js`; its plan passed two reviews and it was building at wrap-up. Its report goes to `docs/session-reports/2026-11-24-rss-word-cursor.md` there. Then: review it, run its tracker `next` line, and give Sam the rss-digest push.
+
+**Dev server:** the `planner-dev` entry in the orchestrator's `.claude/launch.json` (port 8766, live reload).
 
 **Running the push Worker:** logs in the Cloudflare dashboard (Workers Logs, 3 days). The test token is in the gitignored `push/.test-token`; a test push is the curl in `push/README.md`. If Options shows "No morning notification came today", read the logs first.
 
