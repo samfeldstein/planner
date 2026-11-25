@@ -1,24 +1,26 @@
 # Roadmap
 
-## Next (2026-11-24, Apple Notes session; released 0631844d52 and pushed)
+## Next (2026-11-25, swipe session; committed, not released or pushed)
 
-**Done this session:** the four Apple Notes changes (6572649, e80f350): the add-a-task field is gone (+ opens the sheet); a short list leaves Completed and Upcoming at the bottom of the screen, 16px above +; More is now Options (title 2rem); the morning notification's title is "Planner" with "N items due today" as the body. Plan reviews 2, cold review 1 clean; npm test 185/185; all four browser tests pass in the Claude browser pane.
+**Done this session:** swipe right on a todo shows an Options button (design B: one button that opens the existing Tomorrow, Skip, Edit menu); the row arrow is gone. Plan `plans/swipe-options.md`; code `src/js/ui/row-swipe.js`, `src/js/core/swipe.js`, the row grid in `app.css`. Plan reviews 2; cold reviews 4 (Important bugs fixed in rounds 1 and 3; round 4 clean); npm test 190/190 in five timezones; all five browser tests (new: `swipe.html`) pass in the Claude browser pane.
 
 **Waiting on Sam:**
-- After the release, open the app once so the phone takes the new version; then check the Upcoming position and the notification (a test push is the curl in `push/README.md`). Unchecked: whether iOS shows "Planner, from Planner" with a "Planner" title, and whether VoiceOver mixes up the header's "Options" with each row's "Options: <title>".
+- Release (`npm run release`, in the push command), then open the app once so the phone takes it. Phone checks the pane can't run: a diagonal swipe, starting a scroll on a row, a slow tap that closes an open row, VoiceOver reaching Options (it sits off-screen until swiped), landscape, a pinch on a row.
+- Still unchecked from the last release: the Upcoming position, the notification's title ("Planner, from Planner"?), and whether VoiceOver mixes up the header's "Options" with each row's "Options: <title>".
+- `npm run test:browser` in his terminal now runs five pages; the swipe page's first keyboard block only runs where the page has focus (headless Chrome).
 
-**Claude next:** Swipe right on a todo to show an options button, instead of the drop-down arrow (To do below). It needs a design pitch first: what the button opens, and whether the arrow goes.
+**Claude next:** fix whatever the phone checks find. Nothing else is queued in To do.
 
 ## Running sessions
 
-- `rss-word-cursor` ("RSS reader: word cursor (ROADMAP item 1)"), `local_f8729df1-f758-4bba-8480-2d2c98a68d64`, started 2026-11-24 from this planner session at Sam's request, which manages it. It works directly in `dev/apps/rss-digest/app` (no worktree of its own) on the word cursor in `public/app.js`; its plan passed two reviews and it was building at wrap-up. Its report goes to `docs/session-reports/2026-11-24-rss-word-cursor.md` there. Then: review it, run its tracker `next` line, and give Sam the rss-digest push.
+None.
 
 **Dev server:** the `planner-dev` entry in the orchestrator's `.claude/launch.json` (port 8766, live reload).
 
 **Running the push Worker:** logs in the Cloudflare dashboard (Workers Logs, 3 days). The test token is in the gitignored `push/.test-token`; a test push is the curl in `push/README.md`. If Options shows "No morning notification came today", read the logs first.
 
 **Limits hit:**
-- Headless Chrome browser tests can't start in the sandbox. Sam runs `npm run test:browser` in his terminal (all four pass there, 2026-11-21). The Claude browser pane works as a fallback: all four passed there on 2026-11-24, served by a temporary `planner-tests-temp` entry (python `http.server` on 8767 from the repo root) in the orchestrator `launch.json`.
+- Headless Chrome browser tests can't start in the sandbox. Sam runs `npm run test:browser` in his terminal (all four pass there, 2026-11-21). The Claude browser pane works as a fallback: all five passed there on 2026-11-25 (click into the page so the keyboard blocks run), served by a temporary `planner-tests-temp` entry (python `http.server` on 8767 from the repo root) in the orchestrator `launch.json`.
 - The tracker isn't readable from a worktree session. `.claude/launch.json` is gitignored; its `planner-built` entry points at an old scratchpad.
 
 ## Done earlier
