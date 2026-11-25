@@ -2,7 +2,7 @@
 // Tomorrow, Skip, and Edit. Touch and pen only; a mouse uses right-click. A row is open when swiped, or
 // slid open by keyboard focus on its Options button. Any tap while a row is open only closes it (its click
 // is swallowed, so it can't complete a todo), except a tap on that row's Options button or menu, which
-// goes through and closes any other open row; today-view closes that row's swipe when one of its buttons is tapped.
+// goes through and closes any other open row; today-view closes that row's swipe, and its menu, when one of its buttons is tapped.
 // The open state is the row's .swiped class; render() redraws rows closed.
 
 import { classify, offset, settle } from '../core/swipe.js';
@@ -73,7 +73,11 @@ export function init({ list }) {
   });
 
   document.addEventListener('pointerup', (e) => {
-    if (suppress) suppressTimer = setTimeout(clearSuppress, CLICK_GRACE_MS);
+    if (!e.isPrimary) return; // a second finger lifting leaves the first one's swallow alone
+    if (suppress) {
+      clearTimeout(suppressTimer);
+      suppressTimer = setTimeout(clearSuppress, CLICK_GRACE_MS);
+    }
     if (!gesture || e.pointerId !== gesture.pointerId) return;
     const { li, kind, off, max } = gesture;
     if (kind === 'swipe' && li.isConnected) {
@@ -90,6 +94,7 @@ export function init({ list }) {
   // The browser took the touch (a scroll began): back to closed. No setPointerCapture: a touch is
   // already captured to the element under the finger, and moving it would fire lostpointercapture.
   document.addEventListener('pointercancel', (e) => {
+    if (!e.isPrimary) return; // the browser took only a second finger
     clearSuppress();
     if (!gesture || e.pointerId !== gesture.pointerId) return;
     end();

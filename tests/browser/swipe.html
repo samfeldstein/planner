@@ -277,8 +277,63 @@ async function run() {
     check(reached, 'the first tap in the edit sheet was swallowed');
     sheet.close();
     await wait(100);
+    check(row('b').querySelector('.actions').hidden, 'the menu stayed open after Edit and closing the sheet');
   }
   if (!row('b').querySelector('.actions').hidden) more('b').click();
+
+  // Edit, then save a change: the redraw doesn't bring the menu back.
+  more('b').click();
+  tap(row('b').querySelector('[data-act="edit"]'));
+  if (await until(() => doc.getElementById('sheet').open, 'the edit sheet (save)')) {
+    doc.getElementById('todoText').textContent = 'Call the bank today';
+    doc.getElementById('sheetForm').requestSubmit();
+    await until(async () => (await adapter.load()).todos.find((t) => t.id === 'b')?.title === 'Call the bank today', 'the saved title');
+    await until(() => !doc.getElementById('sheet').open && row('b')?.querySelector('.title, .task')?.textContent.includes('today'), 'the redrawn row');
+    check(row('b').querySelector('.actions').hidden, 'the menu came back after saving an edit');
+  }
+  if (!row('b').querySelector('.actions').hidden) more('b').click();
+
+  // Keyboard: Edit from the menu moves focus to the todo, and closing the sheet returns it there.
+  if (!doc.hasFocus()) skipped.push('Edit focus (the page has no focus)');
+  else {
+    more('b').click();
+    const edit = row('b').querySelector('[data-act="edit"]');
+    edit.focus({ focusVisible: true });
+    edit.click();
+    check(doc.activeElement === task('b') || doc.getElementById('sheet').contains(doc.activeElement), 'test setup: focus lost when the sheet opened');
+    doc.getElementById('sheet').close();
+    await wait(50);
+    check(doc.activeElement === task('b'), `focus after closing the sheet is on ${doc.activeElement?.className || doc.activeElement?.tagName}, not the todo`);
+    task('b').blur();
+  }
+
+  // An Upcoming row still opens the edit sheet.
+  doc.querySelector('.upcoming details').open = true;
+  const later = await until(() => doc.querySelector('.upcoming .row[data-id="d"] .task'), 'the Upcoming row');
+  if (later) {
+    later.click();
+    check(await until(() => doc.getElementById('sheet').open, 'the sheet from Upcoming'), 'an Upcoming row did not open the sheet');
+    doc.getElementById('sheet').close();
+    await wait(50);
+  }
+
+  // A second finger lifting doesn't cut short the first finger's dismiss swallow.
+  drag(task('a'), 70, 0);
+  await wait(600);
+  check(row('a').classList.contains('swiped'), 'test setup: row a not open (second finger)');
+  {
+    const r = task('c').getBoundingClientRect();
+    const x = r.left + 60, y = r.top + r.height / 2;
+    ptr(task('c'), 'pointerdown', x, y, { pointerId: 900 });
+    ptr(task('c'), 'pointerdown', x + 40, y, { pointerId: 901, isPrimary: false });
+    ptr(task('c'), 'pointerup', x + 40, y, { pointerId: 901, isPrimary: false });
+    await wait(600);
+    ptr(task('c'), 'pointerup', x, y, { pointerId: 900 });
+    task('c').click();
+    await wait(300);
+    check(!await done('c'), 'a second finger let the dismiss tap complete a todo');
+    check(!row('a').classList.contains('swiped'), 'the dismiss tap did not close the open row');
+  }
 
   // Keyboard-opened row: its menu takes taps, and a dismiss closes a swiped row and it together.
   if (!doc.hasFocus()) skipped.push('keyboard-opened rows (the page has no focus)');

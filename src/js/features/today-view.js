@@ -417,8 +417,13 @@ export function init({ store, clock }) {
     const kind = btn.dataset.act;
     if (kind === 'complete' || kind === 'uncomplete') lastTap = { key: rowKey(btn), at: performance.now() };
     li.classList.remove('swiped'); // any row action closes the swipe (Edit's sheet must not see an open row)
-    if (kind === 'more') toggle(li);
-    else if (kind === 'edit') document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
+    if (kind === 'more') { toggle(li); return; }
+    // Any other action also closes the row's menu, so a redraw doesn't bring it back. Before hiding
+    // it, focus on a menu button moves to the todo itself, where the edit sheet returns it on close.
+    const own = li.querySelector('.task');
+    if (own && btn !== own && li.contains(document.activeElement)) own.focus({ preventScroll: true });
+    setOpen(li, false);
+    if (kind === 'edit') document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
     else act(kind, li);
   });
 

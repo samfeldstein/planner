@@ -387,7 +387,8 @@ button { cursor: pointer; }
 
 /* Options screen and confirm */
 
-dialog.screen { height: calc(var(--vvh) - 16px); }
+/* Full screen, like the add / edit sheet (see #sheet below). */
+dialog.screen .sheet-body { padding-top: calc(env(safe-area-inset-top) + 8px); }
 
 .block { display: grid; gap: 8px; padding-top: 8px; }
 .block[hidden] { display: none; }
@@ -459,8 +460,9 @@ dialog {
 dialog::backdrop { background: rgb(0 0 0 / 0.4); }
 
 /* The add / edit sheet covers the whole visible area. With the keyboard up it shrinks to the space
-   above it and follows iOS's pan (--vv-top), with extra bottom padding for the form bar. */
-#sheet {
+   above it and follows iOS's pan (--vv-top), with extra bottom padding for the form bar.
+   The Options screen covers it the same way. */
+#sheet, dialog.screen {
   top: var(--vv-top);
   left: 0;
   margin: 0;
