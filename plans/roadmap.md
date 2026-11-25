@@ -46,6 +46,7 @@ None.
 
 ## To do
 
+- [ ] Remove the Completed section (Sam, Apple Note, 2026-11-23; decided 2026-11-25). Why: struck-off todos stay in the list until the app is left, which gives enough time to undo one checked off by accident. No recorded reason for adding it was found (roadmap and commits of 2026-11-13 say what it does, not why). Put-away todos then just leave the list; decide what the header's done-of-total counts.
 - [x] Remove the add-a-task field (Sam, Apple Note, 2026-11-23); the + button is enough. Done 2026-11-24 (6572649): the + handler lives in `sheet.js`; with no rows left, focus goes to the Upcoming summary, then +.
 - [x] Upcoming at the bottom of the screen by default (Sam, Apple Note, 2026-11-23), with its drop-down arrow clear of the + button. Done 2026-11-24 (6572649): a short list leaves Completed and Upcoming at the bottom, the summary 16px above +; a long list keeps the 16px gap. Opening Upcoming moves it up as its days fill the space.
 - [x] Rename the More heading to Options (Sam, Apple Note, 2026-11-23), and make it bigger; it looks small next to the rest of its container. Done 2026-11-24 (6572649): title 2rem (its sections are 1.5rem); the three-dot button's label is Options.
