@@ -8,7 +8,7 @@
 
 **Waiting on Sam:**
 - Checked by Sam on 2026-11-25 in the phone preview (a Safari tab from `npm run dev`), not yet in the installed app: swipe open and closed, tapping each action, and the Options screen ("looks good").
-- Release (`npm run release`), then open the installed app once and check the same things there.
+- Released 2026-11-25 (version 5bad1fb718). Open the installed app once and check the same things there.
 - Still unchecked on the phone:
   - VoiceOver reaching the actions (they sit off-screen until swiped), and whether VoiceOver focus slides the row open.
   - With VoiceOver, Edit a todo, change its date, and Save: where VoiceOver lands.
