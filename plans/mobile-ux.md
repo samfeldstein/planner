@@ -8,7 +8,7 @@ Scope: iPhone-only todos PWA, 375 pt baseline, vanilla HTML/CSS/JS. All spec dec
 
 | # | Decision | Pick | Main tradeoff |
 |---|---|---|---|
-| 1 | Swipe vs buttons for row actions | **Buttons only, no swipe in v1.** Leading check button completes. Tapping the row expands it in place to show `Tomorrow`, `Skip` (recurring only), `Edit`. One row open at a time. | Tomorrow costs two taps instead of one swipe; gains discoverability, VoiceOver parity, and no scroll conflicts. |
+| 1 | Swipe vs buttons for row actions | (Superseded 2026-11-24 by `plans/swipe-options.md`: swipe right shows an Options button.) **Buttons only, no swipe in v1.** Leading check button completes. Tapping the row expands it in place to show `Tomorrow`, `Skip` (recurring only), `Edit`. One row open at a time. | Tomorrow costs two taps instead of one swipe; gains discoverability, VoiceOver parity, and no scroll conflicts. |
 | 2 | Where navigation lives | **Bottom bar with three controls:** `Upcoming` (left), `Add` (center, widest), `More` (right). Nothing tappable in the header. | Bar eats about 52 pt + home-indicator inset; everything frequent is in thumb reach. |
 | 3 | Fast add surface | **Bottom sheet `<dialog>` opened with `showModal()`, title field focused in the same tap handler.** Adding closes the sheet and returns to the list (changed from staying open for the next todo). `Done` also closes. | Single adds are one flow; batch entry needs the + button again each time. |
 | 4 | Due date control | **Three chips: `Today` (selected by default), `Tomorrow`, `Date…`** where `Date…` is a native `<input type="date">`. | No custom calendar to build; native iOS picker looks plain but is accessible and free. |

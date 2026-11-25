@@ -1,5 +1,6 @@
 // The Today list: todos due today plus overdue, as one list with groups inside. Tap a task to complete it; it stays
-// struck through until the day ends, and tapping it again undoes it. Tap its arrow (or right-click) to open Tomorrow, Skip (recurring only), and Edit.
+// struck through until the day ends, and tapping it again undoes it. Swipe it right and tap Options (or right-click,
+// or tab to Options) to open Tomorrow, Skip (recurring only), and Edit; the swipe lives in ui/row-swipe.js.
 // Leaving the app (hidden or pagehide) puts the todos checked off so far away: on return they're in a
 // collapsed Completed list below the list, struck through, and tapping one there undoes it the same way.
 // Below that, a collapsed Upcoming list shows later todos by day; tapping one opens the edit sheet.
@@ -10,6 +11,7 @@ import { FINISHED_KEY, dropFinished, parseFinished, putAway, reconcile, reconcil
 import { buildToday, listTodos } from '../core/today.js';
 import { buildUpcoming } from '../core/upcoming.js';
 import { dateParts, longDate, recurSummary, shortDate } from '../ui/format.js';
+import * as rowSwipe from '../ui/row-swipe.js';
 
 
 function el(tag, className, text) {
@@ -183,7 +185,8 @@ export function init({ store, clock }) {
       actions.append(b);
     }
 
-    const more = el('button', 'row-more');
+    // Shown by a swipe right (or keyboard focus); see ui/row-swipe.js.
+    const more = el('button', 'row-more', 'Options');
     more.type = 'button';
     more.dataset.act = 'more';
     more.setAttribute('aria-label', `Options: ${todo.title}`);
@@ -413,11 +416,15 @@ export function init({ store, clock }) {
     const li = btn.closest('.row');
     const kind = btn.dataset.act;
     if (kind === 'complete' || kind === 'uncomplete') lastTap = { key: rowKey(btn), at: performance.now() };
-    if (kind === 'more') toggle(li);
+    if (kind === 'more') {
+      toggle(li);
+      li.classList.remove('swiped');
+    }
     else if (kind === 'edit') document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
     else act(kind, li);
   });
 
+  rowSwipe.init({ list });
   store.on((e) => { if (e.type !== 'backup') render(); });
   clock.on(render);
   render();

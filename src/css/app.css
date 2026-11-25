@@ -191,7 +191,7 @@ button { cursor: pointer; }
   font: 400 1.5rem/1.3 var(--hand);
   letter-spacing: 0.04em;
   color: var(--ink-2);
-  padding: 12px 0 2px var(--text-x); /* the arrow lines up with the rows' arrows */
+  padding: 12px 0 2px var(--text-x); /* the arrow sits 20px in from the right edge */
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
@@ -201,7 +201,7 @@ button { cursor: pointer; }
 #list :is(.upcoming, .completed) summary:focus-visible { outline-offset: -2px; }
 #list :is(.upcoming, .completed) .count { font-size: 0.88rem; letter-spacing: 0; }
 
-/* The same small arrow as a row's, pointing down while closed and up while open. */
+/* A small arrow, pointing down while closed and up while open. */
 #list :is(.upcoming, .completed) summary::after {
   content: "";
   align-self: center;
@@ -217,12 +217,21 @@ button { cursor: pointer; }
 #list :is(.upcoming, .completed) details[open] summary::after { transform: translateY(2px) rotate(-135deg); }
 #list .upcoming .empty { padding-top: 8px; }
 
+/* A row is one grid cell for the task and its Options button, with the actions menu below. The button waits
+   just off the left edge (clipped) and slides in as the task slides right: a swipe (ui/row-swipe.js), or
+   keyboard focus on the button. */
 .row {
+  --opt-w: calc(80px + env(safe-area-inset-left));
   position: relative;
+  display: grid;
+  grid-template-columns: 100%;
+  overflow-x: clip;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
 }
+
+.today .row:has(.row-more) { touch-action: pan-y pinch-zoom; }
 
 /* Top priority: a filled square sitting on the margin rule. */
 .row.top::before {
@@ -242,12 +251,13 @@ button { cursor: pointer; }
 }
 
 .task {
+  grid-area: 1 / 1;
   display: block;
   text-align: left;
   border: 0;
   border-radius: 0;
   background: none;
-  padding: 10px 52px 10px var(--text-x);
+  padding: 10px var(--gutter) 10px var(--text-x);
   min-height: 48px;
   width: 100%;
   -webkit-user-select: none;
@@ -256,34 +266,33 @@ button { cursor: pointer; }
 }
 
 .task:active { background: var(--hairline); }
+.row.dragging .task:active { background: none; }
 .task:focus-visible { outline-offset: -2px; }
 
-/* Small arrow at the row's right edge; the button is a full 48px touch target. */
+/* The row's Options button, as tall as the task. */
 .row-more {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 48px;
-  height: 48px;
+  grid-area: 1 / 1;
+  justify-self: start;
+  width: var(--opt-w);
+  padding: 0 0 0 env(safe-area-inset-left);
   border: 0;
   border-radius: 0;
-  background: none;
+  background: var(--hairline);
+  color: var(--ink);
+  font: 400 1rem/1 var(--hand);
+  transform: translateX(-100%);
   -webkit-touch-callout: none;
 }
 
-.row-more::before {
-  content: "";
-  display: block;
-  width: 7px;
-  height: 7px;
-  margin: 0 auto;
-  border-right: 1.5px solid var(--ink-2);
-  border-bottom: 1.5px solid var(--ink-2);
-  transform: translateY(-2px) rotate(45deg);
-}
+.row-more:focus-visible { outline-offset: -2px; }
 
-.row-more[aria-expanded="true"]::before { transform: translateY(2px) rotate(-135deg); }
-.row-more:active { background: var(--hairline); }
+/* Transforms only while sliding or open, so a plain press paints under the margin rule as before. */
+.task, .row-more { transition: transform 160ms ease-out; }
+.row.dragging :is(.task, .row-more) { transition: none; }
+.row.dragging .task { transform: translateX(var(--swipe, 0px)); }
+.row.dragging .row-more { transform: translateX(calc(var(--swipe, 0px) - 100%)); }
+.row:is(.swiped, :has(.row-more:focus-visible)):not(.dragging) .task { transform: translateX(var(--opt-w)); }
+.row:is(.swiped, :has(.row-more:focus-visible)):not(.dragging) .row-more { transform: none; }
 
 /* Touch has no keyboard focus to show; the ring only appears after a tap or a programmatic focus. */
 @media (hover: none) {
@@ -297,6 +306,7 @@ button { cursor: pointer; }
 .meta.overdue { color: var(--overdue); }
 
 .actions {
+  grid-row: 2;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
