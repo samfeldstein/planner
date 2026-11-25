@@ -35,22 +35,23 @@ export function init({ list }) {
   }
 
   document.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary) return; // a second finger leaves the first one's swipe or dismiss alone
     clearSuppress();
     end();
-    if (!e.isPrimary || e.button !== 0) return;
     const open = openRows();
     if (open.length) {
-      const own = open.find((li) => inOwnControls(li, e.target));
+      // A right-click closes open rows and goes through (it opens its own row's menu).
+      const own = e.button === 0 ? open.find((li) => inOwnControls(li, e.target)) : null;
       for (const li of open) {
         if (li === own) continue; // closed by today-view on its click (Options must not slide away under the finger)
         li.classList.remove('swiped');
         if (li.contains(document.activeElement)) document.activeElement.blur();
       }
-      if (own) return;
+      if (own || e.button !== 0) return;
       suppress = true; // the timer starts when the finger lifts
       return;
     }
-    if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+    if (e.button !== 0 || (e.pointerType !== 'touch' && e.pointerType !== 'pen')) return;
     const li = e.target.closest('.task')?.closest('.row');
     if (!swipeable(li)) return;
     gesture = { pointerId: e.pointerId, li, x: e.clientX, y: e.clientY, kind: 'pending', max: 0, off: 0 };
