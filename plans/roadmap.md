@@ -8,12 +8,8 @@
 
 **Waiting on Sam:**
 - Checked by Sam on 2026-11-25 in the phone preview (a Safari tab from `npm run dev`), not yet in the installed app: swipe open and closed, tapping each action, and the Options screen ("looks good").
-- Released 2026-11-25 (version 5bad1fb718). Open the installed app once and check the same things there.
-- Still unchecked on the phone:
-  - VoiceOver reaching the actions (they sit off-screen until swiped), and whether VoiceOver focus slides the row open.
-  - With VoiceOver, Edit a todo, change its date, and Save: where VoiceOver lands.
-  - A long-press on a todo: does it open the row? It only can if iOS fires a right-click event for it, which isn't checked.
-  - Landscape (the notch side).
+- Released 2026-11-25 (version 5bad1fb718). Sam checked the installed app the same day: swipe, each action, and Options good; landscape on the notch side works. A long-press does not open the row (so iOS fires no right-click for it).
+- VoiceOver checks can't come from Sam (he doesn't use VoiceOver): the actions off-screen until swiped, focus sliding the row open, and where focus lands after Edit and Save.
 - Still unchecked from the earlier release: a diagonal swipe, starting a scroll on a row, a slow tap that closes an open row, and a pinch on a row.
 - Still unchecked from before: the Upcoming position, the notification's title ("Planner, from Planner"?), and whether VoiceOver mixes up the header's "Options" with the row actions.
 - Swipe distance (Sam's call): a row stays open only when it's dragged past half its strip, so about 120px with three actions and 80px with two. The Options button needed 40px. Lower it if it feels stiff.
