@@ -1,4 +1,4 @@
-// The More screen: backup status, export, and import. Groups render into it from groups.js.
+// The Options screen: backup status, export, and import. Groups render into it from groups.js.
 
 import { BackupError, parseBackup } from '../data/backup.js';
 import { confirmDialog } from '../ui/confirm.js';

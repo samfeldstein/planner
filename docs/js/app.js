@@ -7,7 +7,6 @@ import { createStore } from './data/store.js';
 import * as badge from './features/badge.js';
 import * as groups from './features/groups.js';
 import * as more from './features/more.js';
-import * as quickAdd from './features/quick-add.js';
 import * as sheet from './features/sheet.js';
 import * as staleBanner from './features/stale-banner.js';
 import * as storage from './features/storage.js';
@@ -16,7 +15,7 @@ import * as updates from './features/updates.js';
 import { needsInstall } from './ui/install.js';
 import * as scrollLock from './ui/scroll-lock.js';
 
-const features = [todayView, sheet, quickAdd, groups, more, staleBanner, storage, updates, badge, scrollLock];
+const features = [todayView, sheet, groups, more, staleBanner, storage, updates, badge, scrollLock];
 
 // Not installed: show the install guide and write nothing, so two datasets can't drift apart.
 function showGate() {
@@ -31,7 +30,6 @@ function fail(message) {
   p.setAttribute('role', 'alert');
   p.textContent = message;
   document.getElementById('list').append(p);
-  document.getElementById('quickAdd').contentEditable = 'false';
   document.getElementById('addBtn').hidden = true;
 }
 

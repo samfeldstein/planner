@@ -4,7 +4,7 @@
 // build.mjs stamps VERSION (a content hash) and ASSETS, so every release changes this file's bytes
 // and installs a fresh cache. Unstamped (dev), ASSETS is empty and this worker does nothing.
 
-const VERSION = '2c2237b3fa';
+const VERSION = '0631844d52';
 const ASSETS = [
   "css/app.css",
   "fonts/Kalam-Regular.woff2",
@@ -29,7 +29,6 @@ const ASSETS = [
   "js/features/badge.js",
   "js/features/groups.js",
   "js/features/more.js",
-  "js/features/quick-add.js",
   "js/features/sheet.js",
   "js/features/stale-banner.js",
   "js/features/storage.js",
@@ -88,10 +87,10 @@ self.addEventListener('fetch', (event) => {
 // Daily push. The page keeps a forecast of due counts in the 'badge-counts' cache (features/badge.js).
 // These two copy core/badge.js and core/date.js's todayLocal; tests/badge.test.js keeps them equal.
 function notificationText(n) {
-  const title = n === null || n === undefined ? 'Open Planner to see today'
+  const body = n === null || n === undefined ? 'Open Planner to see today'
     : n === 0 ? 'Nothing due today'
-    : `${n} due today`;
-  return { title };
+    : `${n} ${n === 1 ? 'item' : 'items'} due today`;
+  return { title: 'Planner', body };
 }
 
 function localDay(now = new Date()) {
@@ -124,8 +123,8 @@ self.addEventListener('push', (event) => {
     await quietly(async () => {
       for (const old of await self.registration.getNotifications({ tag: 'daily' })) old.close();
     });
-    const { title } = notificationText(n);
-    await quietly(() => self.registration.showNotification(title, { tag: 'daily', icon: abs('icons/180.png') }));
+    const { title, body } = notificationText(n);
+    await quietly(() => self.registration.showNotification(title, { body, tag: 'daily', icon: abs('icons/180.png') }));
     // The page's Badge block warns when no push has come for over 26 hours.
     await quietly(async () => {
       const cache = await caches.open('badge-counts');

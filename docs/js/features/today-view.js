@@ -74,7 +74,7 @@ export function init({ store, clock }) {
   });
   window.addEventListener('pagehide', leave);
   window.addEventListener('pageshow', (e) => { if (e.persisted) resume(); });
-  const quickAdd = document.getElementById('quickAdd');
+  const addBtn = document.getElementById('addBtn');
 
   // Whether Upcoming is open, remembered on this device only. Starts collapsed.
   const OPEN_KEY = 'planner:upcomingOpen';
@@ -305,7 +305,7 @@ export function init({ store, clock }) {
     const opts = quiet ? { preventScroll: true } : undefined;
     const q = (sel) => list.querySelector(sel);
     if (key.summary) {
-      // The list is gone (a day change, a failed save): the first check button, else quick add.
+      // The list is gone (a day change, a failed save): the first check button, else Upcoming, else +.
       if (!tryFocus(q(`.${key.summary} summary`), opts)) refocus(0, opts);
       return;
     }
@@ -327,7 +327,8 @@ export function init({ store, clock }) {
     const at = Math.min(index, all.length - 1);
     // Nearest first; rows that refuse focus (Completed, closed) are skipped.
     const order = [...all.slice(at), ...all.slice(0, Math.max(at, 0)).reverse()];
-    if (!order.some((node) => tryFocus(node, opts))) quickAdd.focus(opts);
+    // None left: the Upcoming summary (always drawn, and in the list, so the next render keeps it), else +.
+    if (!order.some((node) => tryFocus(node, opts)) && !tryFocus(list.querySelector('.upcoming summary'), opts)) addBtn.focus(opts);
   }
 
   function setOpen(li, open) {

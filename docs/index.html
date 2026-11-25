@@ -36,7 +36,7 @@
     </h1>
     <p id="count" class="secondary"></p>
     <div id="progress" class="progress" role="progressbar" aria-label="Done today" hidden><span></span></div>
-    <button type="button" id="moreBtn" class="more-btn" aria-label="More" aria-haspopup="dialog">
+    <button type="button" id="moreBtn" class="more-btn" aria-label="Options" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
     </button>
   </header>
@@ -47,12 +47,6 @@
   </div>
 
   <main id="list" aria-label="Today"></main>
-
-  <div class="quick-add">
-    <div id="quickAdd" class="todo-text quick-field" contenteditable="plaintext-only" role="textbox" aria-label="New todo"
-         data-placeholder="Add a task" spellcheck="false" autocorrect="off"
-         autocapitalize="sentences" enterkeyhint="done"></div>
-  </div>
 
   <button type="button" id="addBtn" class="add-btn" aria-label="Add todo">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
@@ -136,7 +130,7 @@
 <dialog id="more" class="screen" aria-labelledby="moreTitle">
   <div class="sheet-body">
     <header class="sheet-head">
-      <h2 id="moreTitle">More</h2>
+      <h2 id="moreTitle">Options</h2>
       <button type="button" id="moreDone" class="text-btn">Done</button>
     </header>
 

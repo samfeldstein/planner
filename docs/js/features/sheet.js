@@ -1,5 +1,5 @@
-// The edit sheet: the whole form for one todo, or for a new one (planner:new, from the add field or
-// the + button). A new todo is only created on Save or Done; Cancel or tapping outside discards it.
+// The edit sheet: the whole form for one todo, or for a new one (the + button, or planner:new). A new
+// todo is only created on Save or Done; Cancel or tapping outside discards it.
 // Nothing is focused on open unless the opener asks (the + button, so the keyboard comes up).
 
 import { addDays, weekday } from '../core/date.js';
@@ -180,10 +180,15 @@ export function init({ store, clock }) {
     if (todo) open(todo);
   });
 
-  // detail: { title, focus }. Due today, like the add field used to.
-  document.addEventListener('planner:new', (e) => {
-    const { title = '', focus = false } = e.detail ?? {};
+  // detail: { title, focus }. A new todo is due today.
+  const openNew = ({ title = '', focus = false } = {}) =>
     open({ title, due: clock.today(), groupId: null, priority: 0, recur: null }, { focus });
+  document.addEventListener('planner:new', (e) => openNew(e.detail ?? {}));
+
+  // The round + button: an empty sheet with the name field focused. Synchronous, so the focus stays
+  // inside the tap and iOS opens the keyboard.
+  $('addBtn').addEventListener('click', () => {
+    if (!sheet.open) openNew({ focus: true });
   });
 
   form.addEventListener('submit', submit);
@@ -276,7 +281,6 @@ export function init({ store, clock }) {
       root.setProperty('--vv-top', `${top}px`);
       root.setProperty('--kb-open', open ? '1' : '0');
       root.setProperty('--kb-pad', open ? `${FORM_BAR}px` : '0px');
-      document.documentElement.classList.toggle('kb-open', open);
       if (open && Date.now() < revealUntil) reveal(); // reading the boxes lays out the new sizes first
     };
     vv.addEventListener('resize', fit);

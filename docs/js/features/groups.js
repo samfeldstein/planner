@@ -1,4 +1,4 @@
-// Group management inside the More screen: rename in place, reorder, delete with a confirm.
+// Group management inside the Options screen: rename in place, reorder, delete with a confirm.
 // Deleting a group leaves its todos ungrouped, in their sections. Groups are created from the Add sheet.
 
 import { sortGroups } from '../core/model.js';

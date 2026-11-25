@@ -1,6 +1,6 @@
 // The Home Screen badge and the daily push. The page sets the badge from today's due count and keeps a
 // 31-day forecast in Cache Storage for the service worker's push handler (sw.js). The Badge block on the
-// More screen turns the push on and off. It stays hidden until the push Worker is deployed (PUSH_URL and
+// Options screen turns the push on and off. It stays hidden until the push Worker is deployed (PUSH_URL and
 // VAPID_PUBLIC below), and the CSP's connect-src in index.html must name PUSH_URL's origin.
 
 import { base64UrlToBytes, dueCount, forecast } from '../core/badge.js';
