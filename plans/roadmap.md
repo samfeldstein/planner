@@ -1,16 +1,29 @@
 # Roadmap
 
-## Next (2026-11-25, swipe session; released 9bc79e5044 and pushed)
+## Next (2026-11-25, swipe redesign session; committed, not released or pushed)
 
-**Done this session:** swipe right on a todo shows an Options button (design B: one button that opens the existing Tomorrow, Skip, Edit menu); the row arrow is gone. Plan `plans/swipe-options.md`; code `src/js/ui/row-swipe.js`, `src/js/core/swipe.js`, the row grid in `app.css`. Plan reviews 2; cold reviews 4 (Important bugs fixed in rounds 1 and 3; round 4 clean); npm test 190/190 in five timezones; all five browser tests (new: `swipe.html`) pass in the Claude browser pane.
+**Done this session (not released):** swipe right on a todo in today's list now shows Tomorrow, Skip (repeating todos only), and Edit inside the row, sliding in from the left as the todo slides right; the Options button and the menu below the row are gone, and nothing above or below moves. Picking an action closes the row, including Edit then Save or close (the original bug). After a keyboard Edit, focus goes back to the todo wherever a save moved it, or to the nearest row after a delete. Options (the header's three dots) is full screen, in the order Groups, Badge, Backup, App. `npm run dev` prints an "On your phone" address, and the README says what that preview can't do. Also fixed: a sheet reopened just after closing could lose its todo, so Done did nothing. Commits 0eede93 to b523a97; cold reviews 6 (Important bugs fixed in rounds 1, 3, 4, and 5; round 6 clean); npm test 190/190 in five timezones; `npm run test:browser` 5/5 pass with no skips (run through the Terminal panel).
+
+**Earlier today (released 9bc79e5044):** the first swipe design, with one Options button that opened the Tomorrow, Skip, and Edit menu. `plans/swipe-options.md` is its plan and is now out of date.
 
 **Waiting on Sam:**
-- Open the app once so the phone takes release 9bc79e5044. Phone checks the pane can't run: a diagonal swipe, starting a scroll on a row, a slow tap that closes an open row, VoiceOver reaching Options (it sits off-screen until swiped), landscape, a pinch on a row.
-- Still unchecked from the last release: the Upcoming position, the notification's title ("Planner, from Planner"?), and whether VoiceOver mixes up the header's "Options" with each row's "Options: <title>".
-- `npm run test:browser` in his terminal now runs five pages; the swipe page's first keyboard block only runs where the page has focus (headless Chrome).
+- Checked by Sam on 2026-11-25 in the phone preview (a Safari tab from `npm run dev`), not yet in the installed app: swipe open and closed, tapping each action, and the Options screen ("looks good").
+- Release (`npm run release`), then open the installed app once and check the same things there.
+- Still unchecked on the phone:
+  - VoiceOver reaching the actions (they sit off-screen until swiped), and whether VoiceOver focus slides the row open.
+  - With VoiceOver, Edit a todo, change its date, and Save: where VoiceOver lands.
+  - A long-press on a todo: does it open the row? It only can if iOS fires a right-click event for it, which isn't checked.
+  - Landscape (the notch side).
+- Still unchecked from the earlier release: a diagonal swipe, starting a scroll on a row, a slow tap that closes an open row, and a pinch on a row.
+- Still unchecked from before: the Upcoming position, the notification's title ("Planner, from Planner"?), and whether VoiceOver mixes up the header's "Options" with the row actions.
+- Swipe distance (Sam's call): a row stays open only when it's dragged past half its strip, so about 120px with three actions and 80px with two. The Options button needed 40px. Lower it if it feels stiff.
+- Known trade-off, kept on purpose: on an open row, a tap on its action strip (about two thirds of the row) runs that action.
 
-**Claude next:** fix whatever the phone checks find. Nothing else is queued in To do.
-
+**Claude next:** fix whatever the phone checks find. Small leftovers from review, none urgent:
+- The strip's buttons show no change when pressed, because their pressed color is the strip's own color.
+- A second right-click on an open row leaves it open.
+- On Options, a group name field low on the screen can sit under the keyboard's form bar.
+- The dev server blames Wi-Fi when the Mac has no private address.
 ## Running sessions
 
 None.
