@@ -286,7 +286,7 @@ button { cursor: pointer; }
 
 .row-more:focus-visible { outline-offset: -2px; }
 
-/* Transforms only while sliding or open. An open Options button paints over the margin rule and the priority square. */
+/* The task moves only while sliding or open; Options waits off the left edge. An open Options button paints over the margin rule and the priority square. */
 .task, .row-more { transition: transform 160ms ease-out; }
 .row.dragging :is(.task, .row-more) { transition: none; }
 .row.dragging .task { transform: translateX(var(--swipe, 0px)); }

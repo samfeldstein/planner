@@ -242,6 +242,23 @@ async function run() {
     }
   }
 
+  // With a row's menu open and the row swiped, a tap on a menu item still gets through. (The probe stops
+  // the click there, so nothing is moved to tomorrow.)
+  more('b').click();
+  drag(task('b'), 70, 0);
+  await wait(600);
+  {
+    const item = row('b').querySelector('[data-act="tomorrow"]');
+    let reached = false;
+    const probe = (e) => { reached = true; e.stopPropagation(); };
+    item.addEventListener('click', probe);
+    tap(item);
+    item.removeEventListener('click', probe);
+    check(reached, 'a tap on the open row\'s menu was swallowed');
+    if (row('b').classList.contains('swiped')) more('b').click(); // closes the swipe
+    if (!row('b').querySelector('.actions').hidden) more('b').click();
+  }
+
   // The grace clears: after a short drag, the next tap completes.
   drag(task('c'), 30, 0);
   tap(task('c'));

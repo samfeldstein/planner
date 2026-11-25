@@ -28,3 +28,9 @@ test('settle opens from halfway', () => {
   assert.equal(settle(80, 80), 'open');
   assert.equal(settle(0, 0), 'closed');
 });
+
+test('row-swipe never moves pointer capture (a touch is already captured; moving it ended every swipe)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const src = await readFile(new URL('../src/js/ui/row-swipe.js', import.meta.url), 'utf8');
+  assert.ok(!/\.setPointerCapture\(|lostpointercapture['"]/.test(src));
+});

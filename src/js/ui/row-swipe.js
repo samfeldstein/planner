@@ -1,6 +1,6 @@
 // Swipe right on a todo in today's list to show its Options button (the row's .row-more), which opens
 // Tomorrow, Skip, and Edit. Touch and pen only; a mouse uses right-click. One row is open at most, and
-// any tap while one is open only closes it (its click is swallowed, so it can't complete a todo). Tapping
+// any tap while one is open (outside its Options button and menu) only closes it (its click is swallowed, so it can't complete a todo). Tapping
 // the Options button itself goes through, and today-view closes the swipe.
 // The open state is the row's .swiped class; render() redraws rows closed.
 
@@ -14,7 +14,9 @@ export function init({ list }) {
   let suppressTimer = 0;
 
   // Open by a swipe, or slid open by keyboard focus on its Options button (CSS).
-  const openRow = () => list.querySelector('.row.swiped, .row:has(.row-more:focus-visible)');
+  const openRows = () => [...list.querySelectorAll('.row.swiped, .row:has(.row-more:focus-visible)')];
+  // Options and the menu below it work as usual; neither can complete a todo.
+  const inOwnControls = (li, target) => li.querySelector('.row-more').contains(target) || !!li.querySelector('.actions')?.contains(target);
   const swipeable = (li) => li && list.contains(li) && li.closest('.today') && li.querySelector('.row-more');
 
   function clearSuppress() {
@@ -35,11 +37,13 @@ export function init({ list }) {
     clearSuppress();
     end();
     if (!e.isPrimary || e.button !== 0) return;
-    const open = openRow();
-    if (open) {
-      if (open.querySelector('.row-more').contains(e.target)) return; // Options: its click opens the menu
-      open.classList.remove('swiped');
-      if (open.contains(document.activeElement)) document.activeElement.blur();
+    const open = openRows();
+    if (open.length) {
+      if (open.some((li) => inOwnControls(li, e.target))) return;
+      for (const li of open) {
+        li.classList.remove('swiped');
+        if (li.contains(document.activeElement)) document.activeElement.blur();
+      }
       suppress = true; // the timer starts when the finger lifts
       return;
     }
