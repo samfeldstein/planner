@@ -1,9 +1,10 @@
-// Swipe right on a todo in today's list to show its Options button (the row's .row-more), which opens
-// Tomorrow, Skip, and Edit. Touch and pen only; a mouse uses right-click. A row is open when swiped, or
-// slid open by keyboard focus on its Options button. Any tap while a row is open only closes it (its click
-// is swallowed, so it can't complete a todo), except a tap on that row's Options button or menu, which
-// goes through and closes any other open row; today-view closes that row's swipe, and its menu, when one of its buttons is tapped.
-// The open state is the row's .swiped class; render() redraws rows closed.
+// Swipe right on a todo in today's list to show its actions (the row's .actions strip: Tomorrow, Skip, and Edit)
+// in the row: they slide in from the left edge and the task slides right, so nothing above or below moves.
+// Touch and pen only; a mouse uses right-click. A row is open when swiped, or slid open by keyboard focus on one
+// of its actions. Any tap while a row is open only closes it (its click is swallowed, so it can't complete a
+// todo), except a tap on that row's own actions, which goes through and closes any other open row; today-view
+// closes that row when one of its buttons is tapped. The open state is the row's .swiped class; render()
+// redraws rows closed.
 
 import { classify, offset, settle } from '../core/swipe.js';
 
@@ -14,11 +15,11 @@ export function init({ list }) {
   let suppress = false;
   let suppressTimer = 0;
 
-  // Open by a swipe, or slid open by keyboard focus on its Options button (CSS).
-  const openRows = () => [...list.querySelectorAll('.row.swiped, .row:has(.row-more:focus-visible)')];
-  // Options and the menu below it work as usual; neither can complete a todo.
-  const inOwnControls = (li, target) => li.querySelector('.row-more').contains(target) || !!li.querySelector('.actions')?.contains(target);
-  const swipeable = (li) => li && list.contains(li) && li.closest('.today') && li.querySelector('.row-more');
+  // Open by a swipe, or slid open by keyboard focus on one of its actions (CSS).
+  const openRows = () => [...list.querySelectorAll('.row.swiped, .row:has(.actions :focus-visible)')];
+  // The row's own actions work as usual; none of them completes a todo.
+  const inOwnControls = (li, target) => !!li.querySelector('.actions')?.contains(target);
+  const swipeable = (li) => li && list.contains(li) && li.closest('.today') && li.querySelector('.actions');
 
   function clearSuppress() {
     suppress = false;
@@ -40,10 +41,10 @@ export function init({ list }) {
     end();
     const open = openRows();
     if (open.length) {
-      // A right-click closes open rows and goes through (it opens its own row's menu).
+      // A right-click closes open rows and goes through (it opens its own row).
       const own = e.button === 0 ? open.find((li) => inOwnControls(li, e.target)) : null;
       for (const li of open) {
-        if (li === own) continue; // closed by today-view on its click (Options must not slide away under the finger)
+        if (li === own) continue; // closed by today-view on its click (the button must not slide away under the finger)
         li.classList.remove('swiped');
         if (li.contains(document.activeElement)) document.activeElement.blur();
       }
@@ -65,7 +66,7 @@ export function init({ list }) {
       gesture.kind = classify(dx, e.clientY - gesture.y);
       if (gesture.kind === 'scroll') { end(); return; }
       if (gesture.kind === 'pending') return;
-      gesture.max = gesture.li.querySelector('.row-more').getBoundingClientRect().width;
+      gesture.max = gesture.li.querySelector('.actions').getBoundingClientRect().width;
       gesture.li.classList.add('dragging');
     }
     gesture.off = offset(dx, gesture.max);

@@ -23,6 +23,8 @@ npm run dev    # dev server with live reload on :8766
 npm test       # tests in five timezones
 ```
 
+**On your phone:** run `npm run dev` and open the "On your phone" address it prints, in Safari on the same Wi-Fi (allow node through the Mac's firewall if asked). Edits reload the page. It's a Safari tab on plain http, so there's no service worker (no offline, badge, or update check), its data is separate from the installed app (start empty, or import a backup), and it's lost if the Mac's address changes. A swipe that starts at the screen's left edge may go back a page in Safari.
+
 ## Fork it
 
 1. Fork, then enable Pages from `main`, folder `/docs`.

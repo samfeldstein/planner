@@ -1,10 +1,10 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>Swipe right for Options</title>
+<title>Swipe right for the row actions</title>
 <pre id="out">running…</pre>
 <iframe id="app" style="width:400px;height:700px"></iframe>
 <script type="module">
-// A swipe right on a todo shows its Options button (ui/row-swipe.js). Synthetic touch pointers; the test
+// A swipe right on a todo shows its actions in the row (ui/row-swipe.js). Synthetic touch pointers; the test
 // sends the click a real tap would. Transitions are off in the frame so transforms read at rest.
 import { createIdbAdapter } from '../../src/js/data/db.js';
 import { addDays, todayLocal } from '../../src/js/core/date.js';
@@ -57,13 +57,25 @@ async function run() {
   const row = (id) => doc.querySelector(`.today .row[data-id="${id}"]`);
   if (!await until(() => row('a') && row('b') && row('c'), 'the three rows')) return;
   const task = (id) => row(id).querySelector('.task');
-  const more = (id) => row(id).querySelector('.row-more');
+  const strip = (id) => row(id).querySelector('.actions');
+  const action = (id, act) => row(id).querySelector(`.actions [data-act="${act}"]`);
   const shiftX = (node) => new win.DOMMatrix(win.getComputedStyle(node).transform).m41;
-  const width = more('a').getBoundingClientRect().width;
-  check(width >= 80, `Options button width ${width}`);
-  check(more('a').textContent === 'Options', 'Options button has no visible label');
-  check(more('a').getBoundingClientRect().right <= 0.5, 'Options button shows before a swipe');
+  const height = (node) => node.getBoundingClientRect().height;
+  const isOpen = (id) => Math.abs(shiftX(strip(id))) < 1 && shiftX(task(id)) > 1;
+  const width = strip('a').getBoundingClientRect().width;
+
+  // The strip: Tomorrow, Skip, and Edit on a repeating todo, no Skip otherwise; labeled with the todo; each
+  // label fits; off-screen, and the row no taller than its task.
+  check([...strip('a').children].map((b) => b.dataset.act).join() === 'tomorrow,skip,edit', 'a repeating todo lacks Tomorrow, Skip, and Edit');
+  check([...strip('b').children].map((b) => b.dataset.act).join() === 'tomorrow,edit', 'a one-off todo has Skip or lacks an action');
+  check(action('a', 'tomorrow').getAttribute('aria-label') === 'Tomorrow: Stretch', 'actions are not labeled with the todo');
+  check(width >= 240, `three-action strip width ${width}`);
+  for (const b of strip('a').children) check(b.scrollWidth <= b.clientWidth, `"${b.textContent}" doesn't fit its button`);
+  check(strip('a').getBoundingClientRect().right <= 0.5, 'the strip shows before a swipe');
   check(shiftX(task('a')) === 0, 'the task is shifted before a swipe');
+  check(Math.abs(height(row('a')) - height(task('a'))) < 1, 'a closed row is taller than its task');
+  check(Math.abs(height(strip('a')) - height(task('a'))) < 1, 'the strip is not as tall as the task');
+  check(win.getComputedStyle(row('a')).touchAction === 'pan-y pinch-zoom', `today row touch-action is ${win.getComputedStyle(row('a')).touchAction}`);
 
   let pid = 10;
   const ptr = (node, type, x, y, extra = {}) => node.dispatchEvent(new win.PointerEvent(type, {
@@ -90,35 +102,35 @@ async function run() {
     node.click();
   }
   const done = async (id) => (await adapter.load()).todos.find((t) => t.id === id)?.lastDone !== null;
+  const open = async (id) => { drag(task(id), 160, 0); await wait(600); }; // past the grace for a drag's click
+  const sheetEl = doc.getElementById('sheet');
 
-  // A swipe past half opens; the click that may follow doesn't complete.
-  drag(task('a'), 60, 2);
-  check(row('a').classList.contains('swiped'), 'swipe past half did not open');
-  check(!row('a').classList.contains('dragging') && !row('a').style.getPropertyValue('--swipe'), 'drag state left after a swipe');
-  check(Math.abs(shiftX(task('a')) - width) < 1, `open row's task shifted ${shiftX(task('a'))}, not ${width}`);
-  check(Math.abs(shiftX(more('a'))) < 1, 'Options button not in view on an open row');
-  task('a').click();
-  await wait(150);
-  check(!row('a').classList.contains('done') && !await done('a'), 'the click after a swipe completed the todo');
-
-  // Tapping Options opens the menu and closes the swipe.
-  tap(more('a'));
-  check(!row('a').querySelector('.actions').hidden, 'Options did not open the menu');
-  check(row('a').querySelector('[data-act="skip"]'), 'menu has no Skip on a repeating todo');
-  check(!row('a').classList.contains('swiped'), 'the swipe stayed open after tapping Options');
-  check(more('a').getAttribute('aria-expanded') === 'true', 'aria-expanded not true');
-  more('a').click();
-  check(row('a').querySelector('.actions').hidden, 'Options did not close the menu');
+  // A swipe past half opens, in place: the row keeps its height and the row below stays put. The click that
+  // may follow doesn't complete.
+  {
+    const before = { h: height(row('a')), next: row('b').getBoundingClientRect().top };
+    drag(task('a'), 160, 2);
+    check(row('a').classList.contains('swiped'), 'swipe past half did not open');
+    check(!row('a').classList.contains('dragging') && !row('a').style.getPropertyValue('--swipe'), 'drag state left after a swipe');
+    check(Math.abs(shiftX(task('a')) - width) < 1, `open row's task shifted ${shiftX(task('a'))}, not ${width}`);
+    check(Math.abs(shiftX(strip('a'))) < 1, 'the strip is not in view on an open row');
+    check(Math.abs(height(row('a')) - before.h) < 1, 'opening changed the row height');
+    check(Math.abs(row('b').getBoundingClientRect().top - before.next) < 1, 'opening moved the row below');
+    task('a').click();
+    await wait(150);
+    check(!row('a').classList.contains('done') && !await done('a'), 'the click after a swipe completed the todo');
+  }
+  tap(task('b')); // closes a
+  await wait(600);
 
   // A short drag snaps back; so does a vertical one.
-  drag(task('b'), 30, 0);
+  drag(task('b'), 50, 0);
   check(!row('b').classList.contains('swiped'), 'a short drag opened');
   drag(task('b'), 4, 40);
   check(!row('b').classList.contains('swiped') && !row('b').classList.contains('dragging'), 'a vertical drag opened');
 
   // A tap on the open row's task closes it without completing.
-  drag(task('b'), 70, 0);
-  await wait(600); // past the grace for a drag's click
+  await open('b');
   check(row('b').classList.contains('swiped'), 'second swipe did not open');
   tap(task('b'));
   await wait(150);
@@ -126,16 +138,14 @@ async function run() {
   check(!row('b').classList.contains('done') && !await done('b'), 'tap on the open row completed it');
 
   // With a row open, a tap on another row closes the first and doesn't complete the second.
-  drag(task('b'), 70, 0);
-  await wait(600);
+  await open('b');
   tap(task('c'));
   await wait(150);
   check(!row('b').classList.contains('swiped'), 'tap elsewhere did not close the open row');
   check(!row('c').classList.contains('done') && !await done('c'), 'the dismiss tap completed another todo');
 
   // A slow dismiss tap: the grace starts when the finger lifts.
-  drag(task('b'), 70, 0);
-  await wait(600);
+  await open('b');
   {
     const id = ++pid;
     const r = task('c').getBoundingClientRect();
@@ -165,49 +175,39 @@ async function run() {
     check(!row('b').classList.contains('dragging') && !row('b').classList.contains('swiped') && !row('b').style.getPropertyValue('--swipe'), 'drag state on the redrawn row');
   }
 
-  // A mouse drag does nothing; right-click still opens the menu.
-  drag(task('b'), 70, 0, { type: 'mouse' });
+  // A mouse drag does nothing; right-click opens the row, and a right-click on another row moves it there.
+  drag(task('b'), 160, 0, { type: 'mouse' });
   check(!row('b').classList.contains('swiped'), 'a mouse drag opened the row');
-  task('b').dispatchEvent(new win.MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 }));
-  check(!row('b').querySelector('.actions').hidden, 'right-click did not open the menu');
-  task('b').dispatchEvent(new win.MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 }));
+  const rightClick = (node) => node.dispatchEvent(new win.MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 }));
+  rightClick(task('b'));
+  check(row('b').classList.contains('swiped'), 'right-click did not open the row');
+  rightClick(task('c'));
+  check(row('c').classList.contains('swiped') && !row('b').classList.contains('swiped'), 'right-click on another row did not move the open row');
+  row('c').classList.remove('swiped');
 
-  // The button is as tall as the task and stays clear of the menu below it.
-  more('a').click();
-  {
-    const actions = row('a').querySelector('.actions');
-    check(!actions.hidden, 'Options did not open the menu (layout check)');
-    check(Math.abs(more('a').getBoundingClientRect().height - task('a').getBoundingClientRect().height) < 1, 'Options button is not as tall as the task');
-    check(more('a').getBoundingClientRect().bottom <= actions.getBoundingClientRect().top + 0.5, 'Options button overlaps the menu');
-    more('a').click();
-  }
-
-  // Keyboard focus on Options slides the row open. Only where the page has focus (headless Chrome does;
+  // Keyboard focus on an action slides the row open. Only where the page has focus (headless Chrome does;
   // the Claude browser pane may not, and then nothing can match :focus).
   if (!doc.hasFocus()) skipped.push('keyboard focus (the page has no focus)');
   else {
-    more('a').focus({ focusVisible: true });
-    if (!more('a').matches(':focus-visible')) failures.push('test setup: Options focus is not :focus-visible');
+    action('a', 'tomorrow').focus({ focusVisible: true });
+    if (!action('a', 'tomorrow').matches(':focus-visible')) failures.push('test setup: action focus is not :focus-visible');
     else {
-      check(Math.abs(shiftX(task('a')) - width) < 1, 'keyboard focus on Options did not slide the row open');
-      check(Math.abs(shiftX(more('a'))) < 1, 'keyboard focus on Options did not show it');
-      more('a').blur();
-      check(shiftX(task('a')) === 0, 'the row stayed open after focus left Options');
+      check(isOpen('a'), 'keyboard focus on an action did not slide the row open');
+      action('a', 'tomorrow').blur();
+      check(shiftX(task('a')) === 0, 'the row stayed open after focus left its actions');
     }
   }
 
   // A dismiss tap on + is swallowed too: the sheet doesn't open.
-  drag(task('b'), 70, 0);
-  await wait(600);
+  await open('b');
   check(row('b').classList.contains('swiped'), 'test setup: row not swiped before the tap on +');
   tap(doc.getElementById('addBtn'));
   await wait(150);
   check(!row('b').classList.contains('swiped'), 'tap on + did not close the open row');
-  check(!doc.getElementById('sheet').open, 'the dismiss tap on + opened the sheet');
+  check(!sheetEl.open, 'the dismiss tap on + opened the sheet');
 
   // A dismiss tap that turns into a scroll (pointercancel) leaves no swallow behind.
-  drag(task('b'), 70, 0);
-  await wait(600);
+  await open('b');
   {
     const id = ++pid;
     const r = task('c').getBoundingClientRect();
@@ -227,15 +227,15 @@ async function run() {
   const upRow = doc.querySelector('.upcoming .row[data-id="d"]');
   check(upRow, 'test arrangement: no Upcoming row');
   if (upRow) {
-    drag(upRow.querySelector('.task'), 70, 0);
+    drag(upRow.querySelector('.task'), 160, 0);
     check(!upRow.classList.contains('swiped') && !upRow.classList.contains('dragging'), 'an Upcoming row swiped');
   }
   doc.querySelector('.upcoming details').open = false;
 
   // A row slid open by keyboard focus is open too: a tap on its task only closes it.
   if (doc.hasFocus()) {
-    more('b').focus({ focusVisible: true });
-    if (more('b').matches(':focus-visible')) {
+    action('b', 'edit').focus({ focusVisible: true });
+    if (action('b', 'edit').matches(':focus-visible')) {
       tap(task('b'));
       await wait(150);
       check(!row('b').classList.contains('done') && !await done('b'), 'a tap on a keyboard-opened row completed it');
@@ -243,68 +243,65 @@ async function run() {
     }
   }
 
-  // With a row's menu open and the row swiped, a tap on a menu item still gets through. (The probe stops
-  // the click there, so nothing is moved to tomorrow.)
-  more('b').click();
-  drag(task('b'), 70, 0);
-  await wait(600);
+  // On an open row, a tap on an action gets through and closes the row. (The probe stops the click at the
+  // button, so nothing moves to tomorrow; today-view's handler is skipped, so close it here.)
+  await open('b');
   {
-    const item = row('b').querySelector('[data-act="tomorrow"]');
     let reached = false;
     const probe = (e) => { reached = true; e.stopPropagation(); };
-    item.addEventListener('click', probe);
-    tap(item);
-    item.removeEventListener('click', probe);
-    check(reached, 'a tap on the open row\'s menu was swallowed');
-    if (row('b').classList.contains('swiped')) more('b').click(); // closes the swipe
-    if (!row('b').querySelector('.actions').hidden) more('b').click();
+    action('b', 'tomorrow').addEventListener('click', probe);
+    tap(action('b', 'tomorrow'));
+    action('b', 'tomorrow').removeEventListener('click', probe);
+    check(reached, "a tap on the open row's action was swallowed");
+    row('b').classList.remove('swiped');
   }
 
-  // Edit from an open row's menu: the row closes, and the first tap in the sheet works.
-  more('b').click();
-  drag(task('b'), 70, 0);
-  await wait(600);
-  check(row('b').classList.contains('swiped') && !row('b').querySelector('.actions').hidden, 'test setup: row not swiped with its menu open before Edit');
-  tap(row('b').querySelector('[data-act="edit"]'));
-  const sheet = await until(() => doc.getElementById('sheet').open && doc.getElementById('sheet'), 'the edit sheet');
-  if (sheet) {
-    check(!row('b').classList.contains('swiped'), 'the row stayed swiped behind the edit sheet');
+  // Edit from an open row: the row closes, the sheet opens, and its first tap works. Closing leaves it closed.
+  await open('b');
+  tap(action('b', 'edit'));
+  if (await until(() => sheetEl.open, 'the edit sheet')) {
+    check(!row('b').classList.contains('swiped'), 'the row stayed open behind the edit sheet');
     let reached = false;
     const probe = (e) => { reached = true; e.stopPropagation(); e.preventDefault(); };
-    sheet.addEventListener('click', probe, true);
+    sheetEl.addEventListener('click', probe, true);
     tap(doc.getElementById('sheetDone'));
-    sheet.removeEventListener('click', probe, true);
+    sheetEl.removeEventListener('click', probe, true);
     check(reached, 'the first tap in the edit sheet was swallowed');
-    sheet.close();
+    sheetEl.close();
     await wait(100);
-    check(row('b').querySelector('.actions').hidden, 'the menu stayed open after Edit and closing the sheet');
+    check(!row('b').classList.contains('swiped') && shiftX(task('b')) === 0, 'the row was open after Edit and closing the sheet');
   }
-  if (!row('b').querySelector('.actions').hidden) more('b').click();
 
-  // Edit, then save a change: the redraw doesn't bring the menu back.
-  more('b').click();
-  tap(row('b').querySelector('[data-act="edit"]'));
-  if (await until(() => doc.getElementById('sheet').open, 'the edit sheet (save)')) {
+  // Edit, then save a change: the redrawn row is closed.
+  await open('b');
+  tap(action('b', 'edit'));
+  if (await until(() => sheetEl.open, 'the edit sheet (save)')) {
     doc.getElementById('todoText').textContent = 'Call the bank today';
     doc.getElementById('sheetForm').requestSubmit();
-    await until(async () => (await adapter.load()).todos.find((t) => t.id === 'b')?.title === 'Call the bank today', 'the saved title');
-    await until(() => !doc.getElementById('sheet').open && row('b')?.querySelector('.title, .task')?.textContent.includes('today'), 'the redrawn row');
-    check(row('b').querySelector('.actions').hidden, 'the menu came back after saving an edit');
+    await until(() => !sheetEl.open && row('b')?.querySelector('.title')?.textContent.includes('today'), 'the redrawn row');
+    check(!row('b').classList.contains('swiped') && shiftX(task('b')) === 0, 'the row was open after saving an edit');
   }
-  if (!row('b').querySelector('.actions').hidden) more('b').click();
 
-  // Keyboard: Edit from the menu moves focus to the todo, and closing the sheet returns it there.
+  // Keyboard: Edit moves focus to the todo; closing the sheet, or saving a change, puts it back there.
   if (!doc.hasFocus()) skipped.push('Edit focus (the page has no focus)');
   else {
-    more('b').click();
-    const edit = row('b').querySelector('[data-act="edit"]');
-    edit.focus({ focusVisible: true });
-    edit.click();
-    check(doc.activeElement === task('b') || doc.getElementById('sheet').contains(doc.activeElement), 'test setup: focus lost when the sheet opened');
-    doc.getElementById('sheet').close();
-    await wait(50);
-    check(doc.activeElement === task('b'), `focus after closing the sheet is on ${doc.activeElement?.className || doc.activeElement?.tagName}, not the todo`);
-    task('b').blur();
+    action('b', 'edit').focus({ focusVisible: true });
+    action('b', 'edit').click();
+    if (await until(() => sheetEl.open, 'the edit sheet (keyboard)')) {
+      sheetEl.close();
+      await until(() => doc.activeElement === task('b'), 'focus back on the todo after closing');
+      check(doc.activeElement === task('b'), `focus after closing the sheet is on ${doc.activeElement?.className || doc.activeElement?.tagName}, not the todo`);
+    }
+    action('b', 'edit').focus({ focusVisible: true });
+    action('b', 'edit').click();
+    if (await until(() => sheetEl.open, 'the edit sheet (keyboard save)')) {
+      doc.getElementById('todoText').textContent = 'Call the bank soon';
+      doc.getElementById('sheetForm').requestSubmit();
+      await until(() => !sheetEl.open && row('b')?.querySelector('.title')?.textContent.includes('soon'), 'the redrawn row (keyboard)');
+      await until(() => doc.activeElement === task('b'), 'focus back on the todo after saving');
+      check(doc.activeElement === task('b'), `focus after saving is on ${doc.activeElement?.className || doc.activeElement?.tagName}, not the todo`);
+    }
+    doc.activeElement?.blur();
   }
 
   // An Upcoming row still opens the edit sheet.
@@ -312,71 +309,62 @@ async function run() {
   const later = await until(() => doc.querySelector('.upcoming .row[data-id="d"] .task'), 'the Upcoming row');
   if (later) {
     later.click();
-    check(await until(() => doc.getElementById('sheet').open, 'the sheet from Upcoming'), 'an Upcoming row did not open the sheet');
-    doc.getElementById('sheet').close();
+    check(await until(() => sheetEl.open, 'the sheet from Upcoming'), 'an Upcoming row did not open the sheet');
+    sheetEl.close();
     await wait(50);
   }
+  doc.querySelector('.upcoming details').open = false;
 
-  // A second finger lifting doesn't cut short the first finger's dismiss swallow.
-  drag(task('a'), 70, 0);
-  await wait(600);
-  check(row('a').classList.contains('swiped'), 'test setup: row a not open (second finger)');
-  {
+  // A second finger lifting, or cancelled, doesn't cut short the first finger's dismiss swallow.
+  for (const end of ['pointerup', 'pointercancel']) {
+    await open('a');
+    check(row('a').classList.contains('swiped'), `test setup: row a not open (second finger ${end})`);
     const r = task('c').getBoundingClientRect();
     const x = r.left + 60, y = r.top + r.height / 2;
-    ptr(task('c'), 'pointerdown', x, y, { pointerId: 900 });
-    ptr(task('c'), 'pointerdown', x + 40, y, { pointerId: 901, isPrimary: false });
-    ptr(task('c'), 'pointerup', x + 40, y, { pointerId: 901, isPrimary: false });
+    const first = ++pid, second = ++pid;
+    ptr(task('c'), 'pointerdown', x, y, { pointerId: first });
+    ptr(task('c'), 'pointerdown', x + 40, y, { pointerId: second, isPrimary: false });
+    ptr(task('c'), end, x + 40, y, { pointerId: second, isPrimary: false });
     await wait(600);
-    ptr(task('c'), 'pointerup', x, y, { pointerId: 900 });
+    ptr(task('c'), 'pointerup', x, y, { pointerId: first });
     task('c').click();
     await wait(300);
-    check(!await done('c'), 'a second finger let the dismiss tap complete a todo');
-    check(!row('a').classList.contains('swiped'), 'the dismiss tap did not close the open row');
+    check(!await done('c'), `a second finger's ${end} let the dismiss tap complete a todo`);
+    check(!row('a').classList.contains('swiped'), `the dismiss tap did not close the open row (${end})`);
   }
 
-  // Keyboard-opened row: its menu takes taps, and a dismiss closes a swiped row and it together.
+  // Two open rows (one by keyboard, one swiped): a tap elsewhere closes both and completes nothing; a tap on
+  // one row's action closes the other.
   if (!doc.hasFocus()) skipped.push('keyboard-opened rows (the page has no focus)');
   else {
-    more('a').focus({ focusVisible: true });
-    check(more('a').matches(':focus-visible'), 'test setup: Options focus is not :focus-visible (keyboard-opened rows)');
-    more('a').click();
-    const item = row('a').querySelector('[data-act="tomorrow"]');
-    let reached = false;
-    const probe = (e) => { reached = true; e.stopPropagation(); };
-    item.addEventListener('click', probe);
-    tap(item);
-    item.removeEventListener('click', probe);
-    check(reached, 'a tap on a keyboard-opened row\'s menu was swallowed');
-    if (!row('a').querySelector('.actions').hidden) more('a').click();
-    drag(task('b'), 70, 0);
-    await wait(600);
-    more('a').focus({ focusVisible: true });
+    await open('b');
+    action('a', 'tomorrow').focus({ focusVisible: true });
+    check(row('b').classList.contains('swiped') && isOpen('a'), 'test setup: two rows not open');
     tap(task('c'));
     await wait(150);
     check(!row('b').classList.contains('swiped') && shiftX(task('a')) === 0, 'a dismiss did not close both open rows');
     check(!row('c').classList.contains('done') && !await done('c'), 'the dismiss of two open rows completed a todo');
-  }
-
-  // Two open rows: a tap on one's Options closes the other.
-  if (doc.hasFocus()) {
-    drag(task('b'), 70, 0);
     await wait(600);
-    more('a').focus({ focusVisible: true });
-    check(row('b').classList.contains('swiped') && more('a').matches(':focus-visible'), 'test setup: two rows not open');
-    tap(more('a'));
-    check(!row('b').classList.contains('swiped'), "a tap on one open row's Options left the other row open");
-    if (!row('a').querySelector('.actions').hidden) more('a').click();
-    more('a').blur();
+    await open('b');
+    action('a', 'tomorrow').focus({ focusVisible: true });
+    let reached = false;
+    const probe = (e) => { reached = true; e.stopPropagation(); };
+    action('a', 'tomorrow').addEventListener('click', probe);
+    tap(action('a', 'tomorrow'));
+    action('a', 'tomorrow').removeEventListener('click', probe);
+    check(reached, "a tap on a keyboard-opened row's action was swallowed");
+    check(!row('b').classList.contains('swiped'), "a tap on one open row's action left the other row open");
+    action('a', 'tomorrow').blur();
   }
 
   // The grace clears: after a short drag, the next tap completes.
+  await wait(600);
   drag(task('c'), 30, 0);
   tap(task('c'));
   check(await until(() => done('c'), 'the tap after a short drag to complete'), 'the next real tap was eaten');
   const struck = await until(() => doc.querySelector('.today .row.done[data-id="c"]'), 'the struck row');
   if (struck) {
-    drag(struck.querySelector('.task'), 70, 0);
+    drag(struck.querySelector('.task'), 160, 0);
     check(!struck.classList.contains('swiped') && !struck.classList.contains('dragging'), 'a struck row swiped');
   }
 }

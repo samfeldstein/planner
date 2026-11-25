@@ -49,8 +49,7 @@ async function run() {
   const row = await until(() => doc.querySelector(`.row[data-id="${id}"]`), 'the todo row');
   if (!row) return;
 
-  row.querySelector('.row-more').click();
-  if (row.querySelector('.actions').hidden) failures.push('options did not expand');
+  if (!row.querySelector('.actions [data-act="tomorrow"]')) failures.push('the row has no actions');
   row.querySelector('.task').click();
 
   const saved = await until(async () => {

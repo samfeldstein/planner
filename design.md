@@ -28,7 +28,7 @@ Ruled, flat, square corners, no shadows (except the round + button), airy, restr
 
 - **Page:** a fixed 1px margin rule at 28px; text starts at 36px.
 - **Rows:** full-bleed, separated by a ruled line, no card borders.
-- **Row options:** swipe a todo right and an Options button (Kalam on `--hairline`, 80px plus the left safe area) slides in from the left edge; tapping it opens Tomorrow, Skip, and Edit below the row, and picking one closes the menu. One row open at a time; any other tap only closes it. Right-click, or keyboard focus on the button, works too. No visible arrow on rows (removed 2026-11-24).
+- **Row options:** swipe a todo right and its actions (Tomorrow, Skip for repeating todos, and Edit: Kalam on `--hairline`, 80px each plus the left safe area) slide in from the left edge inside the row, as the task slides right; nothing above or below moves (Sam, 2026-11-25, replacing the Options button and the menu below the row). Picking one closes the row. One row open at a time; any other tap only closes it. Right-click, or keyboard focus on an action, opens it too. An overdue repeating todo shows its repeat after the due date ("Due Nov 20 · Every day"). No visible arrow on rows (removed 2026-11-24).
 - **List:** todos due today (and overdue) are one list, with no time-of-day sections (dropped 2026-11-21). A ruled line separates the list, Completed, and Upcoming. Each todo still stores a part of the day, set when it's added, but it isn't shown or used.
 - **Priority:** top-priority todos come first in the list; each keeps a filled accent square on the margin rule.
 - **Completed:** todos checked off before the app last lost focus (or was relaunched) leave the list for a collapsed disclosure below it, above Upcoming, set exactly like Upcoming's summary. Struck-through rows in check-off order; tapping one undoes it. Shown only when it has an entry; closed after each time the app is left, not remembered. Still counted in the header's done of total.
@@ -41,4 +41,4 @@ Ruled, flat, square corners, no shadows (except the round + button), airy, restr
 
 ## Motion
 
-Sheet slides up 200ms; done row strikes for 160ms; a swiped row follows the finger and snaps open or shut in 160ms (keyboard focus on its Options button slides it the same way); the + button scales on press. Nothing else.
+Sheet slides up 200ms; done row strikes for 160ms; a swiped row follows the finger and snaps open or shut in 160ms (keyboard focus on one of its actions slides it the same way); the + button scales on press. Nothing else.

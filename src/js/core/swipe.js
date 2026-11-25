@@ -1,4 +1,4 @@
-// Swipe right on a todo row to show its Options button. Pure rules, so they can be tested without a DOM.
+// Swipe right on a todo row to show its actions in the row. Pure rules, so they can be tested without a DOM.
 
 export const SWIPE_X = 16; // px sideways before a drag counts as a swipe
 export const SCROLL_Y = 10; // px up or down before it counts as a scroll
