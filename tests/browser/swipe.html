@@ -372,6 +372,7 @@ async function run() {
   // A repeating todo checked off today is struck in today's list and next due in Upcoming.
   await wait(600);
   tap(task('a'));
+  await until(() => doc.querySelector('.today .row.done[data-id="a"]'), 'the repeating todo struck in today');
   doc.querySelector('.upcoming details').open = true;
   // Keyboard Edit from Upcoming, then Save: focus goes back to the Upcoming row, not the same todo's row in today's list.
   const laterA = () => doc.querySelector('.upcoming .row[data-id="a"] .task');
@@ -386,6 +387,22 @@ async function run() {
       await until(() => !sheetEl.open && laterA()?.textContent.includes('more'), 'the redrawn Upcoming row');
       await until(() => doc.activeElement === laterA(), 'focus back on the Upcoming row after saving');
       check(doc.activeElement === laterA(), `focus after saving from Upcoming is on ${doc.activeElement?.closest('section')?.className} ${doc.activeElement?.className}, not the Upcoming row`);
+    }
+    doc.activeElement?.blur();
+  }
+
+  // Keyboard Edit from Upcoming that moves the todo to today: focus follows it into today's list.
+  const laterD = await until(() => doc.querySelector('.upcoming .row[data-id="d"] .task'), 'todo d in Upcoming');
+  if (laterD && doc.hasFocus()) {
+    laterD.focus();
+    laterD.click();
+    if (await until(() => sheetEl.open, 'the sheet for d')) {
+      doc.querySelector('#sheetForm input[name="due"][value="today"]').click();
+      doc.getElementById('sheetForm').requestSubmit();
+      await until(() => !sheetEl.open && row('d'), 'd redrawn in today');
+      await until(() => doc.activeElement === row('d')?.querySelector('.task'), 'focus on d in today');
+      check(doc.activeElement === row('d')?.querySelector('.task'),
+        `focus after moving d to today is on ${doc.activeElement?.tagName} ${doc.activeElement?.className}`);
     }
     doc.activeElement?.blur();
   }

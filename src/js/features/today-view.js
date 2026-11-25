@@ -379,7 +379,7 @@ export function init({ store, clock }) {
   }
 
   // Right-click opens the row's actions on desktop (and a long-press, where the browser fires contextmenu for it;
-  // iOS Safari may not, unchecked); it blocks the iOS callout too.
+  // iOS Safari may not, unchecked). The iOS callout is blocked in CSS (-webkit-touch-callout).
   list.addEventListener('contextmenu', (e) => {
     const li = e.target.closest('.task')?.closest('.row');
     if (!li) return;
@@ -401,7 +401,10 @@ export function init({ store, clock }) {
     // Focus is lost (body) or left on a button inside the closed sheet.
     const lost = document.activeElement === document.body || sheetEl.contains(document.activeElement);
     if (!was || !lost) return;
-    tryFocus(list.querySelector(`.${was.section} [data-id="${CSS.escape(was.id)}"] .task`), { preventScroll: true });
+    // Its own section first; a save that moved the todo (a new due date) finds its live row elsewhere.
+    const id = CSS.escape(was.id);
+    const node = list.querySelector(`.${was.section} [data-id="${id}"] .task`) ?? list.querySelector(`.row:not(.done)[data-id="${id}"] .task`);
+    tryFocus(node, { preventScroll: true });
   });
 
   list.addEventListener('click', (e) => {
