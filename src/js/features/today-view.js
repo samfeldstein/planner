@@ -389,9 +389,11 @@ export function init({ store, clock }) {
     li.classList.add('swiped');
   });
 
-  // The edit sheet returns focus to the todo when it closes, unless a save redrew the row: then here.
-  // A repeating todo can have a row in today's list and in Upcoming, so the section is kept too.
-  let edited = null; // { id, section }
+  // Where focus goes after the edit sheet closes, if a save or delete redrew the list under it. Only one unstruck
+  // row has a given id (a struck row is a finished snapshot; Upcoming rows are never struck), so that row is the
+  // todo wherever a save moved it. Gone (deleted) or hidden (in a collapsed Upcoming): as after Tomorrow or Skip.
+  // Recorded for every Edit, not only a focused one: Safari doesn't focus a tapped button, nor may VoiceOver.
+  let edited = null; // { id, index }: the index among check-off buttons, -1 from Upcoming
   const sheetEl = document.getElementById('sheet');
   sheetEl?.addEventListener('close', () => {
     // The close event comes a moment after close(): one from a sheet already reopened is stale.
@@ -401,10 +403,10 @@ export function init({ store, clock }) {
     // Focus is lost (body) or left on a button inside the closed sheet.
     const lost = document.activeElement === document.body || sheetEl.contains(document.activeElement);
     if (!was || !lost) return;
-    // Its own section first; a save that moved the todo (a new due date) finds its live row elsewhere.
-    const id = CSS.escape(was.id);
-    const node = list.querySelector(`.${was.section} [data-id="${id}"] .task`) ?? list.querySelector(`.row:not(.done)[data-id="${id}"] .task`);
-    tryFocus(node, { preventScroll: true });
+    const opts = { preventScroll: true };
+    if (tryFocus(list.querySelector(`.row:not(.done)[data-id="${CSS.escape(was.id)}"] .task`), opts)) return;
+    if (was.index < 0 && tryFocus(list.querySelector('.upcoming summary'), opts)) return;
+    refocus(Math.max(was.index, 0), opts);
   });
 
   list.addEventListener('click', (e) => {
@@ -419,7 +421,7 @@ export function init({ store, clock }) {
     if (own && btn !== own && focused) own.focus({ preventScroll: true });
     li.classList.remove('swiped'); // any row action closes the row (Edit's sheet must not see an open row)
     if (kind === 'edit') {
-      edited = focused ? { id: li.dataset.id, section: li.closest('section')?.classList[0] ?? 'today' } : null;
+      edited = { id: li.dataset.id, index: own ? checks().indexOf(own) : -1 };
       document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
     } else act(kind, li);
   });

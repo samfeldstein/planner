@@ -406,6 +406,54 @@ async function run() {
     }
     doc.activeElement?.blur();
   }
+
+  // More keyboard Edits that redraw the list: focus never ends on body.
+  const focusName = () => `${doc.activeElement?.closest('section')?.className ?? ''} ${doc.activeElement?.tagName} ${doc.activeElement?.className}`;
+  const onCheck = () => !!doc.activeElement?.matches('#list [data-act="complete"], #list [data-act="uncomplete"]');
+  async function keyboardEdit(btn, what, finish) {
+    btn.focus({ focusVisible: true });
+    btn.click();
+    if (!await until(() => sheetEl.open, `the sheet (${what})`)) return false;
+    finish();
+    await until(() => !sheetEl.open, `the sheet to close (${what})`);
+    await wait(100); // the close event
+    return true;
+  }
+  const moveTo = (due) => () => {
+    doc.querySelector(`#sheetForm input[name="due"][value="${due}"]`).click();
+    doc.getElementById('sheetForm').requestSubmit();
+  };
+  const remove = () => doc.getElementById('deleteBtn').click();
+  if (!doc.hasFocus()) skipped.push('Edit focus after moves and deletes (the page has no focus)');
+  else if (row('b') && row('d')) {
+    // Today to Tomorrow with Upcoming open: focus follows the row into Upcoming.
+    doc.querySelector('.upcoming details').open = true;
+    if (await keyboardEdit(action('b', 'edit'), 'b to Tomorrow, Upcoming open', moveTo('tomorrow'))) {
+      const laterB = doc.querySelector('.upcoming .row[data-id="b"] .task');
+      check(laterB && doc.activeElement === laterB, `focus after moving b into an open Upcoming is on ${focusName()}`);
+    }
+    // Today to Tomorrow with Upcoming collapsed: the moved row can't take focus; a nearby check-off does.
+    doc.querySelector('.upcoming details').open = false;
+    await wait(50);
+    if (await keyboardEdit(action('d', 'edit'), 'd to Tomorrow, Upcoming collapsed', moveTo('tomorrow'))) {
+      check(onCheck(), `focus after moving d into a collapsed Upcoming is on ${focusName()}`);
+    }
+    // Delete from Upcoming: the Upcoming summary.
+    doc.querySelector('.upcoming details').open = true;
+    const laterB = await until(() => doc.querySelector('.upcoming .row[data-id="b"] .task'), 'b in Upcoming');
+    if (laterB && await keyboardEdit(laterB, 'delete b from Upcoming', remove)) {
+      check(doc.activeElement === doc.querySelector('.upcoming summary'), `focus after deleting from Upcoming is on ${focusName()}`);
+    }
+    // Delete from today: a nearby check-off. (Undo c first, so today's list has a live row.)
+    await wait(600);
+    tap(task('c'));
+    if (await until(() => row('c') && !row('c').classList.contains('done'), 'c undone')) {
+      if (await keyboardEdit(action('c', 'edit'), 'delete c from today', remove)) {
+        check(!row('c') && onCheck(), `focus after deleting from today is on ${focusName()}`);
+      }
+    }
+    doc.activeElement?.blur();
+  } else failures.push('test setup: rows b and d are not in today');
   doc.querySelector('.upcoming details').open = false;
 }
 
