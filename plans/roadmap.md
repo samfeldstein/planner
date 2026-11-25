@@ -1,11 +1,11 @@
 # Roadmap
 
-## Next (2026-11-25, swipe session; committed, not released or pushed)
+## Next (2026-11-25, swipe session; released 9bc79e5044 and pushed)
 
 **Done this session:** swipe right on a todo shows an Options button (design B: one button that opens the existing Tomorrow, Skip, Edit menu); the row arrow is gone. Plan `plans/swipe-options.md`; code `src/js/ui/row-swipe.js`, `src/js/core/swipe.js`, the row grid in `app.css`. Plan reviews 2; cold reviews 4 (Important bugs fixed in rounds 1 and 3; round 4 clean); npm test 190/190 in five timezones; all five browser tests (new: `swipe.html`) pass in the Claude browser pane.
 
 **Waiting on Sam:**
-- Release (`npm run release`, in the push command), then open the app once so the phone takes it. Phone checks the pane can't run: a diagonal swipe, starting a scroll on a row, a slow tap that closes an open row, VoiceOver reaching Options (it sits off-screen until swiped), landscape, a pinch on a row.
+- Open the app once so the phone takes release 9bc79e5044. Phone checks the pane can't run: a diagonal swipe, starting a scroll on a row, a slow tap that closes an open row, VoiceOver reaching Options (it sits off-screen until swiped), landscape, a pinch on a row.
 - Still unchecked from the last release: the Upcoming position, the notification's title ("Planner, from Planner"?), and whether VoiceOver mixes up the header's "Options" with each row's "Options: <title>".
 - `npm run test:browser` in his terminal now runs five pages; the swipe page's first keyboard block only runs where the page has focus (headless Chrome).
 
