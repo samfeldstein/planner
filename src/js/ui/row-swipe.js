@@ -2,7 +2,7 @@
 // Tomorrow, Skip, and Edit. Touch and pen only; a mouse uses right-click. A row is open when swiped, or
 // slid open by keyboard focus on its Options button. Any tap while a row is open only closes it (its click
 // is swallowed, so it can't complete a todo), except a tap on that row's Options button or menu, which
-// goes through; today-view then closes the swipe.
+// goes through and closes any other open row; today-view closes that row's swipe when one of its buttons is tapped.
 // The open state is the row's .swiped class; render() redraws rows closed.
 
 import { classify, offset, settle } from '../core/swipe.js';

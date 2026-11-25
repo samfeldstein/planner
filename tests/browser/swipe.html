@@ -199,6 +199,7 @@ async function run() {
   // A dismiss tap on + is swallowed too: the sheet doesn't open.
   drag(task('b'), 70, 0);
   await wait(600);
+  check(row('b').classList.contains('swiped'), 'test setup: row not swiped before the tap on +');
   tap(doc.getElementById('addBtn'));
   await wait(150);
   check(!row('b').classList.contains('swiped'), 'tap on + did not close the open row');
@@ -263,6 +264,7 @@ async function run() {
   more('b').click();
   drag(task('b'), 70, 0);
   await wait(600);
+  check(row('b').classList.contains('swiped') && !row('b').querySelector('.actions').hidden, 'test setup: row not swiped with its menu open before Edit');
   tap(row('b').querySelector('[data-act="edit"]'));
   const sheet = await until(() => doc.getElementById('sheet').open && doc.getElementById('sheet'), 'the edit sheet');
   if (sheet) {
@@ -282,6 +284,7 @@ async function run() {
   if (!doc.hasFocus()) skipped.push('keyboard-opened rows (the page has no focus)');
   else {
     more('a').focus({ focusVisible: true });
+    check(more('a').matches(':focus-visible'), 'test setup: Options focus is not :focus-visible (keyboard-opened rows)');
     more('a').click();
     const item = row('a').querySelector('[data-act="tomorrow"]');
     let reached = false;
@@ -298,6 +301,18 @@ async function run() {
     await wait(150);
     check(!row('b').classList.contains('swiped') && shiftX(task('a')) === 0, 'a dismiss did not close both open rows');
     check(!row('c').classList.contains('done') && !await done('c'), 'the dismiss of two open rows completed a todo');
+  }
+
+  // Two open rows: a tap on one's Options closes the other.
+  if (doc.hasFocus()) {
+    drag(task('b'), 70, 0);
+    await wait(600);
+    more('a').focus({ focusVisible: true });
+    check(row('b').classList.contains('swiped') && more('a').matches(':focus-visible'), 'test setup: two rows not open');
+    tap(more('a'));
+    check(!row('b').classList.contains('swiped'), "a tap on one open row's Options left the other row open");
+    if (!row('a').querySelector('.actions').hidden) more('a').click();
+    more('a').blur();
   }
 
   // The grace clears: after a short drag, the next tap completes.
