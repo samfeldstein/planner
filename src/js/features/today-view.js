@@ -378,7 +378,8 @@ export function init({ store, clock }) {
     }
   }
 
-  // Right-click (or a long-press callout) opens the row's actions on desktop; it blocks the iOS callout too.
+  // Right-click opens the row's actions on desktop (and a long-press, where the browser fires contextmenu for it;
+  // iOS Safari may not, unchecked); it blocks the iOS callout too.
   list.addEventListener('contextmenu', (e) => {
     const li = e.target.closest('.task')?.closest('.row');
     if (!li) return;
@@ -389,17 +390,18 @@ export function init({ store, clock }) {
   });
 
   // The edit sheet returns focus to the todo when it closes, unless a save redrew the row: then here.
-  let editedId = null;
+  // A repeating todo can have a row in today's list and in Upcoming, so the section is kept too.
+  let edited = null; // { id, section }
   const sheetEl = document.getElementById('sheet');
   sheetEl?.addEventListener('close', () => {
     // The close event comes a moment after close(): one from a sheet already reopened is stale.
     if (sheetEl.open) return;
-    const id = editedId;
-    editedId = null;
+    const was = edited;
+    edited = null;
     // Focus is lost (body) or left on a button inside the closed sheet.
     const lost = document.activeElement === document.body || sheetEl.contains(document.activeElement);
-    if (!id || !lost) return;
-    tryFocus(list.querySelector(`[data-id="${CSS.escape(id)}"] .task`), { preventScroll: true });
+    if (!was || !lost) return;
+    tryFocus(list.querySelector(`.${was.section} [data-id="${CSS.escape(was.id)}"] .task`), { preventScroll: true });
   });
 
   list.addEventListener('click', (e) => {
@@ -414,7 +416,7 @@ export function init({ store, clock }) {
     if (own && btn !== own && focused) own.focus({ preventScroll: true });
     li.classList.remove('swiped'); // any row action closes the row (Edit's sheet must not see an open row)
     if (kind === 'edit') {
-      editedId = focused ? li.dataset.id : null;
+      edited = focused ? { id: li.dataset.id, section: li.closest('section')?.classList[0] ?? 'today' } : null;
       document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
     } else act(kind, li);
   });

@@ -368,6 +368,28 @@ async function run() {
     drag(struck.querySelector('.task'), 160, 0);
     check(!struck.classList.contains('swiped') && !struck.classList.contains('dragging'), 'a struck row swiped');
   }
+
+  // A repeating todo checked off today is struck in today's list and next due in Upcoming.
+  await wait(600);
+  tap(task('a'));
+  doc.querySelector('.upcoming details').open = true;
+  // Keyboard Edit from Upcoming, then Save: focus goes back to the Upcoming row, not the same todo's row in today's list.
+  const laterA = () => doc.querySelector('.upcoming .row[data-id="a"] .task');
+  if (!doc.hasFocus()) skipped.push('Edit focus from Upcoming (the page has no focus)');
+  else if (!await until(laterA, 'the repeating todo in Upcoming')) { /* reported by until */ }
+  else {
+    laterA().focus();
+    laterA().click();
+    if (await until(() => sheetEl.open, 'the sheet from Upcoming (keyboard save)')) {
+      doc.getElementById('todoText').textContent = 'Stretch more';
+      doc.getElementById('sheetForm').requestSubmit();
+      await until(() => !sheetEl.open && laterA()?.textContent.includes('more'), 'the redrawn Upcoming row');
+      await until(() => doc.activeElement === laterA(), 'focus back on the Upcoming row after saving');
+      check(doc.activeElement === laterA(), `focus after saving from Upcoming is on ${doc.activeElement?.closest('section')?.className} ${doc.activeElement?.className}, not the Upcoming row`);
+    }
+    doc.activeElement?.blur();
+  }
+  doc.querySelector('.upcoming details').open = false;
 }
 
 try {
