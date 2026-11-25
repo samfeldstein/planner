@@ -41,4 +41,4 @@ Ruled, flat, square corners, no shadows (except the round + button), airy, restr
 
 ## Motion
 
-Sheet slides up 200ms; done row strikes for 160ms; a swiped row follows the finger and snaps open or shut in 160ms; the + button scales on press. Nothing else.
+Sheet slides up 200ms; done row strikes for 160ms; a swiped row follows the finger and snaps open or shut in 160ms (keyboard focus on its Options button slides it the same way); the + button scales on press. Nothing else.

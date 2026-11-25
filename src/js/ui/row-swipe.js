@@ -13,7 +13,8 @@ export function init({ list }) {
   let suppress = false;
   let suppressTimer = 0;
 
-  const openRow = () => list.querySelector('.row.swiped');
+  // Open by a swipe, or slid open by keyboard focus on its Options button (CSS).
+  const openRow = () => list.querySelector('.row.swiped, .row:has(.row-more:focus-visible)');
   const swipeable = (li) => li && list.contains(li) && li.closest('.today') && li.querySelector('.row-more');
 
   function clearSuppress() {
@@ -38,6 +39,7 @@ export function init({ list }) {
     if (open) {
       if (open.querySelector('.row-more').contains(e.target)) return; // Options: its click opens the menu
       open.classList.remove('swiped');
+      if (open.contains(document.activeElement)) document.activeElement.blur();
       suppress = true; // the timer starts when the finger lifts
       return;
     }
@@ -56,7 +58,6 @@ export function init({ list }) {
       if (gesture.kind === 'scroll') { end(); return; }
       if (gesture.kind === 'pending') return;
       gesture.max = gesture.li.querySelector('.row-more').getBoundingClientRect().width;
-      try { gesture.li.setPointerCapture(e.pointerId); } catch { /* touch is captured anyway */ }
       gesture.li.classList.add('dragging');
     }
     gesture.off = offset(dx, gesture.max);
@@ -78,14 +79,13 @@ export function init({ list }) {
     end();
   });
 
-  // The browser took the touch (a scroll began) or the pointer went away: back to closed.
-  const cancel = (e) => {
-    if (e.type === 'pointercancel') clearSuppress();
+  // The browser took the touch (a scroll began): back to closed. No setPointerCapture: a touch is
+  // already captured to the element under the finger, and moving it would fire lostpointercapture.
+  document.addEventListener('pointercancel', (e) => {
+    clearSuppress();
     if (!gesture || e.pointerId !== gesture.pointerId) return;
     end();
-  };
-  document.addEventListener('pointercancel', cancel);
-  list.addEventListener('lostpointercapture', cancel);
+  });
 
   // Before anything else sees it: the click of a dismiss tap or a drag.
   document.addEventListener('click', (e) => {

@@ -286,7 +286,7 @@ button { cursor: pointer; }
 
 .row-more:focus-visible { outline-offset: -2px; }
 
-/* Transforms only while sliding or open, so a plain press paints under the margin rule as before. */
+/* Transforms only while sliding or open. An open Options button paints over the margin rule and the priority square. */
 .task, .row-more { transition: transform 160ms ease-out; }
 .row.dragging :is(.task, .row-more) { transition: none; }
 .row.dragging .task { transform: translateX(var(--swipe, 0px)); }

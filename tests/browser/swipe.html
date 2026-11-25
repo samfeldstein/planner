@@ -7,7 +7,7 @@
 // A swipe right on a todo shows its Options button (ui/row-swipe.js). Synthetic touch pointers; the test
 // sends the click a real tap would. Transitions are off in the frame so transforms read at rest.
 import { createIdbAdapter } from '../../src/js/data/db.js';
-import { todayLocal } from '../../src/js/core/date.js';
+import { addDays, todayLocal } from '../../src/js/core/date.js';
 
 const failures = [];
 const skipped = [];
@@ -31,13 +31,14 @@ async function run() {
   const today = todayLocal();
   const stamp = new Date().toISOString();
   const adapter = createIdbAdapter();
-  const todo = (id, title, recur = null) => ({ store: 'todos', type: 'put', value: {
-    id, title, due: today, part: 'morning', groupId: null, priority: 0, recur, lastDone: null, createdAt: stamp, updatedAt: stamp,
+  const todo = (id, title, recur = null, due = today) => ({ store: 'todos', type: 'put', value: {
+    id, title, due, part: 'morning', groupId: null, priority: 0, recur, lastDone: null, createdAt: stamp, updatedAt: stamp,
   } });
   await adapter.commit([
     todo('a', 'Stretch', { freq: 'daily' }),
     todo('b', 'Call the bank'),
     todo('c', 'Buy stamps'),
+    todo('d', 'Renew passport', null, addDays(today, 3)),
   ]);
 
   const frame = document.getElementById('app');
@@ -195,10 +196,61 @@ async function run() {
     }
   }
 
+  // A dismiss tap on + is swallowed too: the sheet doesn't open.
+  drag(task('b'), 70, 0);
+  await wait(600);
+  tap(doc.getElementById('addBtn'));
+  await wait(150);
+  check(!row('b').classList.contains('swiped'), 'tap on + did not close the open row');
+  check(!doc.getElementById('sheet').open, 'the dismiss tap on + opened the sheet');
+
+  // A dismiss tap that turns into a scroll (pointercancel) leaves no swallow behind.
+  drag(task('b'), 70, 0);
+  await wait(600);
+  {
+    const id = ++pid;
+    const r = task('c').getBoundingClientRect();
+    ptr(task('c'), 'pointerdown', r.left + 60, r.top + 10, { pointerId: id });
+    ptr(task('c'), 'pointercancel', r.left + 60, r.top + 40, { pointerId: id });
+    let reached = false;
+    const probe = () => { reached = true; };
+    doc.addEventListener('click', probe);
+    doc.body.click();
+    doc.removeEventListener('click', probe);
+    check(reached, 'a click after a cancelled dismiss tap was swallowed');
+  }
+
+  // Upcoming and struck rows don't swipe.
+  doc.querySelector('.upcoming details').open = true;
+  await wait(100);
+  const upRow = doc.querySelector('.upcoming .row[data-id="d"]');
+  check(upRow, 'test arrangement: no Upcoming row');
+  if (upRow) {
+    drag(upRow.querySelector('.task'), 70, 0);
+    check(!upRow.classList.contains('swiped') && !upRow.classList.contains('dragging'), 'an Upcoming row swiped');
+  }
+  doc.querySelector('.upcoming details').open = false;
+
+  // A row slid open by keyboard focus is open too: a tap on its task only closes it.
+  if (doc.hasFocus()) {
+    more('b').focus({ focusVisible: true });
+    if (more('b').matches(':focus-visible')) {
+      tap(task('b'));
+      await wait(150);
+      check(!row('b').classList.contains('done') && !await done('b'), 'a tap on a keyboard-opened row completed it');
+      check(shiftX(task('b')) === 0, 'a tap on a keyboard-opened row did not close it');
+    }
+  }
+
   // The grace clears: after a short drag, the next tap completes.
   drag(task('c'), 30, 0);
   tap(task('c'));
   check(await until(() => done('c'), 'the tap after a short drag to complete'), 'the next real tap was eaten');
+  const struck = await until(() => doc.querySelector('.today .row.done[data-id="c"]'), 'the struck row');
+  if (struck) {
+    drag(struck.querySelector('.task'), 70, 0);
+    check(!struck.classList.contains('swiped') && !struck.classList.contains('dragging'), 'a struck row swiped');
+  }
 }
 
 try {
