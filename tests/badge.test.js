@@ -47,10 +47,11 @@ test('the forecast steps by civil days over a DST change', () => {
 });
 
 test('notification text', () => {
-  assert.deepEqual(notificationText(4), { title: '4 due today' });
-  assert.equal(notificationText(1).title, '1 due today');
-  assert.equal(notificationText(0).title, 'Nothing due today');
-  assert.equal(notificationText(null).title, 'Open Planner to see today');
+  assert.deepEqual(notificationText(4), { title: 'Planner', body: '4 items due today' });
+  assert.equal(notificationText(1).body, '1 item due today');
+  assert.equal(notificationText(0).body, 'Nothing due today');
+  assert.equal(notificationText(null).body, 'Open Planner to see today');
+  assert.equal(notificationText(null).title, 'Planner');
 });
 
 test('base64url decodes to bytes', () => {
@@ -101,12 +102,12 @@ async function pushWith(forecastJson, navigator = {}) {
 test('a push shows one notification with the forecast count, even when the badge call fails', async () => {
   const navigator = { setAppBadge: async () => { throw new Error('nope'); }, clearAppBadge: async () => {} };
   const shown = await pushWith({ [todayLocal()]: 3 }, navigator);
-  assert.deepEqual(shown, [['3 due today', undefined, 'daily']]);
+  assert.deepEqual(shown, [['Planner', '3 items due today', 'daily']]);
 });
 
 test('a push with no forecast for today shows the unknown text', async () => {
-  assert.deepEqual(await pushWith(null), [['Open Planner to see today', undefined, 'daily']]);
-  assert.deepEqual(await pushWith({ '1999-01-01': 2 }), [['Open Planner to see today', undefined, 'daily']]);
+  assert.deepEqual(await pushWith(null), [['Planner', 'Open Planner to see today', 'daily']]);
+  assert.deepEqual(await pushWith({ '1999-01-01': 2 }), [['Planner', 'Open Planner to see today', 'daily']]);
 });
 
 test('the page badge is set only while push is on, and cleared when it is off', async () => {
@@ -241,7 +242,7 @@ test('a push saves its time in the badge-counts cache', async () => {
 test('a failing time save never stops the notification', async () => {
   const shown = [];
   const caches = { open: async () => ({ match: async () => undefined, put: async () => { throw new Error('full'); } }) };
-  const self = { navigator: {}, registration: { getNotifications: async () => [], showNotification: async (t) => { shown.push(t); } } };
+  const self = { navigator: {}, registration: { getNotifications: async () => [], showNotification: async (t, o) => { shown.push(o.body); } } };
   const { listeners } = loadWorker({ self, caches });
   let work;
   listeners.push({ waitUntil: (p) => { work = p; } });

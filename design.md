@@ -31,11 +31,11 @@ Ruled, flat, square corners, no shadows (except the round + button), airy, restr
 - **List:** todos due today (and overdue) are one list, with no time-of-day sections (dropped 2026-11-21). A ruled line separates the list, Completed, and Upcoming. Each todo still stores a part of the day, set when it's added, but it isn't shown or used.
 - **Priority:** top-priority todos come first in the list; each keeps a filled accent square on the margin rule.
 - **Completed:** todos checked off before the app last lost focus (or was relaunched) leave the list for a collapsed disclosure below it, above Upcoming, set exactly like Upcoming's summary. Struck-through rows in check-off order; tapping one undoes it. Shown only when it has an entry; closed after each time the app is left, not remembered. Still counted in the header's done of total.
-- **Upcoming:** a collapsed disclosure below Completed (or the list), its summary a 1.25rem heading with the count and the row arrow (Completed matches). Later todos by day, each day labelled like a group (Tomorrow, then short dates); a repeating todo shows only its next due date. Tapping one opens the edit sheet. Open or closed is remembered on the device.
-- **Groups:** in the user's own order (arrows in More), after the priority todos, with ungrouped todos last.
+- **Upcoming:** a collapsed disclosure below Completed (or the list), its summary a 1.5rem heading with the count and the row arrow (Completed matches). Later todos by day, each day labelled like a group (Tomorrow, then short dates); a repeating todo shows only its next due date. Tapping one opens the edit sheet. Open or closed is remembered on the device. When the list is short, Completed and Upcoming sit at the bottom of the screen, just clear of the + button; opening Upcoming moves it up as its days fill the space.
+- **Groups:** in the user's own order (arrows in Options), after the priority todos, with ungrouped todos last.
 - **Done:** 1.5px strike-through.
 - **Group label:** Kalam, 1.05rem, letter-spaced, ruled underline, a step below the Completed and Upcoming headings. Upcoming's day labels match.
-- **Add / More:** inline add field under the list, plus a round accent + button bottom right that focuses it (hidden while the keyboard is up); ink three-dot button top-right of the header.
+- **Add / Options:** a round accent + button bottom right opens the sheet for a new todo (there's no inline add field, removed 2026-11-24); an ink three-dot button top-right of the header opens Options, whose title is 2rem.
 - **Sheets:** square, margin rule continues; text input is an underline; chips show a checkbox square.
 
 ## Motion

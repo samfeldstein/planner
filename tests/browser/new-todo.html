@@ -4,7 +4,7 @@
 <pre id="out">running…</pre>
 <iframe id="app" style="width:400px;height:700px"></iframe>
 <script type="module">
-// The add field (Return or leaving it) and the + button open the edit sheet for a new todo.
+// The + button opens the edit sheet for a new todo; Upcoming sits at the bottom of a short list.
 // The todo is created only on Save or Done; Cancel discards it.
 import { createIdbAdapter } from '../../src/js/data/db.js';
 
@@ -35,20 +35,29 @@ async function run() {
   win.addEventListener('unhandledrejection', (e) => failures.push(`unhandled rejection: ${e.reason}`));
   const doc = frame.contentDocument;
   const $ = (id) => doc.getElementById(id);
-  const field = await until(() => $('quickAdd')?.isContentEditable && $('quickAdd'), 'the add field');
-  if (!field) return;
+  await until(() => doc.querySelector('#list .upcoming'), 'the list to render');
   const sheet = $('sheet');
   await wait(300); // let the app finish loading the store
+  check(!$('quickAdd') && !doc.querySelector('.quick-add'), 'the add-a-task field is still there');
 
-  // 1. Return in the add field opens the sheet with the name; Done saves it with the chosen options.
-  field.focus();
-  field.textContent = 'Water plants';
-  field.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
-  if (!await until(() => sheet.open, 'the sheet after Return')) return;
-  check($('todoText').textContent === 'Water plants', `sheet title is "${$('todoText').textContent}"`);
+  // Layout: with a short list, Upcoming sits at the bottom of the screen, clear of the + button.
+  const box = (node) => node.getBoundingClientRect();
+  const layout = (what) => {
+    const up = box(doc.querySelector('#list .upcoming'));
+    check(Math.abs(up.bottom - box($('list')).bottom) < 1, `${what}: Upcoming is not at the bottom of the list`);
+    check(box(doc.querySelector('#list .upcoming summary')).bottom <= box($('addBtn')).top - 15.5, `${what}: Upcoming's summary is not clear of the + button`);
+    check(up.bottom > 700 - 120, `${what}: Upcoming is not near the bottom of the screen (bottom ${up.bottom})`);
+  };
+  layout('empty list');
+
+  // 1. The + button opens an empty sheet with the name field focused; Done saves it with its options.
+  $('addBtn').click();
+  if (!await until(() => sheet.open, 'the sheet after +')) return;
+  check(doc.activeElement === $('todoText'), `focus is on ${doc.activeElement?.id || doc.activeElement?.tagName}, not the name field`);
+  check($('todoText').textContent === '', '+ sheet is not empty');
   check($('sheetTitle').textContent === 'New todo', 'heading is not "New todo"');
   check($('deleteBtn').hidden && !$('cancelBtn').hidden, 'new todo shows Delete instead of Cancel');
-  check(field.textContent === '', 'add field was not cleared');
+  $('todoText').textContent = 'Water plants';
   await wait(200);
   check((await todos()).length === 0, 'todo was saved before Done');
   $('priority').click();
@@ -58,22 +67,18 @@ async function run() {
   check(!doc.querySelector('input[name="part"]'), 'the sheet still has a part-of-day picker');
   await until(() => !sheet.open, 'the sheet to close after Done');
 
-  // 2. Leaving the field opens the sheet too; Cancel discards the new todo.
-  field.focus();
-  field.textContent = 'Call mom';
-  field.blur();
-  if (!await until(() => sheet.open, 'the sheet after leaving the field')) return;
-  check($('todoText').textContent === 'Call mom', 'blur sheet has the wrong title');
+  // 2. Cancel discards the new todo.
+  $('addBtn').click();
+  if (!await until(() => sheet.open, 'the sheet after + (Cancel case)')) return;
+  $('todoText').textContent = 'Call mom';
   $('cancelBtn').click();
   await until(() => !sheet.open, 'the sheet to close after Cancel');
   await wait(200);
   check(!(await todos()).some((t) => t.title === 'Call mom'), 'Cancel saved the todo');
 
-  // 3. The + button opens an empty sheet with the name field focused; Save creates the todo.
+  // 3. Save creates the todo with the chosen repeat.
   $('addBtn').click();
-  if (!await until(() => sheet.open, 'the sheet after +')) return;
-  check(doc.activeElement === $('todoText'), `focus is on ${doc.activeElement?.id || doc.activeElement?.tagName}, not the name field`);
-  check($('todoText').textContent === '', '+ sheet is not empty');
+  if (!await until(() => sheet.open, 'the sheet after + (Save case)')) return;
   $('todoText').textContent = 'Stretch';
   doc.querySelector('input[name="repeat"][value="daily"]').click();
   $('submitBtn').click();
@@ -81,6 +86,7 @@ async function run() {
   check(third?.recur?.freq === 'daily', `saved with repeat ${JSON.stringify(third?.recur)}`);
   await until(() => !sheet.open, 'the sheet to close after Save');
   await until(() => doc.querySelector(`.row[data-id="${third?.id}"]`), 'the new row in the list');
+  layout('two todos');
 
   // 4. Editing an existing todo still says Edit and offers Delete.
   doc.dispatchEvent(new win.CustomEvent('planner:edit', { detail: { id: first?.id } }));
@@ -88,6 +94,28 @@ async function run() {
   check($('sheetTitle').textContent === 'Edit todo', 'edit heading is wrong');
   check(!$('deleteBtn').hidden && $('cancelBtn').hidden, 'edit sheet shows Cancel instead of Delete');
   check((await todos()).length === 2, `expected 2 todos, found ${(await todos()).length}`);
+  $('sheetDone').click();
+  await until(() => !sheet.open, 'the edit sheet to close');
+
+  // 5. A list taller than the screen keeps the 16px gap above the ruled line before Upcoming.
+  frame.style.height = '200px';
+  await wait(100);
+  const today = box(doc.querySelector('#list .today'));
+  const gap = box(doc.querySelector('#list .upcoming')).top - today.bottom;
+  check(Math.abs(gap - 16) < 1, `long list: gap above Upcoming is ${gap}px, not 16`);
+  frame.style.height = '700px';
+  await wait(100);
+
+  // 6. Moving the last todo to Tomorrow leaves focus on the Upcoming summary.
+  for (const id of [first?.id, third?.id]) {
+    const li = doc.querySelector(`#list .today .row[data-id="${id}"]`);
+    if (!li) { failures.push(`row ${id} is missing before Tomorrow`); return; }
+    li.querySelector('[data-act="more"]').click();
+    li.querySelector('[data-act="tomorrow"]').click();
+    await until(() => !doc.querySelector(`#list .today .row[data-id="${id}"]`), 'the row to move to Tomorrow');
+  }
+  await wait(100);
+  check(doc.activeElement === doc.querySelector('#list .upcoming summary'), `focus after the last Tomorrow is on ${doc.activeElement?.className || doc.activeElement?.tagName}, not the Upcoming summary`);
 }
 
 try {

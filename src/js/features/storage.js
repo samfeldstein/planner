@@ -1,5 +1,5 @@
 // Asks iOS to keep the data (navigator.storage.persist) once there is something worth keeping,
-// and shows the result on the More screen. A grant is heuristic and never blocks the app;
+// and shows the result on the Options screen. A grant is heuristic and never blocks the app;
 // the backup banner is the real safety net.
 
 export function init({ store }) {

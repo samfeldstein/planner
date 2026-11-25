@@ -123,11 +123,19 @@ button { cursor: pointer; }
 
 /* App shell */
 
+/* A column as tall as the screen, so a short list leaves Completed and Upcoming at the bottom. */
 #app {
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
   padding: calc(var(--strip) + 12px) 0
            calc(env(safe-area-inset-bottom) + 80px); /* clears the + button */
 }
+#app[hidden] { display: none; }
+
+#list { flex: 1 0 auto; display: flex; flex-direction: column; }
+/* Today's list takes the spare height, so the ruled line and what's below it sit at the bottom. */
+#list > .today { flex-grow: 1; }
 
 .head {
   position: relative;
@@ -173,7 +181,7 @@ button { cursor: pointer; }
   border-top: 1px solid var(--hairline);
 }
 
-/* Completed and Upcoming: below the list, collapsed by default. Same size as the More screen's headings. */
+/* Completed and Upcoming: below the list, collapsed by default. Same size as the Options screen's headings. */
 #list :is(.upcoming, .completed) summary {
   display: flex;
   align-items: baseline;
@@ -298,21 +306,7 @@ button { cursor: pointer; }
 .actions[hidden] { display: none; }
 .actions .detail { flex-basis: 100%; font-size: 0.76rem; color: var(--ink-2); }
 
-/* The add field sits right under the last task, like one more ruled line. */
-.quick-add { padding: 0 var(--gutter) 0 var(--text-x); }
-
-.quick-field {
-  display: block;
-  min-height: 48px;
-  padding: 11px 0;
-  font: 400 1.18rem/1.25 var(--hand);
-  -webkit-user-select: text;
-  user-select: text;
-  overflow-wrap: anywhere;
-}
-
-/* Round + button, bottom right: focuses the add field. Hidden while the keyboard is up, where it
-   would sit under the form bar or over the line being typed; Return or Done adds. */
+/* Round + button, bottom right: opens the sheet for a new todo. */
 .add-btn {
   position: fixed;
   right: calc(env(safe-area-inset-right) + 16px);
@@ -331,8 +325,7 @@ button { cursor: pointer; }
 }
 .add-btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
 .add-btn:active { transform: scale(0.94); }
-
-.kb-open .add-btn { display: none; }
+.add-btn[hidden] { display: none; }
 
 .empty { padding: 24px var(--gutter) 24px var(--text-x); font: 400 1.18rem/1.3 var(--hand); color: var(--ink-2); }
 
@@ -382,7 +375,7 @@ button { cursor: pointer; }
 
 .banner[hidden] { display: none; }
 
-/* More screen and confirm */
+/* Options screen and confirm */
 
 dialog.screen { height: calc(var(--vvh) - 16px); }
 
@@ -508,6 +501,8 @@ dialog::backdrop { background: rgb(0 0 0 / 0.4); }
 
 .sheet-head { display: flex; justify-content: space-between; align-items: center; }
 .sheet-head h2 { font: 400 1.25rem/1.2 var(--hand); }
+/* The Options title stands above its 1.5rem section headings. */
+.sheet-head #moreTitle { font-size: 2rem; }
 
 .sheet-body input[type="text"],
 .sheet-body input[type="search"],
