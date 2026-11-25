@@ -9,13 +9,13 @@
 **Waiting on Sam:**
 - Checked by Sam on 2026-11-25 in the phone preview (a Safari tab from `npm run dev`), not yet in the installed app: swipe open and closed, tapping each action, and the Options screen ("looks good").
 - Released 2026-11-25 (version 5bad1fb718). Sam checked the installed app the same day: swipe, each action, and Options good; landscape on the notch side works. A long-press does not open the row (so iOS fires no right-click for it).
-- VoiceOver checks can't come from Sam (he doesn't use VoiceOver): the actions off-screen until swiped, focus sliding the row open, and where focus lands after Edit and Save.
-- Still unchecked from the earlier release: a diagonal swipe, starting a scroll on a row, a slow tap that closes an open row, and a pinch on a row.
-- Still unchecked from before: the Upcoming position, the notification's title ("Planner, from Planner"?), and whether VoiceOver mixes up the header's "Options" with the row actions.
+- Also good on 2026-11-25: a diagonal swipe, starting a scroll on a row, a slow tap that closes an open row, a pinch on a row, and the Upcoming position.
+- Sam checks the morning notification on 2026-11-26: "Planner" on top and "x items due today" below, or still "Planner, from Planner"?
+- VoiceOver checks can't come from Sam (he doesn't use VoiceOver): the actions off-screen until swiped, focus sliding the row open, where focus lands after Edit and Save, and whether the header's "Options" is mixed up with the row actions.
 - Swipe distance (Sam's call): a row stays open only when it's dragged past half its strip, so about 120px with three actions and 80px with two. The Options button needed 40px. Lower it if it feels stiff.
 - Known trade-off, kept on purpose: on an open row, a tap on its action strip (about two thirds of the row) runs that action.
 
-**Claude next:** fix whatever the phone checks find. Small leftovers from review, none urgent:
+**Claude next:** the phone checks found nothing to fix. Small leftovers from review, none urgent:
 - The strip's buttons show no change when pressed, because their pressed color is the strip's own color.
 - A second right-click on an open row leaves it open.
 - On Options, a group name field low on the screen can sit under the keyboard's form bar.
