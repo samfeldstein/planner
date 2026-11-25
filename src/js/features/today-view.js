@@ -392,6 +392,8 @@ export function init({ store, clock }) {
   let editedId = null;
   const sheetEl = document.getElementById('sheet');
   sheetEl?.addEventListener('close', () => {
+    // The close event comes a moment after close(): one from a sheet already reopened is stale.
+    if (sheetEl.open) return;
     const id = editedId;
     editedId = null;
     // Focus is lost (body) or left on a button inside the closed sheet.

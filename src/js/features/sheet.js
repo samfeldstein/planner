@@ -215,7 +215,8 @@ export function init({ store, clock }) {
     btn.addEventListener('touchcancel', () => { start = null; });
   }
   sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
-  sheet.addEventListener('close', () => { editing = null; });
+  // The close event comes a moment after close(), so a sheet reopened in between keeps its todo.
+  sheet.addEventListener('close', () => { if (!sheet.open) editing = null; });
 
   deleteBtn.addEventListener('click', async () => {
     const todo = editing;

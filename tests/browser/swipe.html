@@ -187,6 +187,7 @@ async function run() {
 
   // Keyboard focus on an action slides the row open. Only where the page has focus (headless Chrome does;
   // the Claude browser pane may not, and then nothing can match :focus).
+  if (!doc.hasFocus()) win.focus();
   if (!doc.hasFocus()) skipped.push('keyboard focus (the page has no focus)');
   else {
     action('a', 'tomorrow').focus({ focusVisible: true });

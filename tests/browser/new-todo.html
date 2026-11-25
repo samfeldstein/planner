@@ -110,8 +110,10 @@ async function run() {
   for (const id of [first?.id, third?.id]) {
     const li = doc.querySelector(`#list .today .row[data-id="${id}"]`);
     if (!li) { failures.push(`row ${id} is missing before Tomorrow`); return; }
-    li.querySelector('[data-act="more"]').click();
-    li.querySelector('[data-act="tomorrow"]').click();
+    // As a keyboard user would: focus slides the row open, then Tomorrow.
+    const tomorrow = li.querySelector('[data-act="tomorrow"]');
+    tomorrow.focus();
+    tomorrow.click();
     await until(() => !doc.querySelector(`#list .today .row[data-id="${id}"]`), 'the row to move to Tomorrow');
   }
   await wait(100);
