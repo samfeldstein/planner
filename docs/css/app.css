@@ -217,11 +217,12 @@ button { cursor: pointer; }
 #list :is(.upcoming, .completed) details[open] summary::after { transform: translateY(2px) rotate(-135deg); }
 #list .upcoming .empty { padding-top: 8px; }
 
-/* A row is one grid cell for the task and its Options button, with the actions menu below. The button waits
-   just off the left edge (clipped) and slides in as the task slides right: a swipe (ui/row-swipe.js), or
-   keyboard focus on the button. */
+/* A row is one grid cell for the task and its actions strip (Tomorrow, Skip, Edit). The strip waits just off
+   the left edge (clipped) and slides in as the task slides right: a swipe (ui/row-swipe.js), or keyboard focus
+   on one of its buttons. Nothing changes height, so the rows above and below never move. --n is the row's
+   number of actions, set by today-view. */
 .row {
-  --opt-w: calc(80px + env(safe-area-inset-left));
+  --open-w: calc(var(--n, 3) * 80px + env(safe-area-inset-left));
   position: relative;
   display: grid;
   grid-template-columns: 100%;
@@ -231,7 +232,7 @@ button { cursor: pointer; }
   user-select: none;
 }
 
-.today .row:has(.row-more) { touch-action: pan-y pinch-zoom; }
+.today .row:has(.actions) { touch-action: pan-y pinch-zoom; }
 
 /* Top priority: a filled square sitting on the margin rule. */
 .row.top::before {
@@ -269,30 +270,40 @@ button { cursor: pointer; }
 .row.dragging .task:active { background: none; }
 .task:focus-visible { outline-offset: -2px; }
 
-/* The row's Options button, as tall as the task. */
-.row-more {
+/* The row's actions, as tall as the task, side by side. */
+.actions {
   grid-area: 1 / 1;
   justify-self: start;
-  width: var(--opt-w);
-  padding: 0 0 0 env(safe-area-inset-left);
-  border: 0;
-  border-radius: 0;
+  display: flex;
+  width: var(--open-w);
+  padding-left: env(safe-area-inset-left);
   background: var(--hairline);
+  transform: translateX(-100%);
+}
+
+.actions .action {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 4px;
+  border: 0;
+  border-left: 1px solid var(--bg);
+  background: none;
   color: var(--ink);
   font: 400 1rem/1 var(--hand);
-  transform: translateX(-100%);
   -webkit-touch-callout: none;
 }
 
-.row-more:focus-visible { outline-offset: -2px; }
+.actions .action:first-child { border-left: 0; }
+.actions .action:focus-visible { outline-offset: -2px; }
 
-/* The task moves only while sliding or open; Options waits off the left edge. An open Options button paints over the margin rule and the priority square. */
-.task, .row-more { transition: transform 160ms ease-out; }
-.row.dragging :is(.task, .row-more) { transition: none; }
+/* The task moves only while sliding or open; the strip waits off the left edge. An open strip paints over the margin rule and the priority square. */
+.task, .actions { transition: transform 160ms ease-out; }
+.row.dragging :is(.task, .actions) { transition: none; }
 .row.dragging .task { transform: translateX(var(--swipe, 0px)); }
-.row.dragging .row-more { transform: translateX(calc(var(--swipe, 0px) - 100%)); }
-.row:is(.swiped, :has(.row-more:focus-visible)):not(.dragging) .task { transform: translateX(var(--opt-w)); }
-.row:is(.swiped, :has(.row-more:focus-visible)):not(.dragging) .row-more { transform: none; }
+.row.dragging .actions { transform: translateX(calc(var(--swipe, 0px) - 100%)); }
+.row:is(.swiped, :has(.actions :focus-visible)):not(.dragging) .task { transform: translateX(var(--open-w)); }
+.row:is(.swiped, :has(.actions :focus-visible)):not(.dragging) .actions { transform: none; }
 
 /* Touch has no keyboard focus to show; the ring only appears after a tap or a programmatic focus. */
 @media (hover: none) {
@@ -305,16 +316,6 @@ button { cursor: pointer; }
 .meta { display: block; font-size: 0.76rem; color: var(--ink-2); }
 .meta.overdue { color: var(--overdue); }
 
-.actions {
-  grid-row: 2;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 0 var(--gutter) 12px var(--text-x);
-}
-
-.actions[hidden] { display: none; }
-.actions .detail { flex-basis: 100%; font-size: 0.76rem; color: var(--ink-2); }
 
 /* Round + button, bottom right: opens the sheet for a new todo. */
 .add-btn {
@@ -387,7 +388,9 @@ button { cursor: pointer; }
 
 /* Options screen and confirm */
 
-dialog.screen { height: calc(var(--vvh) - 16px); }
+/* Full screen, like the add / edit sheet (see #sheet below). */
+/* min-height: the margin rule runs to the bottom, and a tap below the content isn't a tap outside. */
+dialog.screen .sheet-body { padding-top: calc(env(safe-area-inset-top) + 8px); min-height: 100%; align-content: start; }
 
 .block { display: grid; gap: 8px; padding-top: 8px; }
 .block[hidden] { display: none; }
@@ -459,8 +462,9 @@ dialog {
 dialog::backdrop { background: rgb(0 0 0 / 0.4); }
 
 /* The add / edit sheet covers the whole visible area. With the keyboard up it shrinks to the space
-   above it and follows iOS's pan (--vv-top), with extra bottom padding for the form bar. */
-#sheet {
+   above it and follows iOS's pan (--vv-top), with extra bottom padding for the form bar.
+   The Options screen covers it the same way. */
+#sheet, dialog.screen {
   top: var(--vv-top);
   left: 0;
   margin: 0;

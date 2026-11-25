@@ -1,6 +1,6 @@
 // The Today list: todos due today plus overdue, as one list with groups inside. Tap a task to complete it; it stays
-// struck through until the day ends, and tapping it again undoes it. Swipe it right and tap Options (or right-click,
-// or tab to Options) to open Tomorrow, Skip (recurring only), and Edit; the swipe lives in ui/row-swipe.js.
+// struck through until the day ends, and tapping it again undoes it. Swipe it right (or right-click, or tab to them)
+// to show Tomorrow, Skip (recurring only), and Edit in the row; the swipe lives in ui/row-swipe.js.
 // Leaving the app (hidden or pagehide) puts the todos checked off so far away: on return they're in a
 // collapsed Completed list below the list, struck through, and tapping one there undoes it the same way.
 // Below that, a collapsed Upcoming list shows later todos by day; tapping one opens the edit sheet.
@@ -164,7 +164,8 @@ export function init({ store, clock }) {
     task.append(el('span', 'title', todo.title));
     if (todo.priority) task.append(el('span', 'vh', ', top priority'));
     if (overdue) {
-      task.append(el('span', 'meta overdue', `Due ${shortDate(effectiveDue(todo, today))}`));
+      const repeat = todo.recur ? ` · ${recurSummary(todo.recur)}` : '';
+      task.append(el('span', 'meta overdue', `Due ${shortDate(effectiveDue(todo, today))}${repeat}`));
     } else if (todo.recur) {
       task.append(el('span', 'meta', recurSummary(todo.recur)));
     }
@@ -174,25 +175,21 @@ export function init({ store, clock }) {
       return li;
     }
 
+    // The row's actions wait off the left edge, shown by a swipe right (or keyboard focus); see ui/row-swipe.js.
     const actions = el('div', 'actions');
-    actions.hidden = true;
-    if (overdue && todo.recur) actions.append(el('p', 'detail', recurSummary(todo.recur)));
+    let n = 0;
     for (const [act, label] of [['tomorrow', 'Tomorrow'], ['skip', 'Skip'], ['edit', 'Edit']]) {
       if (act === 'skip' && !todo.recur) continue;
       const b = el('button', 'action', label);
       b.type = 'button';
       b.dataset.act = act;
+      b.setAttribute('aria-label', `${label}: ${todo.title}`);
       actions.append(b);
+      n += 1;
     }
+    li.style.setProperty('--n', String(n)); // sizes the strip and how far the task slides
 
-    // Shown by a swipe right (or keyboard focus); see ui/row-swipe.js.
-    const more = el('button', 'row-more', 'Options');
-    more.type = 'button';
-    more.dataset.act = 'more';
-    more.setAttribute('aria-label', `Options: ${todo.title}`);
-    more.setAttribute('aria-expanded', 'false');
-
-    li.append(task, more, actions);
+    li.append(task, actions);
     return li;
   }
 
@@ -200,7 +197,6 @@ export function init({ store, clock }) {
     const today = clock.today();
     const renderMode = mode;
     mode = null;
-    const openId = list.querySelector('.actions:not([hidden])')?.closest('[data-id]')?.dataset.id;
     const { key: focusKey, quiet } = focusKeyForRender(renderMode);
 
     const parts = dateParts(today);
@@ -254,11 +250,6 @@ export function init({ store, clock }) {
     if (split.away.length) list.append(completed(split.away, today));
     list.append(upcoming(today));
 
-    if (openId) {
-      const open = list.querySelector(`[data-id="${CSS.escape(openId)}"]`);
-      if (open) setOpen(open, true);
-    }
-
     if (focusKey) restoreFocus(focusKey, quiet);
   }
 
@@ -296,8 +287,8 @@ export function init({ store, clock }) {
     return { key, quiet: quietly };
   }
 
-  // Focus the node and say whether it took: a button in a closed details, a hidden .actions, or a
-  // detached node refuses.
+  // Focus the node and say whether it took: a button in a closed details or a detached node refuses.
+  // (A row's action buttons take focus off-screen, and focus slides the row open.)
   function tryFocus(node, opts) {
     if (!node) return false;
     node.focus(opts);
@@ -332,21 +323,6 @@ export function init({ store, clock }) {
     const order = [...all.slice(at), ...all.slice(0, Math.max(at, 0)).reverse()];
     // None left: the Upcoming summary (always drawn, and in the list, so the next render keeps it), else +.
     if (!order.some((node) => tryFocus(node, opts)) && !tryFocus(list.querySelector('.upcoming summary'), opts)) addBtn.focus(opts);
-  }
-
-  function setOpen(li, open) {
-    const actions = li.querySelector('.actions');
-    if (!actions) return; // a finished row has no actions to open
-    actions.hidden = !open;
-    li.querySelector('.row-more').setAttribute('aria-expanded', String(open));
-  }
-
-  function toggle(li) {
-    const actions = li.querySelector('.actions');
-    if (!actions) return; // finished rows have none
-    const wasOpen = !actions.hidden;
-    for (const other of list.querySelectorAll('.actions:not([hidden])')) setOpen(other.closest('.row'), false);
-    setOpen(li, !wasOpen);
   }
 
   // Rows with an action in flight ignore further taps, so a double-tap can't complete twice.
@@ -402,12 +378,36 @@ export function init({ store, clock }) {
     }
   }
 
-  // Right-click also opens the actions on desktop; it blocks the iOS callout too.
+  // Right-click opens the row's actions on desktop (and a long-press, where the browser fires contextmenu for it;
+  // iOS Safari may not, unchecked). The iOS callout is blocked in CSS (-webkit-touch-callout).
   list.addEventListener('contextmenu', (e) => {
     const li = e.target.closest('.task')?.closest('.row');
     if (!li) return;
     e.preventDefault();
-    toggle(li);
+    if (!li.querySelector('.actions')) return; // finished and Upcoming rows have none
+    for (const other of list.querySelectorAll('.row.swiped')) other.classList.remove('swiped');
+    li.classList.add('swiped');
+  });
+
+  // Where keyboard focus goes after the edit sheet closes, if a save or delete redrew the list under it. Only one
+  // unstruck row has a given id (a struck row is a finished snapshot; Upcoming rows are never struck), so that row
+  // is the todo wherever a save moved it. Gone (deleted) or hidden (in a collapsed Upcoming): the Upcoming summary
+  // if the Edit came from there, else the nearest check-off, as after Tomorrow or Skip. Only an Edit from a focused
+  // row is recorded: on touch nothing had focus, and focus left on a far row would scroll the page on the next render.
+  let edited = null; // { id, index }: the index among check-off buttons, -1 from Upcoming
+  const sheetEl = document.getElementById('sheet');
+  sheetEl?.addEventListener('close', () => {
+    // The close event comes a moment after close(): one from a sheet already reopened is stale.
+    if (sheetEl.open) return;
+    const was = edited;
+    edited = null;
+    // Focus is lost (body) or left on a button inside the closed sheet.
+    const lost = document.activeElement === document.body || sheetEl.contains(document.activeElement);
+    if (!was || !lost) return;
+    const opts = { preventScroll: true };
+    if (tryFocus(list.querySelector(`.row:not(.done)[data-id="${CSS.escape(was.id)}"] .task`), opts)) return;
+    if (was.index < 0 && tryFocus(list.querySelector('.upcoming summary'), opts)) return;
+    refocus(Math.max(was.index, 0), opts);
   });
 
   list.addEventListener('click', (e) => {
@@ -416,10 +416,15 @@ export function init({ store, clock }) {
     const li = btn.closest('.row');
     const kind = btn.dataset.act;
     if (kind === 'complete' || kind === 'uncomplete') lastTap = { key: rowKey(btn), at: performance.now() };
-    li.classList.remove('swiped'); // any row action closes the swipe (Edit's sheet must not see an open row)
-    if (kind === 'more') toggle(li);
-    else if (kind === 'edit') document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
-    else act(kind, li);
+    // Focus on an action button moves to the todo itself before the row closes, so it has somewhere to be.
+    const own = li.querySelector('.task');
+    const focused = li.contains(document.activeElement);
+    if (own && btn !== own && focused) own.focus({ preventScroll: true });
+    li.classList.remove('swiped'); // any row action closes the row (Edit's sheet must not see an open row)
+    if (kind === 'edit') {
+      edited = focused ? { id: li.dataset.id, index: own ? checks().indexOf(own) : -1 } : null;
+      document.dispatchEvent(new CustomEvent('planner:edit', { detail: { id: li.dataset.id } }));
+    } else act(kind, li);
   });
 
   rowSwipe.init({ list });
