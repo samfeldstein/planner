@@ -9,7 +9,7 @@ export function phoneLines(interfaces, port) {
   const lan = ipv4.filter((ip) => isLocalHost(ip));
   if (lan.length) return lan.map((ip) => `On your phone (same Wi-Fi): http://${ip}:${port}`);
   if (!ipv4.length) return ['No network address found: connect the Mac to the same Wi-Fi as the phone.'];
-  // Usually a VPN or a self-assigned address with Wi-Fi off; the phone would get the install gate on these.
+  // Probably a VPN or a self-assigned address with Wi-Fi off (unchecked); the phone would get the install gate on these.
   return [`No private network address for the phone (found ${ipv4.join(', ')}, which the app treats as a website): ` +
     'connect the Mac to the same Wi-Fi as the phone, or turn off a VPN.'];
 }

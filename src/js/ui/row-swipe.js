@@ -17,7 +17,7 @@ export function init({ list }) {
   let suppressTimer = 0;
   // The open row the latest press landed on and closed, for contextmenu: a right-click on an open row closes it at
   // pointerdown, and must not reopen it. Consumed by contextmenu; cleared by the next press, key, or click (a tap
-  // sends a click, a long-press doesn't, and on some platforms a long-press's contextmenu comes after the lift).
+  // sends a click, a long-press doesn't, and on some platforms a long-press's contextmenu comes after the lift, unchecked).
   let closedByPress = null;
 
   // Open by a swipe, or slid open by keyboard focus on one of its actions (CSS).
@@ -145,6 +145,6 @@ export function init({ list }) {
     e.stopPropagation();
   }, true);
 
-  // iOS Safari applies :active (the strip's and the tasks' pressed colour) only with a touch listener in the way.
+  // iOS Safari applies :active (the strip's and the tasks' pressed colour) only with a touch listener in the way (unchecked).
   list.addEventListener('touchstart', () => {}, { passive: true });
 }
