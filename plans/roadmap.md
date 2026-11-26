@@ -1,6 +1,14 @@
 # Roadmap
 
-## Next (2026-11-25, swipe redesign session; committed, not released or pushed)
+## Next (2026-11-25, roadmap side session; committed, not released or pushed)
+
+**Done (not released):** the Completed section is gone (plan `plans/completed-removal.md`). Checked-off todos stay struck in the list, and tapping one undoes it, until the app is left or relaunched; then they leave the list. The header's done of total still counts every todo checked off today (Sam's pick, option A of three). Leaving with focus on a struck row moves focus to the nearest unstruck row, else Upcoming, else +. The four review leftovers are fixed: the strip's actions get a pressed colour (12% ink over the strip); right-click toggles a row (a second one closes it; also the menu key on a focused action); the Options screen keeps a focused field above the keyboard's form bar; the dev server names non-private addresses (`tools/lan.mjs`) instead of only blaming Wi-Fi. npm test 195/195 in five timezones; `npm run test:browser` 5/5 at 3458709 (headless, run by the orchestrator).
+
+**Sam checks on the phone after release:** struck todos gone after leaving and coming back, and the header count; a pressed action darkens; in Options, tap a group name near the bottom with the keyboard up (it should sit above the form bar); whether tapping a todo row now flashes (a touch listener makes iOS show `:active` on rows too).
+
+**Follow-ups, not urgent (pre-existing):** renaming a group in Options redraws every name field, so moving to the next field (the form bar's arrow) loses focus and closes the keyboard; focus is lost if the day changes while a struck row has it.
+
+## Earlier (2026-11-25, swipe redesign session)
 
 **Done this session (not released):** swipe right on a todo in today's list now shows Tomorrow, Skip (repeating todos only), and Edit inside the row, sliding in from the left as the todo slides right; the Options button and the menu below the row are gone, and nothing above or below moves. Picking an action closes the row, including Edit then Save or close (the original bug). After a keyboard Edit, focus goes back to the todo wherever a save moved it, or to the nearest row after a delete. Options (the header's three dots) is full screen, in the order Groups, Badge, Backup, App. `npm run dev` prints an "On your phone" address, and the README says what that preview can't do. Also fixed: a sheet reopened just after closing could lose its todo, so Done did nothing. Commits 0eede93 to b523a97; cold reviews 6 (Important bugs fixed in rounds 1, 3, 4, and 5; round 6 clean); npm test 190/190 in five timezones; `npm run test:browser` 5/5 pass with no skips (run through the Terminal panel).
 
@@ -15,11 +23,7 @@
 - Swipe distance (Sam's call): a row stays open only when it's dragged past half its strip, so about 120px with three actions and 80px with two. The Options button needed 40px. Lower it if it feels stiff.
 - Known trade-off, kept on purpose: on an open row, a tap on its action strip (about two thirds of the row) runs that action.
 
-**Claude next:** the phone checks found nothing to fix. Small leftovers from review, none urgent:
-- The strip's buttons show no change when pressed, because their pressed color is the strip's own color.
-- A second right-click on an open row leaves it open.
-- On Options, a group name field low on the screen can sit under the keyboard's form bar.
-- The dev server blames Wi-Fi when the Mac has no private address.
+**Claude next:** the four small review leftovers were fixed in the roadmap session above.
 ## Running sessions
 
 None.
@@ -29,7 +33,7 @@ None.
 **Running the push Worker:** logs in the Cloudflare dashboard (Workers Logs, 3 days). The test token is in the gitignored `push/.test-token`; a test push is the curl in `push/README.md`. If Options shows "No morning notification came today", read the logs first.
 
 **Limits hit:**
-- Headless Chrome browser tests can't start in the sandbox. Sam runs `npm run test:browser` in his terminal (all four pass there, 2026-11-21). The Claude browser pane works as a fallback: all five passed there on 2026-11-25 (click into the page so the keyboard blocks run), served by a temporary `planner-tests-temp` entry (python `http.server` on 8767 from the repo root) in the orchestrator `launch.json`.
+- Headless Chrome browser tests can't start in the sandbox. Sam runs `npm run test:browser` in his terminal (all four pass there, 2026-11-21). The Claude browser pane works as a fallback, but on 2026-11-25 (evening) swipe.html failed three edit-sheet focus checks there even at 196c1ba, so trust headless for those; earlier the same day all five passed there (click into the page so the keyboard blocks run), served by a temporary `planner-tests-temp` entry (python `http.server` on 8767 from the repo root) in the orchestrator `launch.json`.
 - The tracker isn't readable from a worktree session. `.claude/launch.json` is gitignored; its `planner-built` entry points at an old scratchpad.
 
 ## Done earlier
@@ -46,7 +50,7 @@ None.
 
 ## To do
 
-- [ ] Remove the Completed section (Sam, Apple Note, 2026-11-23; decided 2026-11-25). Why: struck-off todos stay in the list until the app is left, which gives enough time to undo one checked off by accident. No recorded reason for adding it was found (roadmap and commits of 2026-11-13 say what it does, not why). Put-away todos then just leave the list; decide what the header's done-of-total counts.
+- [x] Remove the Completed section (Sam, Apple Note, 2026-11-23; decided 2026-11-25; done 2026-11-25, see Next). Why: struck-off todos stay in the list until the app is left, which gives enough time to undo one checked off by accident. No recorded reason for adding it was found (roadmap and commits of 2026-11-13 say what it does, not why). Put-away todos then just leave the list; the header's done of total still counts them (Sam's pick).
 - [x] Remove the add-a-task field (Sam, Apple Note, 2026-11-23); the + button is enough. Done 2026-11-24 (6572649): the + handler lives in `sheet.js`; with no rows left, focus goes to the Upcoming summary, then +.
 - [x] Upcoming at the bottom of the screen by default (Sam, Apple Note, 2026-11-23), with its drop-down arrow clear of the + button. Done 2026-11-24 (6572649): a short list leaves Completed and Upcoming at the bottom, the summary 16px above +; a long list keeps the 16px gap. Opening Upcoming moves it up as its days fill the space.
 - [x] Rename the More heading to Options (Sam, Apple Note, 2026-11-23), and make it bigger; it looks small next to the rest of its container. Done 2026-11-24 (6572649): title 2rem (its sections are 1.5rem); the three-dot button's label is Options.
