@@ -6,7 +6,7 @@
 
 **Sam checks on the phone after release:** struck todos gone after leaving and coming back, and the header count; a pressed action darkens; in Options, tap a group name near the bottom with the keyboard up (it should sit above the form bar); whether tapping a todo row now flashes (the new touch listener may make iOS show `:active` on rows too; unchecked).
 
-**Follow-ups, not urgent (pre-existing):** renaming a group in Options redraws every name field, so moving to the next field (the form bar's arrow) loses focus and closes the keyboard; focus is lost if the day changes while a struck row has it.
+**Follow-ups, not urgent (pre-existing):** renaming a group in Options redraws every name field, so moving to the next field (the form bar's arrow) loses focus and closes the keyboard; focus is lost if the day changes while a struck row has it. From the review (desktop only, small): Ctrl+click on an open row's action closes the row instead of running it on Windows or Linux; a right-click or long-press on an open row's strip can show the browser's menu in Safari or Firefox on a Mac (unchecked); the Options keyboard reveal has no test (phone check only).
 
 ## Earlier (2026-11-25, swipe redesign session)
 
