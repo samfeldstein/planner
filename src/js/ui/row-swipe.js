@@ -83,6 +83,7 @@ export function init({ list }) {
 
   document.addEventListener('pointerup', (e) => {
     if (!e.isPrimary) return; // a second finger lifting leaves the first one's swallow alone
+    if (e.button === 0 && !e.ctrlKey) closedByPress = null; // a left tap ends; only a right press's contextmenu follows its lift
     if (suppress) {
       clearTimeout(suppressTimer);
       suppressTimer = setTimeout(clearSuppress, CLICK_GRACE_MS);
@@ -117,6 +118,15 @@ export function init({ list }) {
     const closed = closedByPress;
     closedByPress = null;
     const li = e.target.closest('.task')?.closest('.row');
+    // On an open row's action (the menu key with focus there, or a right-click on the strip): close the row,
+    // moving focus to its task, since focus on an action holds the row open.
+    const onAction = e.target.closest('.actions')?.closest('.row');
+    if (onAction && swipeable(onAction)) {
+      e.preventDefault();
+      onAction.classList.remove('swiped');
+      if (onAction.contains(document.activeElement)) onAction.querySelector('.task').focus({ preventScroll: true });
+      return;
+    }
     if (!li) return;
     e.preventDefault();
     if (!swipeable(li)) return;

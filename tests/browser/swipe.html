@@ -207,14 +207,29 @@ async function run() {
   check(!row('c').classList.contains('swiped'), 'Ctrl+click on the open row left it open');
   realRightClick(task('c'), { button: 0, ctrlKey: true });
   check(row('c').classList.contains('swiped'), 'Ctrl+click did not open the row');
-  // The menu key (contextmenu with no press) toggles by the row's own state, even after an earlier press closed it.
-  tap(doc.body);
+  // The menu key (a keydown, then contextmenu with no press) toggles by the row's own state, even after a tap on
+  // that row's task closed it (the tap is recorded as the press that closed it, and must not count).
+  tap(task('c'));
   await wait(600);
   check(!row('c').classList.contains('swiped'), 'test arrangement: the tap did not close the row');
-  rightClick(task('c'));
+  const menuKey = (node) => {
+    node.dispatchEvent(new win.KeyboardEvent('keydown', { bubbles: true, key: 'ContextMenu' }));
+    const ev = new win.MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    node.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  };
+  menuKey(task('c'));
   check(row('c').classList.contains('swiped'), 'the menu key after a dismiss tap did not open the row');
-  rightClick(task('c'));
+  menuKey(task('c'));
   check(!row('c').classList.contains('swiped'), 'a second menu key left the row open');
+  // A left tap clears the record too (pointerup), so a contextmenu with no keydown after it still opens.
+  tap(doc.body);
+  realRightClick(task('c'));
+  tap(task('c'));
+  await wait(600);
+  rightClick(task('c'));
+  check(row('c').classList.contains('swiped'), 'contextmenu after a dismiss tap on the row did not open it');
+  row('c').classList.remove('swiped');
 
   // Keyboard focus on an action slides the row open. Only where the page has focus (headless Chrome does;
   // the Claude browser pane may not, and then nothing can match :focus).

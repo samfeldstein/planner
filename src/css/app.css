@@ -295,7 +295,7 @@ button { cursor: pointer; }
 }
 
 .actions .action:first-child { border-left: 0; }
-/* Pressed (and hovered, with a mouse): a step darker than the strip, which is already the usual pressed colour. */
+/* Pressed (and hovered, with a mouse): a step stronger than the strip (12% ink: darker in light mode, lighter in dark), which is already the usual pressed colour. */
 .actions .action:active { background: color-mix(in srgb, var(--ink) 12%, var(--hairline)); }
 @media (hover: hover) {
   .actions .action:hover { background: color-mix(in srgb, var(--ink) 12%, var(--hairline)); }

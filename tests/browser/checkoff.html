@@ -168,8 +168,8 @@ async function run() {
   check(focusedOn(d), 'leaving from the last row: focus is not on the row before it');
   fire('visible');
 
-  // The only row: the Upcoming summary, and "All done for today." With Upcoming open, the rent's next
-  // instance shares its id there, and focus must not land in it.
+  // The only row: the Upcoming summary (open, so it holds rows focus could wrongly go to), and
+  // "All done for today." 
   q('.upcoming details').open = true;
   await wait(100);
   await checkOff(d, 'Delta');
