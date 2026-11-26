@@ -11,7 +11,7 @@ Wrap-up ran. Commits 2fc4634 to a18e232 on `main`, not pushed or released. (This
 ## Checks
 
 - `npm test`: 195/195 in five timezones (at a18e232).
-- `npm run test:browser`: 5/5 at 3458709 (headless, run by the orchestrator). `swipe.html` changed after that (546430b, 866ab6b); a rerun of swipe.html and checkoff.html at 866ab6b was requested and hasn't come back yet. In the Claude browser pane, swipe.html fails 3 edit-sheet focus checks, but it fails the same 3 at 196c1ba, and they pass in headless Chrome.
+- `npm run test:browser`: 5/5 at 3458709 (headless, run by the orchestrator). `swipe.html` changed after that (546430b, 866ab6b); rerun at 866ab6b by the orchestrator: swipe.html and checkoff.html PASS. In the Claude browser pane, swipe.html fails 3 edit-sheet focus checks, but it fails the same 3 at 196c1ba, and they pass in headless Chrome.
 
 ## Build-loop rounds
 
@@ -24,7 +24,7 @@ Wrap-up ran. Commits 2fc4634 to a18e232 on `main`, not pushed or released. (This
 
 ## Ready to release
 
-All of it, once the swipe.html and checkoff.html rerun at 866ab6b passes: `npm run release`. After release, Sam's phone checks are in the roadmap's Next section.
+All of it: `npm run release`. After release, Sam's phone checks are in the roadmap's Next section.
 
 ## Tracker
 
