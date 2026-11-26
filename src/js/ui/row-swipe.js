@@ -16,7 +16,8 @@ export function init({ list }) {
   let suppress = false;
   let suppressTimer = 0;
   // The open row the latest press landed on and closed, for contextmenu: a right-click on an open row closes it at
-  // pointerdown, and must not reopen it. Consumed by contextmenu, cleared by the next press or key.
+  // pointerdown, and must not reopen it. Consumed by contextmenu; cleared by the next press, key, or click (a tap
+  // sends a click, a long-press doesn't, and on some platforms a long-press's contextmenu comes after the lift).
   let closedByPress = null;
 
   // Open by a swipe, or slid open by keyboard focus on one of its actions (CSS).
@@ -83,7 +84,6 @@ export function init({ list }) {
 
   document.addEventListener('pointerup', (e) => {
     if (!e.isPrimary) return; // a second finger lifting leaves the first one's swallow alone
-    if (e.button === 0 && !e.ctrlKey) closedByPress = null; // a left tap ends; only a right press's contextmenu follows its lift
     if (suppress) {
       clearTimeout(suppressTimer);
       suppressTimer = setTimeout(clearSuppress, CLICK_GRACE_MS);
@@ -118,13 +118,14 @@ export function init({ list }) {
     const closed = closedByPress;
     closedByPress = null;
     const li = e.target.closest('.task')?.closest('.row');
-    // On an open row's action (the menu key with focus there, or a right-click on the strip): close the row,
-    // moving focus to its task, since focus on an action holds the row open.
+    // The menu key with focus on an open row's action: close the row, moving focus to its task, since focus on an
+    // action holds the row open. (A right-click on the strip already closed it at pointerdown; a long-press there
+    // is left alone, so the strip doesn't slide away under the finger.)
     const onAction = e.target.closest('.actions')?.closest('.row');
-    if (onAction && swipeable(onAction)) {
+    if (onAction && swipeable(onAction) && onAction.contains(document.activeElement)) {
       e.preventDefault();
       onAction.classList.remove('swiped');
-      if (onAction.contains(document.activeElement)) onAction.querySelector('.task').focus({ preventScroll: true });
+      onAction.querySelector('.task').focus({ preventScroll: true });
       return;
     }
     if (!li) return;
@@ -137,6 +138,7 @@ export function init({ list }) {
 
   // Before anything else sees it: the click of a dismiss tap or a drag.
   document.addEventListener('click', (e) => {
+    closedByPress = null;
     if (!suppress) return;
     clearSuppress();
     e.preventDefault();

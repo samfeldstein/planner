@@ -169,7 +169,7 @@ async function run() {
   fire('visible');
 
   // The only row: the Upcoming summary (open, so it holds rows focus could wrongly go to), and
-  // "All done for today." 
+  // "All done for today."
   q('.upcoming details').open = true;
   await wait(100);
   await checkOff(d, 'Delta');

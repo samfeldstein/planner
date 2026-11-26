@@ -222,7 +222,7 @@ async function run() {
   check(row('c').classList.contains('swiped'), 'the menu key after a dismiss tap did not open the row');
   menuKey(task('c'));
   check(!row('c').classList.contains('swiped'), 'a second menu key left the row open');
-  // A left tap clears the record too (pointerup), so a contextmenu with no keydown after it still opens.
+  // A tap's click clears the record too, so a contextmenu with no keydown after it still opens.
   tap(doc.body);
   realRightClick(task('c'));
   tap(task('c'));
@@ -230,6 +230,27 @@ async function run() {
   rightClick(task('c'));
   check(row('c').classList.contains('swiped'), 'contextmenu after a dismiss tap on the row did not open it');
   row('c').classList.remove('swiped');
+  // A long-press on an open row where contextmenu comes after the lift (no click): the row stays closed.
+  realRightClick(task('c'));
+  {
+    const r = task('c').getBoundingClientRect();
+    const x = r.right - 20, y = r.top + r.height / 2;
+    const id = pid++;
+    ptr(task('c'), 'pointerdown', x, y, { pointerId: id });
+    ptr(task('c'), 'pointerup', x, y, { pointerId: id });
+    task('c').dispatchEvent(new win.MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+  }
+  check(!row('c').classList.contains('swiped'), 'a long-press (contextmenu after the lift) reopened the row it closed');
+  await wait(600); // past the swallow of the long-press's click
+  // The menu key with focus on an action of a focus-opened row closes it and moves focus to the todo.
+  if (doc.hasFocus()) {
+    action('c', 'tomorrow').focus({ focusVisible: true });
+    if (action('c', 'tomorrow').matches(':focus-visible')) {
+      check(menuKey(action('c', 'tomorrow')), 'the menu key on an action showed the browser menu');
+      check(doc.activeElement === task('c') && !row('c').classList.contains('swiped'), 'the menu key on an action did not close the row onto its todo');
+      task('c').blur();
+    }
+  }
 
   // Keyboard focus on an action slides the row open. Only where the page has focus (headless Chrome does;
   // the Claude browser pane may not, and then nothing can match :focus).
