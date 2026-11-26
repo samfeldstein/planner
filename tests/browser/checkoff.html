@@ -117,7 +117,7 @@ async function run() {
   const emptyLine = () => q('.today .empty')?.textContent ?? null;
   const exists = (tid) => async () => (await adapter.load()).todos.some((x) => x.id === tid);
   const live = (tid) => q(`.today .row:not(.done)[data-id="${tid}"]`);
-  const struck = (tid) => q(`.today .row.done[data-id="${tid}"]`);
+  const doneRow = (tid) => q(`.today .row.done[data-id="${tid}"]`);
   async function add(title) {
     doc.dispatchEvent(new win.CustomEvent('planner:new', { detail: { title } }));
     await until(() => doc.getElementById('sheet').open, `the sheet for ${title}`);
@@ -130,7 +130,7 @@ async function run() {
   async function checkOff(tid, what) {
     live(tid).querySelector('.task').click();
     await until(async () => !(await exists(tid)()), `${what}: the check-off to save`);
-    return until(() => struck(tid), `${what}: the struck row`);
+    return until(() => doneRow(tid), `${what}: the struck row`);
   }
   const focusedOn = (tid) => doc.activeElement === live(tid)?.querySelector('.task');
 
@@ -143,8 +143,8 @@ async function run() {
   if (!a || !b || !c || !d) return;
   for (const [tid, name] of [[a, 'Alpha'], [b, 'Bravo'], [c, 'Charlie']]) await checkOff(tid, name);
   check(emptyLine() === null, 'an empty line shows with rows in the list');
-  struck(c).querySelector('.task').focus();
-  check(doc.activeElement === struck(c)?.querySelector('.task'), 'could not focus the struck row');
+  doneRow(c).querySelector('.task').focus();
+  check(doc.activeElement === doneRow(c)?.querySelector('.task'), 'could not focus the struck row');
   fire('hidden');
   check(![a, b, c].some((tid) => q(`.today .row[data-id="${tid}"]`)), 'visibilitychange (hidden) did not put the rows away');
   check(focusedOn(d), `leaving: focus is not on the next unstruck row (${doc.activeElement?.textContent})`);
@@ -163,7 +163,7 @@ async function run() {
   const e = await add('Echo');
   if (!e) return;
   await checkOff(e, 'Echo');
-  struck(e).querySelector('.task').focus();
+  doneRow(e).querySelector('.task').focus();
   fire('hidden');
   check(focusedOn(d), 'leaving from the last row: focus is not on the row before it');
   fire('visible');
@@ -173,7 +173,7 @@ async function run() {
   q('.upcoming details').open = true;
   await wait(100);
   await checkOff(d, 'Delta');
-  struck(d).querySelector('.task').focus();
+  doneRow(d).querySelector('.task').focus();
   fire('hidden');
   check(doc.activeElement === q('.upcoming summary'), `leaving from the only row: focus is not on Upcoming (${doc.activeElement?.tagName})`);
   check(emptyLine() === 'All done for today.', `all done line: ${emptyLine()}`);
@@ -190,10 +190,10 @@ async function run() {
   doc.activeElement.blur();
   check(doc.activeElement === doc.body, 'tap fallback: blur did not clear focus');
   live(f).querySelector('.task').click();
-  check(doc.activeElement === struck(f)?.querySelector('.task'), 'tap fallback: focus is not on the struck row');
+  check(doc.activeElement === doneRow(f)?.querySelector('.task'), 'tap fallback: focus is not on the struck row');
   await until(async () => !(await exists(f)()), 'tap fallback: the check-off to save');
   doc.activeElement.blur();
-  struck(f).querySelector('.task').click();
+  doneRow(f).querySelector('.task').click();
   await until(exists(f), 'undo with nothing focused: the undo to save');
   const back = await until(() => live(f), 'the row back in the list');
   check(back && focusedOn(f), 'undo with nothing focused: focus is not on the row back in the list');
@@ -201,12 +201,12 @@ async function run() {
   // A tap on another row wins over the focused one (a click may not move focus).
   live(f).querySelector('.task').focus();
   live(g).querySelector('.task').click();
-  check(doc.activeElement === struck(g)?.querySelector('.task'), 'tap on another row: focus stayed on the focused row');
+  check(doc.activeElement === doneRow(g)?.querySelector('.task'), 'tap on another row: focus stayed on the focused row');
   await until(async () => !(await exists(g)()), 'Golf to check off');
 
   // Coming back uses the focus saved on leaving, not a recent tap. Undo Golf (a tap on a row that stays),
   // then leave with focus on Foxtrot.
-  struck(g).querySelector('.task').click();
+  doneRow(g).querySelector('.task').click();
   const tappedAt = win.performance.now();
   await until(exists(g), 'Golf undone');
   await until(() => live(g), 'Golf back');
@@ -230,7 +230,7 @@ async function run() {
   await wait(100);
   const scroller = scrollerOf(doc.getElementById('list'));
   scroller.scrollTop = 0;
-  struck(f).querySelector('.task').focus({ preventScroll: true });
+  doneRow(f).querySelector('.task').focus({ preventScroll: true });
   check(scroller.scrollTop === 0, 'test arrangement: focusing the struck row scrolled');
   fire('hidden');
   check(focusedOn(g), 'scroll case: focus is not on the next row');
