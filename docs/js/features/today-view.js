@@ -1,9 +1,9 @@
 // The Today list: todos due today plus overdue, as one list with groups inside. Tap a task to complete it; it stays
-// struck through until the day ends, and tapping it again undoes it. Swipe it right (or right-click, or tab to them)
-// to show Tomorrow, Skip (recurring only), and Edit in the row; the swipe lives in ui/row-swipe.js.
-// Leaving the app (hidden or pagehide) puts the todos checked off so far away: on return they're in a
-// collapsed Completed list below the list, struck through, and tapping one there undoes it the same way.
-// Below that, a collapsed Upcoming list shows later todos by day; tapping one opens the edit sheet.
+// struck through until the app is left, and tapping it again undoes it. Swipe it right (or right-click, or tab to
+// them) to show Tomorrow, Skip (recurring only), and Edit in the row; the swipe lives in ui/row-swipe.js.
+// Leaving the app (hidden or pagehide), or launching it, puts the todos checked off so far away: they leave the
+// list for good, though the header still counts them as done today.
+// Below the list, a collapsed Upcoming list shows later todos by day; tapping one opens the edit sheet.
 
 import { effectiveDue, isOverdue } from '../core/recur.js';
 import { addDays } from '../core/date.js';
@@ -27,9 +27,9 @@ export function init({ store, clock }) {
   const countEl = document.getElementById('count');
   const progressEl = document.getElementById('progress');
 
-  // Completed todos leave the store's due list (or move on), so today's finished ones are kept
+  // Checked-off todos leave the store's due list (or move on), so today's finished ones are kept
   // here as pre-completion snapshots until the day rolls over: struck through in place, or, once
-  // put away (see core/finished.js), in the Completed list.
+  // put away (see core/finished.js), hidden but still counted.
   let finished = new Map();
   let away = new Set();
   let finishedDay = null;
@@ -53,15 +53,12 @@ export function init({ store, clock }) {
     if (reconcileAll(finished, away, (id) => store.todo(id), finishedDay)) saveFinished();
   }
 
-  // Whether Completed is open. Closed at launch and again each time the app is left; kept across
-  // re-renders in between.
-  let completedOpen = false;
   // Where focus was when the app was left; iOS may clear focus while it's in the background.
   let pendingKey = null;
   let mode = null; // 'leave' or 'resume' for the next render
   function leave() {
     if (finishedDay !== null && putAway(finished, away)) saveFinished(); // now: the page may not get another chance
-    completedOpen = false;
+    leaveStruckRow();
     mode = 'leave';
     render();
     pendingKey = captureKey() ?? pendingKey;
@@ -83,7 +80,6 @@ export function init({ store, clock }) {
   let upcomingOpen = false;
   try { upcomingOpen = localStorage.getItem(OPEN_KEY) === '1'; } catch { /* storage unavailable */ }
   list.addEventListener('toggle', (e) => {
-    if (e.target.matches('.completed details')) { completedOpen = e.target.open; return; }
     if (!e.target.matches('.upcoming details')) return;
     upcomingOpen = e.target.open;
     try { localStorage.setItem(OPEN_KEY, upcomingOpen ? '1' : '0'); } catch { /* storage unavailable */ }
@@ -129,23 +125,6 @@ export function init({ store, clock }) {
       details.append(sub);
     });
     details.open = upcomingOpen;
-    section.append(details);
-    return section;
-  }
-
-  // Completed: the put-away todos, in check-off order, drawn like finished rows. Only shown when
-  // there's at least one.
-  function completed(todos, today) {
-    const section = el('section', 'completed');
-    const details = el('details');
-    const summary = el('summary', '', 'Completed');
-    const n = todos.length;
-    summary.append(el('span', 'count', String(n)));
-    summary.setAttribute('aria-label', `Completed, ${n} ${n === 1 ? 'todo' : 'todos'}`);
-    const ul = el('ul');
-    for (const todo of todos) ul.append(row(todo, today));
-    details.append(summary, ul);
-    details.open = completedOpen;
     section.append(details);
     return section;
   }
@@ -209,7 +188,7 @@ export function init({ store, clock }) {
     const live = store.todos().filter((t) => !finished.has(t.id));
     const split = splitFinished(finished, away);
     // Counted with every finished todo (put away ones are still done today), drawn without the
-    // put away ones, which go in Completed.
+    // put away ones.
     const all = listTodos(buildToday([...live, ...finished.values()], store.groups(), today));
     const shown = buildToday([...live, ...split.inPlace], store.groups(), today);
     const total = all.length;
@@ -229,7 +208,7 @@ export function init({ store, clock }) {
       for (const todo of todos) ul.append(row(todo, today));
       return ul;
     };
-    // The section is always drawn, so the ruled line above Completed and Upcoming stays. With nothing
+    // The section is always drawn, so the ruled line above Upcoming stays. With nothing
     // in it: no todos due today, or all of them checked off and put away. (A todo moved to Tomorrow isn't counted.)
     {
       const section = el('section', 'today');
@@ -247,13 +226,12 @@ export function init({ store, clock }) {
       if (shown.ungrouped.length) section.append(rows(shown.ungrouped));
       list.append(section);
     }
-    if (split.away.length) list.append(completed(split.away, today));
     list.append(upcoming(today));
 
     if (focusKey) restoreFocus(focusKey, quiet);
   }
 
-  // Focus survives a redraw. A key says what had focus: a Completed or Upcoming summary, or a row
+  // Focus survives a redraw. A key says what had focus: the Upcoming summary, or a row
   // button (its todo, action, and section).
   const sectionOf = (node) => node.closest('section')?.className;
   const rowKey = (btn) => ({ id: btn.closest('[data-id]').dataset.id, act: btn.dataset.act, section: sectionOf(btn) });
@@ -306,11 +284,23 @@ export function init({ store, clock }) {
     const row = `[data-id="${CSS.escape(key.id)}"]`;
     if (tryFocus(q(`.${key.section} ${row} [data-act="${key.act}"]`), opts)) return;
     if (key.section === 'upcoming') return; // never chase an Upcoming row into the other sections
-    // The todo's row in the list (an undone row is back there; a just checked-off one is struck), or
-    // else the Completed summary, where a put-away row went. Not Upcoming: a repeating todo's next
-    // instance shares the id.
-    if (tryFocus(q(`.today ${row} .task`), opts)) return;
-    if (q(`.completed ${row}`)) tryFocus(q('.completed summary'), opts);
+    // The todo's row in the list (an undone row is back there; a just checked-off one is struck). Not
+    // Upcoming: a repeating todo's next instance shares the id.
+    tryFocus(q(`.today ${row} .task`), opts);
+  }
+
+  // Leaving puts every struck row away, so focus on one moves first, without scrolling, to the nearest unstruck
+  // row after it in the list, else before it, else the Upcoming summary, else +. Then the usual key capture keeps it.
+  function leaveStruckRow() {
+    const from = document.activeElement?.closest?.('.today .row.done');
+    if (!from || !list.contains(from)) return;
+    const opts = { preventScroll: true };
+    const rows = [...list.querySelectorAll('.today .row')];
+    const at = rows.indexOf(from);
+    const open = (r) => !r.classList.contains('done');
+    const order = [...rows.slice(at + 1).filter(open), ...rows.slice(0, at).filter(open).reverse()];
+    if (order.some((r) => tryFocus(r.querySelector('.task'), opts))) return;
+    if (!tryFocus(list.querySelector('.upcoming summary'), opts)) addBtn.focus(opts);
   }
 
   const checks = () => [...list.querySelectorAll('[data-act="complete"], [data-act="uncomplete"]')];
@@ -319,7 +309,7 @@ export function init({ store, clock }) {
   function refocus(index, opts) {
     const all = checks();
     const at = Math.min(index, all.length - 1);
-    // Nearest first; rows that refuse focus (Completed, closed) are skipped.
+    // Nearest first; rows that refuse focus are skipped.
     const order = [...all.slice(at), ...all.slice(0, Math.max(at, 0)).reverse()];
     // None left: the Upcoming summary (always drawn, and in the list, so the next render keeps it), else +.
     if (!order.some((node) => tryFocus(node, opts)) && !tryFocus(list.querySelector('.upcoming summary'), opts)) addBtn.focus(opts);
@@ -377,17 +367,6 @@ export function init({ store, clock }) {
       busy.delete(id);
     }
   }
-
-  // Right-click opens the row's actions on desktop (and a long-press, where the browser fires contextmenu for it;
-  // iOS Safari may not, unchecked). The iOS callout is blocked in CSS (-webkit-touch-callout).
-  list.addEventListener('contextmenu', (e) => {
-    const li = e.target.closest('.task')?.closest('.row');
-    if (!li) return;
-    e.preventDefault();
-    if (!li.querySelector('.actions')) return; // finished and Upcoming rows have none
-    for (const other of list.querySelectorAll('.row.swiped')) other.classList.remove('swiped');
-    li.classList.add('swiped');
-  });
 
   // Where keyboard focus goes after the edit sheet closes, if a save or delete redrew the list under it. Only one
   // unstruck row has a given id (a struck row is a finished snapshot; Upcoming rows are never struck), so that row

@@ -123,7 +123,7 @@ button { cursor: pointer; }
 
 /* App shell */
 
-/* A column as tall as the screen, so a short list leaves Completed and Upcoming at the bottom. */
+/* A column as tall as the screen, so a short list leaves Upcoming at the bottom. */
 #app {
   display: flex;
   flex-direction: column;
@@ -161,7 +161,7 @@ button { cursor: pointer; }
 /* Today list */
 
 /* A group label (today's groups, Upcoming's days): small, letter-spaced, with a ruled underline.
-   Both are h2s: the Completed and Upcoming summaries aren't headings. */
+   Both are h2s: the Upcoming summary isn't a heading. */
 #list h2 {
   margin: 20px var(--gutter) 0 var(--text-x);
   padding-bottom: 2px;
@@ -181,8 +181,8 @@ button { cursor: pointer; }
   border-top: 1px solid var(--hairline);
 }
 
-/* Completed and Upcoming: below the list, collapsed by default. Same size as the Options screen's headings. */
-#list :is(.upcoming, .completed) summary {
+/* Upcoming: below the list, collapsed by default. Same size as the Options screen's headings. */
+#list .upcoming summary {
   display: flex;
   align-items: baseline;
   gap: 10px;
@@ -197,12 +197,12 @@ button { cursor: pointer; }
   user-select: none;
 }
 
-#list :is(.upcoming, .completed) summary::-webkit-details-marker { display: none; }
-#list :is(.upcoming, .completed) summary:focus-visible { outline-offset: -2px; }
-#list :is(.upcoming, .completed) .count { font-size: 0.88rem; letter-spacing: 0; }
+#list .upcoming summary::-webkit-details-marker { display: none; }
+#list .upcoming summary:focus-visible { outline-offset: -2px; }
+#list .upcoming .count { font-size: 0.88rem; letter-spacing: 0; }
 
 /* A small arrow, pointing down while closed and up while open. */
-#list :is(.upcoming, .completed) summary::after {
+#list .upcoming summary::after {
   content: "";
   align-self: center;
   width: 7px;
@@ -214,7 +214,7 @@ button { cursor: pointer; }
   transform: translateY(-2px) rotate(45deg);
 }
 
-#list :is(.upcoming, .completed) details[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+#list .upcoming details[open] summary::after { transform: translateY(2px) rotate(-135deg); }
 #list .upcoming .empty { padding-top: 8px; }
 
 /* A row is one grid cell for the task and its actions strip (Tomorrow, Skip, Edit). The strip waits just off
@@ -295,6 +295,11 @@ button { cursor: pointer; }
 }
 
 .actions .action:first-child { border-left: 0; }
+/* Pressed (and hovered, with a mouse): a step stronger than the strip (12% ink: darker in light mode, lighter in dark), which is already the usual pressed colour. */
+.actions .action:active { background: color-mix(in srgb, var(--ink) 12%, var(--hairline)); }
+@media (hover: hover) {
+  .actions .action:hover { background: color-mix(in srgb, var(--ink) 12%, var(--hairline)); }
+}
 .actions .action:focus-visible { outline-offset: -2px; }
 
 /* The task moves only while sliding or open; the strip waits off the left edge. An open strip paints over the margin rule and the priority square. */
@@ -390,11 +395,17 @@ button { cursor: pointer; }
 
 /* Full screen, like the add / edit sheet (see #sheet below). */
 /* min-height: the margin rule runs to the bottom, and a tap below the content isn't a tap outside. */
-dialog.screen .sheet-body { padding-top: calc(env(safe-area-inset-top) + 8px); min-height: 100%; align-content: start; }
+/* With the keyboard up, room at the bottom for its form bar, as on the edit sheet (so a low field can scroll above it). */
+dialog.screen .sheet-body {
+  padding-top: calc(env(safe-area-inset-top) + 8px);
+  padding-bottom: calc(env(safe-area-inset-bottom) * (1 - var(--kb-open)) + 16px + var(--kb-pad));
+  min-height: 100%;
+  align-content: start;
+}
 
 .block { display: grid; gap: 8px; padding-top: 8px; }
 .block[hidden] { display: none; }
-/* Section headings match Completed and Upcoming on the main list: same size, a hairline above each section. */
+/* Section headings match Upcoming on the main list: same size, a hairline above each section. */
 .block h3 { margin: 0; font: 400 1.5rem/1.3 var(--hand); letter-spacing: 0.04em; color: var(--ink-2); }
 /* On the heading, not the section: the sheet's sections are display: contents (.sheet-body > section). */
 .block + .block > h3 { margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--hairline); }

@@ -1,9 +1,10 @@
 // Finished rows: a todo checked off today stays drawn struck through, from a snapshot taken just
 // before the check-off, and tapping it again puts that snapshot back. Pure.
 //
-// Each finished entry is either in place (struck through in its own section) or put away (drawn
-// in the Completed list instead). Leaving the app puts every entry away, so todos checked off so
-// far are out of the way on return; one checked off after that stays in place until the next time.
+// Each finished entry is either in place (struck through in the list, where tapping it undoes it) or
+// put away (hidden, and only counted in the header's done of total). Leaving the app puts every entry
+// away, so todos checked off so far are out of the way on return; one checked off after that stays in
+// place until the next time. Put-away entries are kept so the count holds until the day rolls over.
 //
 // The todo can change in between: Upcoming opens a repeating todo's next instance for editing or
 // deletion. So before a finished row is drawn or undone, its snapshot is brought up to date:
@@ -31,7 +32,7 @@ export function reconcile(snapshot, current, day) {
 }
 
 // The saved record is { date, todos: [snapshots, in check-off order], away: [ids] }. Records from
-// before Completed have no `away`; their entries load in place. Another day's record loads empty.
+// before put-away existed have no `away`; their entries load in place. Another day's record loads empty.
 // `todos` is a Map of id -> snapshot (its order is the check-off order); `away` a Set of ids.
 export function parseFinished(json, today) {
   const todos = new Map();
@@ -60,7 +61,7 @@ export function putAway(todos, away) {
   return changed;
 }
 
-// Snapshots drawn in their sections, and those drawn in Completed, each in check-off order.
+// Snapshots drawn in the list, and those put away, each in check-off order.
 export function splitFinished(todos, away) {
   const inPlace = [];
   const put = [];
