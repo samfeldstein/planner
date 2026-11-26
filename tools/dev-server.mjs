@@ -9,7 +9,7 @@ import { watch } from 'node:fs';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
-import { isLocalHost } from '../src/js/ui/install.js';
+import { phoneLines } from './lan.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..', 'src');
@@ -73,10 +73,5 @@ createServer(async (req, res) => {
   }
 }).listen(port, '0.0.0.0', () => {
   console.log(`Planner dev server on http://localhost:${port} (live reload on)`);
-  // Only private Wi-Fi addresses: the app shows its install gate on any other host (ui/install.js).
-  const lan = Object.values(networkInterfaces()).flat()
-    .filter((a) => a && a.family === 'IPv4' && !a.internal && isLocalHost(a.address))
-    .map((a) => a.address);
-  for (const ip of lan) console.log(`On your phone (same Wi-Fi): http://${ip}:${port}`);
-  if (!lan.length) console.log('No Wi-Fi address found: connect the Mac to the same Wi-Fi as the phone.');
+  for (const line of phoneLines(networkInterfaces(), port)) console.log(line);
 });

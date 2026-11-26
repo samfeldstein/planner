@@ -69,7 +69,7 @@ test('migration 2 skips finished snapshots when storage is missing or empty', ()
   try { assert.doesNotThrow(() => upgradeFinished([], 1)); } finally { delete globalThis.localStorage; }
 });
 
-// Completed: entries put away when the app is left.
+// Put away: entries hidden (still counted) once the app is left.
 
 const snap = (id) => ({ ...floss, id, recur: null, lastDone: null });
 

@@ -257,18 +257,20 @@ export function init({ store, clock }) {
   const FORM_BAR = 56; // the floating prev/next/done strip above the keyboard isn't in the viewport
   const vv = window.visualViewport;
   if (vv) {
-    // A field just focused is kept in view as the keyboard rises: the sheet shrinks in steps while
-    // it animates, so each fit in the next second scrolls the sheet until the field clears the
-    // keyboard and its form bar. After that the sheet scrolls freely.
+    // A field just focused is kept in view as the keyboard rises: the sheet (or the Options screen,
+    // which follows the visible area the same way) shrinks in steps while it animates, so each fit in
+    // the next second scrolls it until the field clears the keyboard and its form bar. After that it
+    // scrolls freely.
     let revealUntil = 0;
     const reveal = () => {
       const el = document.activeElement;
-      if (!sheet.open || !sheet.contains(el) || el === sheet) return;
-      const box = sheet.getBoundingClientRect();
+      const pane = el?.closest?.('#sheet, dialog.screen');
+      if (!pane?.open || el === pane) return;
+      const box = pane.getBoundingClientRect();
       const r = el.getBoundingClientRect();
       const bottom = box.bottom - FORM_BAR - 12;
-      if (r.bottom > bottom) sheet.scrollTop += r.bottom - bottom;
-      else if (r.top < box.top + 12) sheet.scrollTop -= box.top + 12 - r.top;
+      if (r.bottom > bottom) pane.scrollTop += r.bottom - bottom;
+      else if (r.top < box.top + 12) pane.scrollTop -= box.top + 12 - r.top;
     };
     const fit = () => {
       const root = document.documentElement.style;

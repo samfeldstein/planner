@@ -185,6 +185,37 @@ async function run() {
   check(row('c').classList.contains('swiped') && !row('b').classList.contains('swiped'), 'right-click on another row did not move the open row');
   row('c').classList.remove('swiped');
 
+  // A real right-click (the press, then contextmenu) toggles: it opens a closed row, a second one closes it, and one
+  // on another row moves it there. Ctrl+click on a Mac counts as a right-click. The browser menu never shows on a task.
+  const realRightClick = (node, extra = { button: 2 }) => {
+    const r = node.getBoundingClientRect();
+    const x = r.left + 10;
+    const y = r.top + r.height / 2;
+    const id = pid++;
+    ptr(node, 'pointerdown', x, y, { pointerType: 'mouse', pointerId: id, ...extra });
+    ptr(node, 'pointerup', x, y, { pointerType: 'mouse', pointerId: id, ...extra });
+    const ev = new win.MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: x, clientY: y, ...extra });
+    node.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  };
+  check(realRightClick(task('b')) && row('b').classList.contains('swiped'), 'real right-click did not open the row (or showed the menu)');
+  check(realRightClick(task('b')) && !row('b').classList.contains('swiped'), 'a second right-click left the row open');
+  realRightClick(task('b'));
+  realRightClick(task('c'));
+  check(row('c').classList.contains('swiped') && !row('b').classList.contains('swiped'), 'real right-click on another row did not move the open row');
+  realRightClick(task('c'), { button: 0, ctrlKey: true });
+  check(!row('c').classList.contains('swiped'), 'Ctrl+click on the open row left it open');
+  realRightClick(task('c'), { button: 0, ctrlKey: true });
+  check(row('c').classList.contains('swiped'), 'Ctrl+click did not open the row');
+  // The menu key (contextmenu with no press) toggles by the row's own state, even after an earlier press closed it.
+  tap(doc.body);
+  await wait(600);
+  check(!row('c').classList.contains('swiped'), 'test arrangement: the tap did not close the row');
+  rightClick(task('c'));
+  check(row('c').classList.contains('swiped'), 'the menu key after a dismiss tap did not open the row');
+  rightClick(task('c'));
+  check(!row('c').classList.contains('swiped'), 'a second menu key left the row open');
+
   // Keyboard focus on an action slides the row open. Only where the page has focus (headless Chrome does;
   // the Claude browser pane may not, and then nothing can match :focus).
   if (!doc.hasFocus()) win.focus();

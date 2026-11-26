@@ -4,7 +4,8 @@
 // of its actions. Any tap while a row is open only closes it (its click is swallowed, so it can't complete a
 // todo), except a tap on that row's own actions, which goes through and closes any other open row; today-view
 // closes that row when one of its buttons is tapped. The open state is the row's .swiped class; render()
-// redraws rows closed.
+// redraws rows closed. Right-click (or a long-press, where the browser fires contextmenu for it) toggles a row:
+// it opens a closed one and closes an open one.
 
 import { classify, offset, settle } from '../core/swipe.js';
 
@@ -14,6 +15,9 @@ export function init({ list }) {
   let gesture = null; // { pointerId, li, x, y, kind, max, off }
   let suppress = false;
   let suppressTimer = 0;
+  // The open row the latest press landed on and closed, for contextmenu: a right-click on an open row closes it at
+  // pointerdown, and must not reopen it. Consumed by contextmenu, cleared by the next press or key.
+  let closedByPress = null;
 
   // Open by a swipe, or slid open by keyboard focus on one of its actions (CSS).
   const openRows = () => [...list.querySelectorAll('.row.swiped, .row:has(.actions :focus-visible)')];
@@ -39,20 +43,24 @@ export function init({ list }) {
     if (!e.isPrimary) return; // a second finger leaves the first one's swipe or dismiss alone
     clearSuppress();
     end();
+    closedByPress = null;
     const open = openRows();
+    // A right press: the right button, or Ctrl+click on a Mac.
+    const primary = e.button === 0 && !e.ctrlKey;
     if (open.length) {
-      // A right-click closes open rows and goes through (it opens its own row).
-      const own = e.button === 0 ? open.find((li) => inOwnControls(li, e.target)) : null;
+      // A right-click closes open rows and goes through (contextmenu then opens its row, unless it was one of these).
+      const own = primary ? open.find((li) => inOwnControls(li, e.target)) : null;
       for (const li of open) {
         if (li === own) continue; // closed by today-view on its click (the button must not slide away under the finger)
         li.classList.remove('swiped');
         if (li.contains(document.activeElement)) document.activeElement.blur();
+        if (li.contains(e.target)) closedByPress = li;
       }
       if (own || e.button !== 0) return;
-      suppress = true; // the timer starts when the finger lifts
+      suppress = true; // the timer starts when the finger lifts (and a Ctrl+click's click, if any, is swallowed)
       return;
     }
-    if (e.button !== 0 || (e.pointerType !== 'touch' && e.pointerType !== 'pen')) return;
+    if (!primary || (e.pointerType !== 'touch' && e.pointerType !== 'pen')) return;
     const li = e.target.closest('.task')?.closest('.row');
     if (!swipeable(li)) return;
     gesture = { pointerId: e.pointerId, li, x: e.clientX, y: e.clientY, kind: 'pending', max: 0, off: 0 };
@@ -101,6 +109,22 @@ export function init({ list }) {
     end();
   });
 
+  // Right-click on a task opens its row's actions, or closes them if it was open; the browser's menu never shows
+  // on a task (and the iOS callout is blocked in CSS, -webkit-touch-callout). Finished and Upcoming rows have no
+  // actions. With no press first (the keyboard's menu key), the row's own state decides.
+  document.addEventListener('keydown', () => { closedByPress = null; }, true);
+  list.addEventListener('contextmenu', (e) => {
+    const closed = closedByPress;
+    closedByPress = null;
+    const li = e.target.closest('.task')?.closest('.row');
+    if (!li) return;
+    e.preventDefault();
+    if (!swipeable(li)) return;
+    const wasOpen = closed === li || li.classList.contains('swiped');
+    for (const other of list.querySelectorAll('.row.swiped')) other.classList.remove('swiped');
+    if (!wasOpen) li.classList.add('swiped');
+  });
+
   // Before anything else sees it: the click of a dismiss tap or a drag.
   document.addEventListener('click', (e) => {
     if (!suppress) return;
@@ -108,4 +132,7 @@ export function init({ list }) {
     e.preventDefault();
     e.stopPropagation();
   }, true);
+
+  // iOS Safari applies :active (the strip's and the tasks' pressed colour) only with a touch listener in the way.
+  list.addEventListener('touchstart', () => {}, { passive: true });
 }

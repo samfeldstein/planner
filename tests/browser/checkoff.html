@@ -83,37 +83,28 @@ async function run() {
     failures.push(`undo lost the edit: ${undone.title}, priority ${undone.priority}`);
   }
 
-  // Leaving the app puts checked-off todos away in a closed Completed list; undo there brings
-  // the todo back unstruck in the list.
-  const again = await until(() => doc.querySelector(`.today .row:not(.done)[data-id="${id}"] .task`), 'the undone row');
+
+  // Leaving the app puts checked-off todos away: they leave the list for good (there's no Completed
+  // list), and the header still counts them as done.
+  const win = frame.contentWindow;
+  const check = (ok, what) => { if (!ok) failures.push(what); };
+  const q = (sel) => doc.querySelector(sel);
+  const again = await until(() => q(`.today .row:not(.done)[data-id="${id}"] .task`), 'the undone row');
   if (!again) return;
   again.click();
   await until(async () => (await adapter.load()).todos.find((x) => x.id === id)?.due === next, 'the second check-off to save');
-  if (doc.querySelector('.completed')) failures.push('Completed shown before leaving the app');
-  frame.contentWindow.dispatchEvent(new frame.contentWindow.PageTransitionEvent('pagehide'));
-  const away = await until(() => doc.querySelector(`.completed .row.done[data-id="${id}"]`), 'the row in Completed');
-  if (!away) return;
-  if (doc.querySelector(`.today .row[data-id="${id}"]`)) failures.push('put-away todo still drawn in the list');
-  const details = doc.querySelector('.completed details');
-  if (details.open) failures.push('Completed is open after leaving');
-  const label = details.querySelector('summary').getAttribute('aria-label');
-  if (label !== 'Completed, 1 todo') failures.push(`Completed label: ${label}`);
-  if (doc.getElementById('count').textContent !== '1 of 1') failures.push(`header count: ${doc.getElementById('count').textContent}`);
-  if (doc.querySelector('.completed').nextElementSibling !== doc.querySelector('.upcoming')) failures.push('Completed is not just above Upcoming');
+  check(q(`.today .row.done[data-id="${id}"]`), 'the checked-off row is not struck in the list before leaving');
+  win.dispatchEvent(new win.PageTransitionEvent('pagehide'));
+  check(!q(`#list .row[data-id="${id}"]:not(.upcoming .row)`), 'put-away todo still drawn outside Upcoming');
+  check(!q('.completed'), 'a Completed section is drawn');
+  check(q('.today').nextElementSibling === q('.upcoming'), 'Upcoming is not right below the list');
+  check(doc.getElementById('count').textContent === '1 of 1', `header count after leaving: ${doc.getElementById('count').textContent}`);
   const saved2 = JSON.parse(localStorage.getItem('planner:finished'));
-  if (!saved2?.away?.includes(id)) failures.push('put-away set was not saved');
-  details.open = true;
-  away.querySelector('.task').click();
-  const back = await until(() => doc.querySelector(`.today .row:not(.done)[data-id="${id}"]`), 'the row back in the list');
-  if (back?.classList.contains('top')) failures.push('undone row lost the priority edit');
-  if (doc.querySelector('.completed')) failures.push('Completed still shown with nothing in it');
-  const restored = (await adapter.load()).todos.find((x) => x.id === id);
-  if (restored?.due !== due) failures.push(`undo from Completed did not move due back: ${restored?.due}`);
+  check(saved2?.away?.includes(id), 'put-away set was not saved');
 
-  // Hiding the page (visibilitychange), focus after a put-away, the tap fallback, "All done for
-  // today.", and the launch put-away. The todo is in the list again, unstruck.
-  const win = frame.contentWindow;
-  const check = (ok, what) => { if (!ok) failures.push(what); };
+  // Hiding the page (visibilitychange), focus when a focused struck row is put away, the tap fallback,
+  // "All done for today.", and the launch put-away. Each case uses fresh todos, added through the app's
+  // own sheet so the open page knows about them (one-off todos: a check-off deletes them).
   const fire = (kind) => {
     if (kind === 'pagehide') win.dispatchEvent(new win.PageTransitionEvent('pagehide'));
     else if (kind === 'hidden') hide('hidden');
@@ -123,133 +114,110 @@ async function run() {
     Object.defineProperty(doc, 'visibilityState', { configurable: true, get: () => state });
     doc.dispatchEvent(new win.Event('visibilitychange'));
   }
-  const q = (sel) => doc.querySelector(sel);
-  const rowSel = (scope, extra = '') => `${scope} .row${extra}[data-id="${id}"]`;
   const emptyLine = () => q('.today .empty')?.textContent ?? null;
-  const dueIs = (value) => async () => (await adapter.load()).todos.find((x) => x.id === id)?.due === value;
-  // Checks the todo off by tapping its row in the list; waits for the save and the struck row.
-  async function checkOff(what) {
-    q(`${rowSel('.today', ':not(.done)')} .task`).click();
-    await until(dueIs(next), `${what}: the check-off to save`);
-    return until(() => q(rowSel('.today', '.done')), `${what}: the struck row`);
+  const exists = (tid) => async () => (await adapter.load()).todos.some((x) => x.id === tid);
+  const live = (tid) => q(`.today .row:not(.done)[data-id="${tid}"]`);
+  const struck = (tid) => q(`.today .row.done[data-id="${tid}"]`);
+  async function add(title) {
+    doc.dispatchEvent(new win.CustomEvent('planner:new', { detail: { title } }));
+    await until(() => doc.getElementById('sheet').open, `the sheet for ${title}`);
+    doc.getElementById('sheetDone').click();
+    const tid = await until(async () => (await adapter.load()).todos.find((x) => x.title === title)?.id, `${title} to save`);
+    await until(() => live(tid), `${title} in the list`);
+    await until(() => !doc.getElementById('sheet').open, `the sheet for ${title} to close`);
+    return tid;
   }
-  async function openCompleted() {
-    q('.completed details').open = true;
-    await wait(100); // the toggle event is async
+  async function checkOff(tid, what) {
+    live(tid).querySelector('.task').click();
+    await until(async () => !(await exists(tid)()), `${what}: the check-off to save`);
+    return until(() => struck(tid), `${what}: the struck row`);
   }
-  async function undoFromCompleted(what) {
-    await openCompleted();
-    const btn = q(`${rowSel('.completed')} .task`);
-    btn.focus();
-    btn.click();
-    await until(dueIs(due), `${what}: the undo to save`);
-    return until(() => q(rowSel('.today', ':not(.done)')), `${what}: the row back in the list`);
-  }
+  const focusedOn = (tid) => doc.activeElement === live(tid)?.querySelector('.task');
 
   q('.upcoming details').open = false; // each case below opens it when it needs it
   await wait(100);
 
-  // visibilitychange puts the row away like pagehide, and coming back keeps focus on Completed.
-  let struckRow = await checkOff('visibilitychange');
-  if (!struckRow) return;
-  check(emptyLine() === null, 'an empty line shows while a struck row is in the list');
-  struckRow.querySelector('.task').focus();
-  check(doc.activeElement === struckRow.querySelector('.task'), 'could not focus the struck row');
+  // Several struck rows above the focused one leave together: focus goes to the next unstruck row (D),
+  // not to whatever row now sits at its old position.
+  const [a, b, c, d] = [await add('Alpha'), await add('Bravo'), await add('Charlie'), await add('Delta')];
+  if (!a || !b || !c || !d) return;
+  for (const [tid, name] of [[a, 'Alpha'], [b, 'Bravo'], [c, 'Charlie']]) await checkOff(tid, name);
+  check(emptyLine() === null, 'an empty line shows with rows in the list');
+  struck(c).querySelector('.task').focus();
+  check(doc.activeElement === struck(c)?.querySelector('.task'), 'could not focus the struck row');
   fire('hidden');
-  check(q(rowSel('.completed', '.done')), 'visibilitychange (hidden) did not put the row away');
-  check(doc.activeElement === q('.completed summary'), 'focus (a): not on the Completed summary after leaving');
-  check(emptyLine() === 'All done for today.', `all done line: ${emptyLine()}`);
+  check(![a, b, c].some((tid) => q(`.today .row[data-id="${tid}"]`)), 'visibilitychange (hidden) did not put the rows away');
+  check(focusedOn(d), `leaving: focus is not on the next unstruck row (${doc.activeElement?.textContent})`);
+  check(doc.getElementById('count').textContent === '4 of 5', `header count: ${doc.getElementById('count').textContent}`);
   fire('pagehide');
   fire('visible');
-  check(doc.activeElement === q('.completed summary'), 'focus (a2): lost after pagehide and coming back');
+  check(focusedOn(d), 'focus lost after pagehide and coming back');
   // iOS may clear focus while backgrounded: the key saved on leaving brings it back.
   fire('hidden');
   doc.activeElement.blur();
   check(doc.activeElement === doc.body, 'blur did not clear focus');
   fire('visible');
-  check(doc.activeElement === q('.completed summary'), 'focus lost across a hide with focus cleared');
+  check(focusedOn(d), 'focus lost across a hide with focus cleared');
 
-  // (b) Undo the last Completed row: focus lands on its task back in the list.
-  const undone1 = await undoFromCompleted('focus (b)');
-  check(undone1 && doc.activeElement === undone1.querySelector('.task'), 'focus (b): not on the task back in the list');
-  check(!q('.completed'), 'Completed still shown after undoing its last row');
-  check(emptyLine() === null, 'All done line still shown after the undo');
+  // No unstruck row after it: the one before it.
+  const e = await add('Echo');
+  if (!e) return;
+  await checkOff(e, 'Echo');
+  struck(e).querySelector('.task').focus();
+  fire('hidden');
+  check(focusedOn(d), 'leaving from the last row: focus is not on the row before it');
+  fire('visible');
 
-  // Upcoming open, with the todo's next instance in it: focus must not land there.
-  await checkOff('upcoming open');
+  // The only row: the Upcoming summary, and "All done for today." With Upcoming open, the rent's next
+  // instance shares its id there, and focus must not land in it.
   q('.upcoming details').open = true;
   await wait(100);
-  q(rowSel('.today', '.done') + ' .task').focus();
+  await checkOff(d, 'Delta');
+  struck(d).querySelector('.task').focus();
   fire('hidden');
-  check(q(rowSel('.completed', '.done')), 'upcoming open: the row was not put away');
-  check(doc.activeElement === q('.completed summary'), 'upcoming open: focus is not on the Completed summary');
+  check(doc.activeElement === q('.upcoming summary'), `leaving from the only row: focus is not on Upcoming (${doc.activeElement?.tagName})`);
+  check(emptyLine() === 'All done for today.', `all done line: ${emptyLine()}`);
   fire('visible');
+  check(doc.activeElement === q('.upcoming summary'), 'coming back: focus left the Upcoming summary');
   q('.upcoming details').open = false;
   await wait(100);
 
-  // (b) again, with a second Completed row left behind: the undone row's task has focus.
-  // The second todo is added through the app's own sheet, so the open page knows about it.
-  doc.dispatchEvent(new win.CustomEvent('planner:new', { detail: { title: 'Water plants' } }));
-  await until(() => doc.getElementById('sheet').open, 'the new todo sheet');
-  doc.getElementById('sheetDone').click();
-  const other = await until(async () => (await adapter.load()).todos.find((x) => x.title === 'Water plants')?.id, 'the second todo to save');
-  if (!other) return;
-  await until(() => q(`.today .row[data-id="${other}"]`), 'the second todo');
-  q(`.today .row[data-id="${other}"] .task`).click();
-  await until(() => q(`.today .row.done[data-id="${other}"]`), 'the second todo struck');
-  fire('hidden');
-  fire('visible');
-  const undone2 = await undoFromCompleted('focus (b) with another row left');
-  check(q('.completed'), 'the other Completed row went too');
-  check(undone2 && doc.activeElement === undone2.querySelector('.task'), 'focus (b), not the last row: not on the task back in the list');
-  // A third todo, sorted after the second, makes the index fallback land on it, not the undone row.
-  doc.dispatchEvent(new win.CustomEvent('planner:new', { detail: { title: 'Call mom' } }));
-  await until(() => doc.getElementById('sheet').open, 'the third todo sheet');
-  doc.getElementById('sheetDone').click();
-  const third = await until(async () => (await adapter.load()).todos.find((x) => x.title === 'Call mom')?.id, 'the third todo to save');
-  if (!third) return;
-  const hasThird = async () => (await adapter.load()).todos.some((x) => x.id === third);
-  await until(() => q(`.today .row[data-id="${third}"]`), 'the third todo');
-  // Check it off and undo it, so the last tap names a row that stays in the list: a return to the
-  // app must not use that tap.
-  q(`.today .row[data-id="${third}"] .task`).click();
-  await until(async () => !(await hasThird()), 'the third todo to check off');
-  await until(() => q(`.today .row.done[data-id="${third}"]`), 'the third todo struck');
-  q(`.today .row.done[data-id="${third}"] .task`).click();
-  const tappedAt = win.performance.now();
-  await until(hasThird, 'the third todo undone');
-  await until(() => q(`.today .row:not(.done)[data-id="${third}"]`), 'the third todo back');
-
-  // Leaving with focus on a row inside an open Completed list: focus goes to its summary, and
-  // coming back keeps it there (not on the tapped third row).
-  await openCompleted();
-  const otherDone = q(`.completed .row[data-id="${other}"] .task`);
-  otherDone.focus();
-  check(doc.activeElement === otherDone, 'could not focus the Completed row');
-  fire('hidden');
-  check(doc.activeElement === q('.completed summary'), 'leaving with focus in an open Completed list: not on the summary');
-  check(win.performance.now() - tappedAt < 1800, 'test arrangement: the last tap is too old to matter');
-  fire('visible');
-  check(doc.activeElement === q('.completed summary'), 'coming back used the last tap instead of the saved focus');
-
-  // Undo with nothing focused: the tap stands in for focus. The Completed row is third in the
-  // checks, and the undone row lands second, so the index fallback would pick the third todo.
-  await openCompleted();
+  // Tap fallback: no focus before the tap (as on iOS Safari); focus ends on the struck row. Undo with
+  // nothing focused: the tap stands in again, and focus is on the row back in the list.
+  const f = await add('Foxtrot');
+  const g = await add('Golf');
+  if (!f || !g) return;
   doc.activeElement.blur();
-  q(`.completed .row[data-id="${other}"] .task`).click();
-  const back2 = await until(() => q(`.today .row:not(.done)[data-id="${other}"]`), 'the second todo back (nothing focused)');
-  const checksNow = [...doc.querySelectorAll('[data-act="complete"], [data-act="uncomplete"]')];
-  check(checksNow[Math.min(2, checksNow.length - 1)] !== back2?.querySelector('.task'), 'test arrangement: the index fallback would land on the right row');
-  check(back2 && doc.activeElement === back2.querySelector('.task'), 'undo with nothing focused: focus is not on the task back in the list');
+  check(doc.activeElement === doc.body, 'tap fallback: blur did not clear focus');
+  live(f).querySelector('.task').click();
+  check(doc.activeElement === struck(f)?.querySelector('.task'), 'tap fallback: focus is not on the struck row');
+  await until(async () => !(await exists(f)()), 'tap fallback: the check-off to save');
+  doc.activeElement.blur();
+  struck(f).querySelector('.task').click();
+  await until(exists(f), 'undo with nothing focused: the undo to save');
+  const back = await until(() => live(f), 'the row back in the list');
+  check(back && focusedOn(f), 'undo with nothing focused: focus is not on the row back in the list');
 
   // A tap on another row wins over the focused one (a click may not move focus).
-  q(`${rowSel('.today', ':not(.done)')} .task`).focus();
-  q(`.today .row:not(.done)[data-id="${other}"] .task`).click();
-  check(doc.activeElement === q(`.today .row.done[data-id="${other}"] .task`), 'tap on another row: focus stayed on the focused row');
-  await until(async () => !(await adapter.load()).todos.some((x) => x.id === other), 'the second todo to check off');
+  live(f).querySelector('.task').focus();
+  live(g).querySelector('.task').click();
+  check(doc.activeElement === struck(g)?.querySelector('.task'), 'tap on another row: focus stayed on the focused row');
+  await until(async () => !(await exists(g)()), 'Golf to check off');
 
-  // Leaving or coming back must not scroll the list: focus moves without scrolling. The Completed
-  // summary has to be out of view, or a scrolling focus would go unnoticed.
+  // Coming back uses the focus saved on leaving, not a recent tap. Undo Golf (a tap on a row that stays),
+  // then leave with focus on Foxtrot.
+  struck(g).querySelector('.task').click();
+  const tappedAt = win.performance.now();
+  await until(exists(g), 'Golf undone');
+  await until(() => live(g), 'Golf back');
+  live(f).querySelector('.task').focus();
+  fire('hidden');
+  check(win.performance.now() - tappedAt < 1800, 'test arrangement: the last tap is too old to matter');
+  fire('visible');
+  check(focusedOn(f), 'coming back used the last tap instead of the saved focus');
+
+  // Leaving or coming back must not scroll the list, though focus moves from the struck row to the one after
+  // it, which is out of view.
   const scrollerOf = (node) => {
     for (let n = node; n && n !== doc.documentElement; n = n.parentElement) {
       const o = win.getComputedStyle(n).overflowY;
@@ -257,38 +225,26 @@ async function run() {
     }
     return doc.scrollingElement;
   };
+  await checkOff(f, 'scroll case');
   frame.style.height = '100px';
   await wait(100);
   const scroller = scrollerOf(doc.getElementById('list'));
   scroller.scrollTop = 0;
-  q(`.today .row.done[data-id="${other}"] .task`).focus({ preventScroll: true });
+  struck(f).querySelector('.task').focus({ preventScroll: true });
+  check(scroller.scrollTop === 0, 'test arrangement: focusing the struck row scrolled');
   fire('hidden');
-  check(q(`.completed .row[data-id="${other}"]`), 'scroll case: the row was not put away');
+  check(focusedOn(g), 'scroll case: focus is not on the next row');
   const view = scroller === doc.scrollingElement ? { bottom: win.innerHeight } : scroller.getBoundingClientRect();
-  check(q('.completed summary').getBoundingClientRect().top >= view.bottom, 'test arrangement: the Completed summary is in view');
+  check(live(g).getBoundingClientRect().top >= view.bottom, 'test arrangement: the next row is in view');
   check(scroller.scrollTop === 0, `leaving scrolled the list to ${scroller.scrollTop}`);
   fire('visible');
   check(scroller.scrollTop === 0, `coming back scrolled the list to ${scroller.scrollTop}`);
   frame.style.height = '700px';
   await wait(100);
 
-  // Undo the other one too, to start the next case with only the first todo.
-  await openCompleted();
-  q(`.completed .row[data-id="${other}"] .task`).click();
-  await until(() => q(`.today .row:not(.done)[data-id="${other}"]`), 'the second todo back');
-  // The open page doesn't need to know about these deletions.
-  await adapter.commit([{ store: 'todos', type: 'delete', key: other }, { store: 'todos', type: 'delete', key: third }]);
-
-  // Tap fallback: no focus before the tap (as on iOS Safari); focus ends on the struck row.
-  doc.activeElement.blur();
-  check(doc.activeElement === doc.body, 'tap fallback: blur did not clear focus');
-  q(`${rowSel('.today', ':not(.done)')} .task`).click();
-  check(doc.activeElement === q(`${rowSel('.today', '.done')} .task`), 'tap fallback: focus is not on the struck row');
-  await until(dueIs(next), 'tap fallback: the check-off to save');
-
-  // Launch put-away: the record from before the check-off, with nothing put away, and the todo
-  // already checked off in the database. The old page goes to about:blank first so its pagehide
-  // can't overwrite the record.
+  // Launch put-away: a record with nothing put away and Golf struck in place, as if iOS killed the app
+  // without a hide event. The old page goes to about:blank first so its pagehide can't overwrite the record.
+  await checkOff(g, 'launch case');
   const record = JSON.parse(localStorage.getItem('planner:finished'));
   frame.src = 'about:blank';
   await new Promise((r) => { frame.onload = r; });
@@ -301,9 +257,11 @@ async function run() {
   const logError2 = win2.console.error.bind(win2.console);
   win2.console.error = (...args) => { failures.push(`console.error: ${args.join(' ')}`); logError2(...args); };
   const doc2 = frame.contentDocument;
-  const launched = await until(() => doc2.querySelector(`.completed .row.done[data-id="${id}"]`), 'the row in Completed after launch');
-  check(launched, 'launch did not put the row away');
-  check(doc2.querySelector('.today .empty')?.textContent === 'All done for today.', 'all done line missing after launch');
+  const empty2 = await until(() => doc2.querySelector('.today .empty'), 'the list after launch');
+  check(empty2?.textContent === 'All done for today.', `after launch: ${empty2?.textContent}`);
+  check(!doc2.querySelector('.today .row'), 'launch did not put the rows away');
+  const n = record.todos.length;
+  check(doc2.getElementById('count').textContent === `${n} of ${n}`, `header count after launch: ${doc2.getElementById('count').textContent} (want ${n} of ${n})`);
   localStorage.removeItem('planner:upcomingOpen');
 }
 
